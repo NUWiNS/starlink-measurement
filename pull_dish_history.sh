@@ -1,5 +1,12 @@
 #!/bin/bash
 
+sh ./command_guard.sh
+guard_status=$?
+
+if [ $guard_status -ne 0 ]; then
+  exit $guard_status
+fi
+
 # Set the polling interval (in seconds)
 # 15min
 POLL_INTERVAL=$((15 * 60))
