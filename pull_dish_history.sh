@@ -26,7 +26,7 @@ poll_command() {
     fi
 
   # Write the header to the output file
-  echo "utc_time_micro | status_response" > "$OUTPUT_FILE"
+  echo "utc_time_micro | response" > "$OUTPUT_FILE"
 
   while true; do
       # If the output is JSON, use jq to convert it to a single line
@@ -35,6 +35,8 @@ poll_command() {
 
       # Save the response time as timestamp
       time_ms=$(get_timestamp_in_micro_sec)
+
+      echo "pulled history data from dish: ${time_ms}"
 
       # Append the time_ms and command output to the file
       echo "$time_ms | $command_output" >> "$OUTPUT_FILE"
