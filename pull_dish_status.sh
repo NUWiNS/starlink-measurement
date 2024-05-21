@@ -17,6 +17,8 @@ OUTPUT_FILE="${OUTPUT_FOLDER}/dish_status.$(date +"%Y%m%d_%H%M%S").log"
 get_timestamp_in_micro_sec() {
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         date +%s%6N
+    elif [[ "$OSTYPE" == "linux-android"* ]]; then
+        date +%s%6N
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         gdate +%s%6N
     else
