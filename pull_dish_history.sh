@@ -37,19 +37,27 @@ poll_command() {
 
   while true; do
       # If the output is JSON, use jq to convert it to a single line
-      command_output=$(grpcurl -plaintext -emit-defaults -d '{"get_history":{}}' 192.168.100.1:9200 SpaceX.API.Device.Device/Handle \
+        command_output=$(grpcurl -plaintext -emit-defaults -d '{"get_history":{}}' 192.168.100.1:9200 SpaceX.API.Device.Device/Handle \
         | jq -c '.')
 
-      # Save the response time as timestamp
-      time_ms=$(get_timestamp_in_micro_sec)
+        if echo "$command_output" | jq -e . >/dev/null 2>&1; then
+            command_output=$(echo "$command_output" | jq -c .)
+        else
+            echo "Failed to get data from dish, sleeping for $POLL_INTERVAL seconds before retrying..."
+            sleep $POLL_INTERVAL
+            continue
+        fi
 
-      echo "pulled history data from dish: ${time_ms}"
+        # Save the response time as timestamp
+        time_ms=$(get_timestamp_in_micro_sec)
 
-      # Append the time_ms and command output to the file
-      echo "$time_ms | $command_output" >> "$OUTPUT_FILE"
+        echo "pulled history data from dish: ${time_ms}"
 
-      # Wait for the specified interval before the next poll
-      sleep $POLL_INTERVAL
+        # Append the time_ms and command output to the file
+        echo "$time_ms | $command_output" >> "$OUTPUT_FILE"
+
+        # Wait for the specified interval before the next poll
+        sleep $POLL_INTERVAL
   done
 }
 
