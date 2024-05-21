@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sh ./command_guard.sh
+bash ./command_guard.sh
 guard_status=$?
 
 if [ $guard_status -ne 0 ]; then
