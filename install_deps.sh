@@ -1,5 +1,5 @@
 # Install dependencies
-dependencies="wget jq"
+dependencies="wget jq moreutils"
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     apt install $dependencies
