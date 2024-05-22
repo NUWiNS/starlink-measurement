@@ -11,11 +11,18 @@ elif [[ "$OSTYPE" == "linux-android"* ]]; then
     termux-setup-storage
 
     pkg install $dependencies 
+    
+    usr_bin_path=/data/data/com.termux/files/usr/bin
+
     # check grpcurl version: https://github.com/fullstorydev/grpcurl/releases
-    wget https://github.com/fullstorydev/grpcurl/releases/download/v1.9.1/grpcurl_1.9.1_linux_arm64.tar.gz
-    tar -xvf grpcurl_1.9.1_linux_arm64.tar.gz
     chmod +x grpcurl
-    mv grpcurl /data/data/com.termux/files/usr/bin/
+    cp ./deps/grpcurl $usr_bin_path/grpcurl
+    chmod +x $usr_bin_path/grpcurl
+
+    # nuttcp: https://nuttcp.net/nuttcp/
+    cp ./deps/nuttcp-8.1.4 $usr_bin_path/nuttcp
+    chmod +x $usr_bin_path/nuttcp
+
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     brew install $dependencies
 else
