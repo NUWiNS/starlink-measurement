@@ -7,7 +7,7 @@ handle_sigint(){
 trap handle_sigint INT
 operator="Verizon"
 echo "This is Verizon test, please choose a server"
-echo "1) Virginia cloud server: 54.197.223.49"
+echo "1) Virginia cloud server: 35.245.244.238"
 echo "2) Localhost (for testing): 127.0.0.1"
 
 while true; do
@@ -29,8 +29,10 @@ done
 port_number=5002
 echo "Testing $operator, server $choice (ip: $ip_address, port: $port_number)"
 while true; do
-    data_folder=storage/shared/maine_starlink_trip/$(date '+%Y%m%d')/
+    # save the output to storage/shared folder for adb pull
+    data_folder=~/storage/shared/maine_starlink_trip/$(date '+%Y%m%d')/
     mkdir -p $data_folder
+
     start_dl_time=$(date '+%H%M%S%3N')
     start_time=$start_dl_time
     mkdir -p $data_folder$start_dl_time
@@ -38,7 +40,7 @@ while true; do
     start_time=$(date '+%H%M%S%3N')
     log_file_name="$data_folder$start_dl_time/tcp_downlink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
-    timeout 130 nuttcp -v -i0.5 -r -F -l640 -T120 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+    timeout 130 nuttcp -v -i0.5 -r -F -l640 -T10 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
