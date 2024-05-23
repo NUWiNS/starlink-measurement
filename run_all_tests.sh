@@ -91,63 +91,68 @@ while true; do
         echo "fetching starlink history in background, PID: $SL_PULL_HISTORY_PID"
     fi
 
-    echo "TCP downlink test started: $start_time"
-    start_time=$(date '+%H%M%S%3N')
-    log_file_name="$data_folder$start_dl_time/tcp_downlink_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
-    # FIXME: change to 120s
-    timeout 130 nuttcp -v -i0.5 -r -F -l640 -T1 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
-    echo "End time: $(date '+%s%3N')">>$log_file_name
-    echo "Saved downlink test to $log_file_name"
-    rate=$(grep -E 'nuttcp -r' $log_file_name)
-    echo "DL average throughput: $rate"
-    grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
-	    sed -E 's/\s*KB\/sec//'
+    # echo "TCP downlink test started: $start_time"
+    # start_time=$(date '+%H%M%S%3N')
+    # log_file_name="$data_folder$start_dl_time/tcp_downlink_${start_time}.out"
+    # echo "Start time: $(date '+%s%3N')">$log_file_name
+    # # FIXME: change to 120s
+    # timeout 130 nuttcp -v -i0.5 -r -F -l640 -T1 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+    # echo "End time: $(date '+%s%3N')">>$log_file_name
+    # echo "Saved downlink test to $log_file_name"
+    # rate=$(grep -E 'nuttcp -r' $log_file_name)
+    # echo "DL average throughput: $rate"
+    # grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
+	#     sed -E 's/\s*KB\/sec//'
 
-    echo "------"
-    echo "Waiting for 5 seconds before starting uplink test..."
-    sleep 5
+    # echo "------"
+    # echo "Waiting for 5 seconds before starting uplink test..."
+    # sleep 5
 
-    start_time=$(date '+%H%M%S%3N')
-    echo "------"
-    echo "TCP uplink test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/tcp_uplink_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
-    # FIXME: change to 120s
-    timeout 130 nuttcp -v -i0.5 -l640  -T1 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
-    echo "Saved uplink test to $log_file_name"
-    rate=$(grep -E 'nuttcp -r' $log_file_name)
-    echo "UL average throughput: $rate"
-    grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
+    # start_time=$(date '+%H%M%S%3N')
+    # echo "------"
+    # echo "TCP uplink test started: $start_time"
+    # log_file_name="$data_folder$start_dl_time/tcp_uplink_${start_time}.out"
+    # echo "Start time: $(date '+%s%3N')">$log_file_name
+    # # FIXME: change to 120s
+    # timeout 130 nuttcp -v -i0.5 -l640  -T1 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    # echo "End time: $(date '+%s%3N')">>$log_file_name
+    # echo "Saved uplink test to $log_file_name"
+    # rate=$(grep -E 'nuttcp -r' $log_file_name)
+    # echo "UL average throughput: $rate"
+    # grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
 
-    echo "------"
-    echo "Waiting for 5 seconds before starting ping test..."
-    sleep 5
+    # echo "------"
+    # echo "Waiting for 5 seconds before starting ping test..."
+    # sleep 5
 
-    start_time=$(date '+%H%M%S%3N')
-    echo "------"
-    echo "Ping test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
-    # FIXME: change to 30s
-    timeout 35 ping -s 38 -i 0.2 -w 1 $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
-    echo "Saved ping test to $log_file_name"
-    summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
-    echo "Ping summary: $summary"
+    # start_time=$(date '+%H%M%S%3N')
+    # echo "------"
+    # echo "Ping test started: $start_time"
+    # log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
+    # echo "Start time: $(date '+%s%3N')">$log_file_name
+    # # FIXME: change to 30s
+    # timeout 35 ping -s 38 -i 0.2 -w 1 $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    # echo "End time: $(date '+%s%3N')">>$log_file_name
+    # echo "Saved ping test to $log_file_name"
+    # summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
+    # echo "Ping summary: $summary"
 
-    echo "------"
-    echo "Waiting for 5 seconds before starting nslookup test..."
-    sleep 5
+    # echo "------"
+    # echo "Waiting for 5 seconds before starting nslookup test..."
+    # sleep 5
 
     start_time=$(date '+%H%M%S%3N')
     echo "------"
     echo "Nslookup test started: $start_time"
     log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
-    nslookup_domain="www.google.com"
-    nslookup $nslookup_domain >> $log_file_name
+    # Top 5 websites worldwide: https://www.semrush.com/website/top/
+    top5_websites="google.com youtube.com facebook.com wikipedia.org instagram.com"
+    for domain in $top5_websites; do
+        # clear the empty lines
+        nslookup $domain | grep -v '^$' | ts '[%Y-%m-%d %H:%M:%.S]' >> $log_file_name
+    done
+
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved nslookup test to $log_file_name"
 
