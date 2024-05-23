@@ -149,7 +149,7 @@ while true; do
     # Top 5 websites worldwide: https://www.semrush.com/website/top/
     top5_websites="google.com youtube.com facebook.com wikipedia.org instagram.com"
     for domain in $top5_websites; do
-        echo "Start time: $(date '+%s%3N')">$log_file_name
+        echo "Start time: $(date '+%s%3N')">>$log_file_name
         nslookup $domain | grep -v '^$' >> $log_file_name
         echo "End time: $(date '+%s%3N')">>$log_file_name
     done
