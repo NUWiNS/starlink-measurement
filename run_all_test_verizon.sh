@@ -8,11 +8,11 @@ SL_PULL_HISTORY_PID=""
 
 handle_exit(){
 	echo "Caught signal, performing cleanup..."
-    if [ $SL_PULL_STATUS_PID != "" ]; then
+    if [ -n $SL_PULL_STATUS_PID ]; then
         kill $SL_PULL_STATUS_PID
         echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
     fi
-    if [ $SL_PULL_HISTORY_PID != "" ]; then
+    if [ -n  $SL_PULL_HISTORY_PID ]; then
         kill $SL_PULL_HISTORY_PID
         echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
     fi
@@ -168,11 +168,11 @@ while true; do
     echo "------"
     echo "All tests completed, cleaning up..."
 
-    if [ $SL_PULL_STATUS_PID  != "" ]; then
+    if [ -n $SL_PULL_STATUS_PID ]; then
         kill $SL_PULL_STATUS_PID
         echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
     fi
-    if [ $SL_PULL_HISTORY_PID != "" ]; then
+    if [ -n $SL_PULL_HISTORY_PID ]; then
         kill $SL_PULL_HISTORY_PID
         echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
     fi
