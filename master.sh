@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start the subscript in the background
-./subscript.sh &
+bash ./subscript.sh &
 SUBSCRIPT_PID=$!
 
 kill_subscript() {
