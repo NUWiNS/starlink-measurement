@@ -8,27 +8,27 @@ SL_PULL_HISTORY_PID=""
 ISO_8601_TIMEZONE_FORMAT="%Y-%m-%dT%H:%M:%S.%6N%:z"
 
 start_starlink_processes() {
-    nohup bash ./pull_dish_metric.sh status $data_folder$start_dl_time > $data_folder$start_dl_time/pull_sl_status.log 2>&1 &
-    SL_PULL_STATUS_PID=$!
-    echo "fetching starlink status in background, PID: $SL_PULL_STATUS_PID"
-
     nohup bash ./pull_dish_metric.sh history $data_folder$start_dl_time > $data_folder$start_dl_time/pull_sl_history.log 2>&1 &
     SL_PULL_HISTORY_PID=$!
     echo "fetching starlink history in background, PID: $SL_PULL_HISTORY_PID"
+
+    nohup bash ./pull_dish_metric.sh status $data_folder$start_dl_time > $data_folder$start_dl_time/pull_sl_status.log 2>&1 &
+    SL_PULL_STATUS_PID=$!
+    echo "fetching starlink status in background, PID: $SL_PULL_STATUS_PID"
 }
 
 kill_starlink_processes() {
-    if [ -n "$SL_PULL_STATUS_PID" ]; then
-        kill $SL_PULL_STATUS_PID
-        wait $SL_PULL_STATUS_PID
-        echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
-    fi
     if [ -n  "$SL_PULL_HISTORY_PID" ]; then
         kill $SL_PULL_HISTORY_PID
         wait $SL_PULL_HISTORY_PID
         echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
     fi
 
+    if [ -n "$SL_PULL_STATUS_PID" ]; then
+        kill $SL_PULL_STATUS_PID
+        wait $SL_PULL_STATUS_PID
+        echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
+    fi
 }
 
 handle_exit(){

@@ -91,7 +91,7 @@ handle_exit(){
 	exit 0
 }
 
-trap handle_exit SIGINT SIGTERM SIGHUP
+trap handle_exit INT SIGINT SIGTERM SIGHUP
 
 
 while true; do
