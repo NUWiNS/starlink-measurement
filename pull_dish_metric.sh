@@ -5,6 +5,8 @@
 # 1. The metric to pull from the dish (status, history)
 # 2. The output folder to write the data to
 
+SLEEP_PID=""
+
 get_timestamp_in_millisec() {
     format="%s%3N"
 
@@ -79,6 +81,10 @@ echo "Starting to pull $request_metric data from dish..."
 
 handle_exit(){
     echo "Caught signal, performing cleanup..."
+
+    # kill all child processes of the current script
+    pkill -P $$
+
     end_timestamp=$(get_timestamp_in_millisec)
     echo "End time: ${end_timestamp}">>$OUTPUT_FILE
 	exit 0
@@ -106,5 +112,8 @@ while true; do
     fi
 
     # Wait for the specified interval before the next poll
-    sleep $polling_interval
+    sleep $polling_interval &
+    SLEEP_PID=$!
+    echo "Sleeping for $polling_interval seconds, PID: $SLEEP_PID ..."
+    wait $SLEEP_PID
 done
