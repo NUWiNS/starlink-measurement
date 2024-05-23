@@ -82,11 +82,11 @@ while true; do
 
     # if operator is starlink, start starlink test as background
     if [ $operator == "starlink" ]; then
-        nohup bash ./pull_dish_metric.sh status $data_folder$start_dl_time > pull_sl_status.log 2>&1 &
+        nohup bash ./pull_dish_metric.sh status $data_folder$start_dl_time > $data_folder$start_dl_time/pull_sl_status.log 2>&1 &
         SL_PULL_STATUS_PID=$!
         echo "fetching starlink status in background, PID: $SL_PULL_STATUS_PID"
 
-        nohup bash ./pull_dish_metric.sh history $data_folder$start_dl_time > pull_sl_history.log 2>&1 &
+        nohup bash ./pull_dish_metric.sh history $data_folder$start_dl_time > $data_folder$start_dl_time/pull_sl_history.log 2>&1 &
         SL_PULL_HISTORY_PID=$!
         echo "fetching starlink history in background, PID: $SL_PULL_HISTORY_PID"
     fi
