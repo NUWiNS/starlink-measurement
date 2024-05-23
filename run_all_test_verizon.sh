@@ -90,7 +90,7 @@ while true; do
 
         nohup bash ./pull_dish_metric.sh history $data_folder$start_dl_time > pull_sl_history.log 2>&1 &
         SL_PULL_HISTORY_PID=$!
-        echo "fetching starlink history in background, PID: $SL_PULL_STATUS_PID"
+        echo "fetching starlink history in background, PID: $SL_PULL_HISTORY_PID"
     fi
 
     echo "TCP downlink test started: $start_time"
@@ -140,8 +140,8 @@ while true; do
     case $answer in
         [Yy]* ) continue;;
         [Nn]* ) 
-            break
-            if [ $SL_PULL_STATUS_PID != "" ]; then
+	        echo "Exit, performing cleanup..."
+            if [ $SL_PULL_STATUS_PID  != "" ]; then
                 kill $SL_PULL_STATUS_PID
                 echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
             fi
@@ -149,6 +149,7 @@ while true; do
                 kill $SL_PULL_HISTORY_PID
                 echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
             fi
+            break
         ;;
         * ) echo "Please answer yes or no." && break;;
     esac
