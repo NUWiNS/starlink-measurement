@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start the subscript in the background
-bash ./subscript.sh &
+bash ./pull_dish_metric.sh history ./outputs  &
 SUBSCRIPT_PID=$!
 
 kill_subscript() {

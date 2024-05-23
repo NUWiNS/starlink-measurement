@@ -82,15 +82,16 @@ echo "Starting to pull $request_metric data from dish..."
 handle_exit(){
     echo "Caught signal, performing cleanup..."
 
+    end_timestamp=$(get_timestamp_in_millisec)
+    echo "End time: ${end_timestamp}">>$OUTPUT_FILE
+
     # kill all child processes of the current script
     pkill -P $$
 
-    end_timestamp=$(get_timestamp_in_millisec)
-    echo "End time: ${end_timestamp}">>$OUTPUT_FILE
 	exit 0
 }
 
-trap handle_exit INT SIGINT SIGTERM SIGHUP
+trap handle_exit SIGINT SIGTERM SIGHUP
 
 
 while true; do
@@ -112,8 +113,8 @@ while true; do
     fi
 
     # Wait for the specified interval before the next poll
+    echo "Sleeping for $polling_interval seconds, PID: $SLEEP_PID ..."
     sleep $polling_interval &
     SLEEP_PID=$!
-    echo "Sleeping for $polling_interval seconds, PID: $SLEEP_PID ..."
     wait $SLEEP_PID
 done

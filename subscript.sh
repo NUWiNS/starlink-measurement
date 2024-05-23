@@ -14,7 +14,7 @@ trap cleanup SIGINT SIGTERM SIGHUP
 # Simulate a task and a long sleep
 while true; do
     echo "Sleeping for a long duration..."
-    nohup sleep 900 &
+    sleep 900 &
     SLEEP_PID=$!
     wait $SLEEP_PID
 done
