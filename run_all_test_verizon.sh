@@ -1,15 +1,25 @@
 #!/bin/bash
 
+ip_address=""
+operator=""
+port_number=5002
+SL_PULL_STATUS_PID=""
+SL_PULL_HISTORY_PID=""
+
 handle_sigint(){
 	echo "Caught SIGINT, exitting status 1"
+    if [ $SL_PULL_STATUS_PID != "" ]; then
+        kill $SL_PULL_STATUS_PID
+        echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
+    fi
+    if [ $SL_PULL_HISTORY_PID != "" ]; then
+        kill $SL_PULL_HISTORY_PID
+        echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
+    fi
 	exit 1
 }
 
 trap handle_sigint INT
-
-ip_address=""
-operator=""
-port_number=5002
 
 echo "Starting a network measurement, please choose a server"
 echo "1) Virginia cloud server: 35.245.244.238"
@@ -69,12 +79,24 @@ while true; do
     start_dl_time=$(date '+%H%M%S%3N')
     start_time=$start_dl_time
     mkdir -p $data_folder$start_dl_time
+
+    # if operator is starlink, start starlink test as background
+    if [ $operator == "starlink" ]; then
+        bash ./pull_dish_metric.sh status $data_folder$start_dl_time &
+        SL_PULL_STATUS_PID=$!
+        echo "fetching starlink status in background, PID: $SL_PULL_STATUS_PID"
+
+        bash ./pull_dish_metric.sh history $data_folder$start_dl_time &
+        SL_PULL_HISTORY_PID=$!
+        echo "fetching starlink history in background, PID: $SL_PULL_STATUS_PID"
+    fi
+
     echo "TCP downlink test started: $start_time"
     start_time=$(date '+%H%M%S%3N')
     log_file_name="$data_folder$start_dl_time/tcp_downlink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    timeout 130 nuttcp -v -i0.5 -r -F -l640 -T10 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+    timeout 130 nuttcp -v -i0.5 -r -F -l640 -T1 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
@@ -90,7 +112,7 @@ while true; do
     log_file_name="$data_folder$start_dl_time/tcp_uplink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    timeout 130 nuttcp -v -i0.5 -l640  -T10 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    timeout 130 nuttcp -v -i0.5 -l640  -T1 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
@@ -104,7 +126,8 @@ while true; do
     echo "Ping test started: $start_time"
     log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
-    timeout 35 ping -s 38 -i 0.2 -w 30 $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name >>$log_file_name
+    # FIXME: change to 30s
+    timeout 35 ping -s 38 -i 0.2 -w 1 $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name >>$log_file_name
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved ping test to $log_file_name"
     summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
@@ -114,7 +137,17 @@ while true; do
     read -p "Do you want to continue test with server $choice (y/n)? " answer
     case $answer in
         [Yy]* ) continue;;
-        [Nn]* ) break;;
+        [Nn]* ) 
+            break
+            if [ $SL_PULL_STATUS_PID != "" ]; then
+                kill $SL_PULL_STATUS_PID
+                echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
+            fi
+            if [ $SL_PULL_HISTORY_PID != "" ]; then
+                kill $SL_PULL_HISTORY_PID
+                echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
+            fi
+        ;;
         * ) echo "Please answer yes or no." && break;;
     esac
 done
