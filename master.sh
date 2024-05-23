@@ -1,14 +1,20 @@
 #!/bin/bash
 
 # Start the subscript in the background
-bash ./pull_dish_metric.sh history ./outputs  &
+bash ./pull_dish_metric.sh status ./outputs  &
 SUBSCRIPT_PID=$!
+bash ./pull_dish_metric.sh history ./outputs  &
+SUBSCRIPT_2_PID=$!
 
 kill_subscript() {
     echo "Master script caught signal, terminating subscript..."
     kill $SUBSCRIPT_PID
     wait $SUBSCRIPT_PID
-    echo "Subscript terminated."
+    echo "Subscript 1 terminated."
+    
+    kill $SUBSCRIPT_2_PID
+    wait $SUBSCRIPT_2_PID
+    echo "Subscript 2 terminated."
     exit 0
 }
 
