@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+
 handle_sigint(){
 	echo "Caught SIGINT, exitting status 1"
 	exit 1
