@@ -77,14 +77,14 @@ echo "Start time: ${start_timestamp}" > $OUTPUT_FILE
 
 echo "Starting to pull $request_metric data from dish..."
 
-cleanup(){
+handle_exit(){
     echo "Caught signal, performing cleanup..."
     end_timestamp=$(get_timestamp_in_millisec)
     echo "End time: ${end_timestamp}">>$log_file_name
 	exit 0
 }
 
-trap cleanup SIGINT SIGTERM SIGHUP
+trap handle_exit INT SIGINT SIGTERM SIGHUP
 
 
 while true; do
