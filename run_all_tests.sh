@@ -113,7 +113,7 @@ while true; do
     # FIXME: change to 120s
     DL_TEST_DURATION=120
     timeout 130 nuttcp -v -i0.5 -r -F -l640 -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
-    echo "End time: $(date '+%s%3N')\n">>$log_file_name
+    echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
     echo "DL average throughput: $rate"
@@ -132,7 +132,7 @@ while true; do
     # FIXME: change to 120s
     UL_TEST_DURATION=120
     timeout 130 nuttcp -v -i0.5 -l640  -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')\n">>$log_file_name
+    echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
     echo "UL average throughput: $rate"
@@ -150,7 +150,7 @@ while true; do
     # FIXME: change to 30s
     PING_TEST_DURATION=30
     timeout 35 ping -s 38 -i 0.2 -w $PING_TEST_DURATION $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')\n">>$log_file_name
+    echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved ping test to $log_file_name"
     summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
     echo "Ping summary: $summary"
@@ -168,7 +168,8 @@ while true; do
     for domain in $top5_websites; do
         echo "Start time: $(date '+%s%3N')">>$log_file_name
         nslookup $domain | grep -v '^$' >> $log_file_name
-        echo "End time: $(date '+%s%3N')\n">>$log_file_name
+        echo "End time: $(date '+%s%3N')">>$log_file_name
+        echo "">>$log_file_name
     done
     echo "Saved nslookup test to $log_file_name"
 
@@ -183,7 +184,7 @@ while true; do
     echo "Start time: $(date '+%s%3N')">$log_file_name
     traceroute_domain="www.google.com"
     traceroute $traceroute_domain | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')\n">>$log_file_name
+    echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved traceroute test to $log_file_name"
 
     echo "------"
