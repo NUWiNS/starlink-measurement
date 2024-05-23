@@ -15,7 +15,7 @@ echo "1) Virginia cloud server: 35.245.244.238"
 echo "2) Localhost (for testing): 127.0.0.1"
 
 while true; do
-    read -p "Enter your choice (1-5): " choice
+    read -p "Enter your choice (1-2): " choice
     case $choice in
         1)
             ip_address=35.245.244.238
@@ -41,15 +41,15 @@ while true; do
     read -p "Enter your choice (1-3): " choice
     case $choice in
         1)
-            operator="Verizon"
+            operator="verizon"
             break
             ;;
         2)
-            operator="ATT"
+            operator="att"
             break
             ;;
         3)
-            operator="Starlink"
+            operator="starlink"
             break
             ;;
         *)
@@ -84,6 +84,7 @@ while true; do
     sleep 5
 
     start_time=$(date '+%H%M%S%3N')
+    echo "------"
     echo "TCP uplink test started: $start_time"
     log_file_name="$data_folder$start_dl_time/tcp_uplink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
@@ -98,6 +99,7 @@ while true; do
     sleep 5
 
     start_time=$(date '+%H%M%S%3N')
+    echo "------"
     echo "Ping test started: $start_time"
     log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
@@ -107,19 +109,7 @@ while true; do
     summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
     echo "Ping summary: $summary"
 
-    sleep 5
-
-    start_time=$(date '+%H%M%S%3N')
-    echo "Ping test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
-    timeout 35 ping -s 38 -i 0.2 -w 30 $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name >>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
-    echo "Saved ping test to $log_file_name"
-    summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
-    echo "Ping summary: $summary"
-
-
+    echo "------"
     read -p "Do you want to continue test with server $choice (y/n)? " answer
     case $answer in
         [Yy]* ) continue;;
