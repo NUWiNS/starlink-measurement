@@ -5,8 +5,12 @@ handle_sigint(){
 }
 
 trap handle_sigint INT
-operator="Verizon"
-echo "This is Verizon test, please choose a server"
+
+ip_address=""
+operator=""
+port_number=5002
+
+echo "Starting a network measurement, please choose a server"
 echo "1) Virginia cloud server: 35.245.244.238"
 echo "2) Localhost (for testing): 127.0.0.1"
 
@@ -26,11 +30,39 @@ while true; do
             ;;
     esac
 done
-port_number=5002
+
+
+echo "Please choose an operator:"
+echo "1) Verizon"
+echo "2) ATT"
+echo "3) Starlink"
+
+while true; do
+    read -p "Enter your choice (1-3): " choice
+    case $choice in
+        1)
+            operator="Verizon"
+            break
+            ;;
+        2)
+            operator="ATT"
+            break
+            ;;
+        3)
+            operator="Starlink"
+            break
+            ;;
+        *)
+            echo "Invalid choice, please enter a number between 1 and 3"
+    esac
+done
+
+
 echo "Testing $operator, server $choice (ip: $ip_address, port: $port_number)"
+
 while true; do
     # save the output to storage/shared folder for adb pull
-    data_folder=~/storage/shared/maine_starlink_trip/$(date '+%Y%m%d')/
+    data_folder=~/storage/shared/maine_starlink_trip/$operator/$(date '+%Y%m%d')/
     mkdir -p $data_folder
 
     start_dl_time=$(date '+%H%M%S%3N')
@@ -40,6 +72,7 @@ while true; do
     start_time=$(date '+%H%M%S%3N')
     log_file_name="$data_folder$start_dl_time/tcp_downlink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
+    # FIXME: change to 120s
     timeout 130 nuttcp -v -i0.5 -r -F -l640 -T10 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
@@ -49,11 +82,13 @@ while true; do
 	    sed -E 's/\s*KB\/sec//'
 
     sleep 5
+
     start_time=$(date '+%H%M%S%3N')
     echo "TCP uplink test started: $start_time"
     log_file_name="$data_folder$start_dl_time/tcp_uplink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
-    timeout 130 nuttcp -v -i0.5 -l640  -T120 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    # FIXME: change to 120s
+    timeout 130 nuttcp -v -i0.5 -l640  -T10 -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
@@ -61,6 +96,7 @@ while true; do
     grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
 
     sleep 5
+
     start_time=$(date '+%H%M%S%3N')
     echo "Ping test started: $start_time"
     log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
@@ -70,6 +106,19 @@ while true; do
     echo "Saved ping test to $log_file_name"
     summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
     echo "Ping summary: $summary"
+
+    sleep 5
+
+    start_time=$(date '+%H%M%S%3N')
+    echo "Ping test started: $start_time"
+    log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
+    echo "Start time: $(date '+%s%3N')">$log_file_name
+    timeout 35 ping -s 38 -i 0.2 -w 30 $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name >>$log_file_name
+    echo "End time: $(date '+%s%3N')">>$log_file_name
+    echo "Saved ping test to $log_file_name"
+    summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
+    echo "Ping summary: $summary"
+
 
     read -p "Do you want to continue test with server $choice (y/n)? " answer
     case $answer in
