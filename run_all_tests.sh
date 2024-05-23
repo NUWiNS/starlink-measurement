@@ -22,12 +22,14 @@ kill_starlink_processes() {
         kill $SL_PULL_HISTORY_PID
         wait $SL_PULL_HISTORY_PID
         echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
+        SL_PULL_HISTORY_PID=""
     fi
 
     if [ -n "$SL_PULL_STATUS_PID" ]; then
         kill $SL_PULL_STATUS_PID
         wait $SL_PULL_STATUS_PID
         echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
+        SL_PULL_STATUS_PID=""
     fi
 }
 
