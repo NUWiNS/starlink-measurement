@@ -6,8 +6,8 @@ port_number=5002
 SL_PULL_STATUS_PID=""
 SL_PULL_HISTORY_PID=""
 
-handle_sigint(){
-	echo "Caught SIGINT, exitting status 1"
+cleanup(){
+	echo "Caught signal, performing cleanup..."
     if [ $SL_PULL_STATUS_PID != "" ]; then
         kill $SL_PULL_STATUS_PID
         echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
@@ -16,10 +16,10 @@ handle_sigint(){
         kill $SL_PULL_HISTORY_PID
         echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
     fi
-	exit 1
+	exit 0
 }
 
-trap handle_sigint INT
+trap cleanup SIGINT SIGTERM SIGHUP
 
 echo "Starting a network measurement, please choose a server"
 echo "1) Virginia cloud server: 35.245.244.238"

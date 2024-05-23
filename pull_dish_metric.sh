@@ -5,6 +5,20 @@
 # 1. The metric to pull from the dish (status, history)
 # 2. The output folder to write the data to
 
+get_timestamp_in_millisec() {
+    format="%s%3N"
+
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        date +"$format"
+    elif [[ "$OSTYPE" == "linux-android"* ]]; then
+        date +"$format"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        gdate +"$format"
+    else
+        date +"$format"
+    fi
+}
+
 get_datetime_with_iso_8601_local_timezone() {
     ISO_8601_TIMEZONE_FORMAT="%Y-%m-%dT%H:%M:%S.%6N%:z"
 
@@ -58,8 +72,20 @@ if [ ! -d "$OUTPUT_FOLDER" ]; then
     mkdir -p $OUTPUT_FOLDER
 fi
 
+start_timestamp=$(get_timestamp_in_millisec)
+echo "Start time: ${start_timestamp}" > $OUTPUT_FILE
 
 echo "Starting to pull $request_metric data from dish..."
+
+cleanup(){
+    echo "Caught signal, performing cleanup..."
+    end_timestamp=$(get_timestamp_in_millisec)
+    echo "End time: ${end_timestamp}">>$log_file_name
+	exit 0
+}
+
+trap cleanup SIGINT SIGTERM SIGHUP
+
 
 while true; do
     # If the output is JSON, use jq to convert it to a single line
