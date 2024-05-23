@@ -8,11 +8,11 @@ SL_PULL_HISTORY_PID=""
 
 handle_exit(){
 	echo "Caught signal, performing cleanup..."
-    if [ -n $SL_PULL_STATUS_PID ]; then
+    if [ -n "$SL_PULL_STATUS_PID" ]; then
         kill $SL_PULL_STATUS_PID
         echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
     fi
-    if [ -n  $SL_PULL_HISTORY_PID ]; then
+    if [ -n  "$SL_PULL_HISTORY_PID" ]; then
         kill $SL_PULL_HISTORY_PID
         echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
     fi
@@ -145,15 +145,13 @@ while true; do
     echo "------"
     echo "Nslookup test started: $start_time"
     log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
     # Top 5 websites worldwide: https://www.semrush.com/website/top/
     top5_websites="google.com youtube.com facebook.com wikipedia.org instagram.com"
     for domain in $top5_websites; do
-        # clear the empty lines
-        nslookup $domain | grep -v '^$' | ts '[%Y-%m-%d %H:%M:%.S]' >> $log_file_name
+        echo "Start time: $(date '+%s%3N')">$log_file_name
+        nslookup $domain | grep -v '^$' >> $log_file_name
+        echo "End time: $(date '+%s%3N')">>$log_file_name
     done
-
-    echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved nslookup test to $log_file_name"
 
     echo "------"
@@ -173,11 +171,11 @@ while true; do
     echo "------"
     echo "All tests completed, cleaning up..."
 
-    if [ -n $SL_PULL_STATUS_PID ]; then
+    if [ -n "$SL_PULL_STATUS_PID" ]; then
         kill $SL_PULL_STATUS_PID
         echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
     fi
-    if [ -n $SL_PULL_HISTORY_PID ]; then
+    if [ -n "$SL_PULL_HISTORY_PID" ]; then
         kill $SL_PULL_HISTORY_PID
         echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
     fi
