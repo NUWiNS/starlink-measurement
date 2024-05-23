@@ -10,12 +10,10 @@ handle_exit(){
 	echo "Caught signal, performing cleanup..."
     if [ $SL_PULL_STATUS_PID != "" ]; then
         kill $SL_PULL_STATUS_PID
-        wait $SL_PULL_STATUS_PID
         echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
     fi
     if [ $SL_PULL_HISTORY_PID != "" ]; then
         kill $SL_PULL_HISTORY_PID
-        wait $SL_PULL_HISTORY_PID
         echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
     fi
 	exit 0
@@ -151,7 +149,7 @@ while true; do
     read -p "Do you want to continue test with server $choice (y/n)? " answer
     case $answer in
         [Yy]* ) continue;;
-        [Nn]* ) break;;
+        [Nn]* ) break  ;;
         * ) echo "Please answer yes or no." && break;;
     esac
 done
