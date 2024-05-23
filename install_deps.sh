@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Install dependencies
 dependencies="wget jq moreutils"
 

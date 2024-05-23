@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Pre-requisite: Install 
 # - grpcurl: a client for fetching data from gRPC APIs, https://github.com/fullstorydev/grpcurl
 # - jq: a command-line JSON processor, https://jqlang.github.io/jq/
