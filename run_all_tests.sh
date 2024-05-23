@@ -44,8 +44,8 @@ echo "1) Virginia cloud server: 35.245.244.238"
 echo "2) Localhost (for testing): 127.0.0.1"
 
 while true; do
-    read -p "Enter your choice (1-2): " choice
-    case $choice in
+    read -p "Enter your choice (1-2): " server_choice
+    case $server_choice in
         1)
             ip_address=35.245.244.238
             break
@@ -67,8 +67,8 @@ echo "2) ATT"
 echo "3) Starlink"
 
 while true; do
-    read -p "Enter your choice (1-3): " choice
-    case $choice in
+    read -p "Enter your choice (1-3): " operator_choice
+    case $operator_choice in
         1)
             operator="verizon"
             break
@@ -87,7 +87,7 @@ while true; do
 done
 
 
-echo "Testing $operator, server $choice (ip: $ip_address, port: $port_number)"
+echo "Testing $operator, server $server_choice (ip: $ip_address, port: $port_number)"
 
 while true; do
     # save the output to storage/shared folder for adb pull
@@ -111,9 +111,9 @@ while true; do
     log_file_name="$data_folder$start_dl_time/tcp_downlink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    DL_TEST_DURATION=1
+    DL_TEST_DURATION=120
     timeout 130 nuttcp -v -i0.5 -r -F -l640 -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
-    echo "End time: $(date '+%s%3N')">>$log_file_name
+    echo "End time: $(date '+%s%3N')\n">>$log_file_name
     echo "Saved downlink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
     echo "DL average throughput: $rate"
@@ -130,9 +130,9 @@ while true; do
     log_file_name="$data_folder$start_dl_time/tcp_uplink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    UL_TEST_DURATION=1
+    UL_TEST_DURATION=120
     timeout 130 nuttcp -v -i0.5 -l640  -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
+    echo "End time: $(date '+%s%3N')\n">>$log_file_name
     echo "Saved uplink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
     echo "UL average throughput: $rate"
@@ -148,9 +148,9 @@ while true; do
     log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 30s
-    PING_TEST_DURATION=1
+    PING_TEST_DURATION=30
     timeout 35 ping -s 38 -i 0.2 -w $PING_TEST_DURATION $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
+    echo "End time: $(date '+%s%3N')\n">>$log_file_name
     echo "Saved ping test to $log_file_name"
     summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
     echo "Ping summary: $summary"
@@ -168,7 +168,7 @@ while true; do
     for domain in $top5_websites; do
         echo "Start time: $(date '+%s%3N')">>$log_file_name
         nslookup $domain | grep -v '^$' >> $log_file_name
-        echo "End time: $(date '+%s%3N')">>$log_file_name
+        echo "End time: $(date '+%s%3N')\n">>$log_file_name
     done
     echo "Saved nslookup test to $log_file_name"
 
@@ -183,7 +183,7 @@ while true; do
     echo "Start time: $(date '+%s%3N')">$log_file_name
     traceroute_domain="www.google.com"
     traceroute $traceroute_domain | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
+    echo "End time: $(date '+%s%3N')\n">>$log_file_name
     echo "Saved traceroute test to $log_file_name"
 
     echo "------"
@@ -192,7 +192,7 @@ while true; do
     kill_starlink_processes
 
     echo "------"
-    read -p "Do you want to continue test with server $choice (y/n)? " answer
+    read -p "Do you want to continue test with server $server_choice (y/n)? " answer
     case $answer in
         [Yy]* ) continue;;
         [Nn]* ) break  ;;

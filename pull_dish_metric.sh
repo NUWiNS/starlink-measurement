@@ -113,8 +113,8 @@ while true; do
     fi
 
     # Wait for the specified interval before the next poll
-    echo "Sleeping for $polling_interval seconds, PID: $SLEEP_PID ..."
     sleep $polling_interval &
     SLEEP_PID=$!
+    echo "Sleeping for $polling_interval seconds, PID: $SLEEP_PID ..."
     wait $SLEEP_PID
 done
