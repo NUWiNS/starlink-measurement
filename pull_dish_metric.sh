@@ -80,7 +80,7 @@ echo "Starting to pull $request_metric data from dish..."
 handle_exit(){
     echo "Caught signal, performing cleanup..."
     end_timestamp=$(get_timestamp_in_millisec)
-    echo "End time: ${end_timestamp}">>$log_file_name
+    echo "End time: ${end_timestamp}">>$OUTPUT_FILE
 	exit 0
 }
 

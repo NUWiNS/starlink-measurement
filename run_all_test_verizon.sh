@@ -104,6 +104,8 @@ while true; do
     grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
 	    sed -E 's/\s*KB\/sec//'
 
+    echo "------"
+    echo "Waiting for 5 seconds before starting uplink test..."
     sleep 5
 
     start_time=$(date '+%H%M%S%3N')
@@ -119,6 +121,8 @@ while true; do
     echo "UL average throughput: $rate"
     grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
 
+    echo "------"
+    echo "Waiting for 5 seconds before starting ping test..."
     sleep 5
 
     start_time=$(date '+%H%M%S%3N')
