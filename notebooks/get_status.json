@@ -1,0 +1,130 @@
+{
+  "id": "0",
+  "status": null,
+  "apiVersion": "17",
+  "dishGetStatus": {
+    "deviceInfo": {
+      "id": "ut01000000-00000000-0085fd5f",
+      "hardwareVersion": "rev4_prod1",
+      "softwareVersion": "1c915887-39aa-4c32-9148-bf7869f41752.uterm_manifest.release",
+      "countryCode": "US",
+      "utcOffsetS": -14399,
+      "softwarePartitionsEqual": false,
+      "isDev": false,
+      "bootcount": 24,
+      "antiRollbackVersion": 0,
+      "isHitl": false,
+      "manufacturedVersion": "",
+      "generationNumber": "1714780943",
+      "dishCohoused": false,
+      "boardRev": 0,
+      "boot": null
+    },
+    "deviceState": {
+      "uptimeS": "6328"
+    },
+    "secondsToFirstNonemptySlot": 0,
+    "popPingDropRate": 0,
+    "obstructionStats": {
+      "fractionObstructed": 0.13378248,
+      "validS": 3135,
+      "currentlyObstructed": false,
+      "avgProlongedObstructionDurationS": 6.1411066,
+      "avgProlongedObstructionIntervalS": 396.33026,
+      "avgProlongedObstructionValid": false,
+      "timeObstructed": 0.0748101,
+      "patchesValid": 4156
+    },
+    "alerts": {
+      "motorsStuck": false,
+      "thermalShutdown": false,
+      "thermalThrottle": false,
+      "unexpectedLocation": false,
+      "mastNotNearVertical": false,
+      "slowEthernetSpeeds": false,
+      "roaming": true,
+      "installPending": false,
+      "isHeating": true,
+      "powerSupplyThermalThrottle": false,
+      "isPowerSaveIdle": false,
+      "movingWhileNotMobile": false,
+      "dbfTelemStale": false,
+      "movingTooFastForPolicy": false,
+      "lowMotorCurrent": false,
+      "lowerSignalThanPredicted": false
+    },
+    "downlinkThroughputBps": 74222.41,
+    "uplinkThroughputBps": 54291.07,
+    "popPingLatencyMs": 26.808062,
+    "stowRequested": false,
+    "boresightAzimuthDeg": -10.603605,
+    "boresightElevationDeg": 72.13238,
+    "outage": null,
+    "gpsStats": {
+      "gpsValid": true,
+      "gpsSats": 5,
+      "noSatsAfterTtff": false,
+      "inhibitGps": false
+    },
+    "ethSpeedMbps": 1000,
+    "mobilityClass": "MOBILE",
+    "isSnrAboveNoiseFloor": true,
+    "readyStates": {
+      "cady": false,
+      "scp": true,
+      "l1l2": true,
+      "xphy": true,
+      "aap": true,
+      "rf": true
+    },
+    "classOfService": "CONSUMER",
+    "softwareUpdateState": "IDLE",
+    "isSnrPersistentlyLow": false,
+    "hasActuators": "HAS_ACTUATORS_NO",
+    "disablementCode": "OKAY",
+    "hasSignedCals": true,
+    "softwareUpdateStats": {
+      "softwareUpdateState": "IDLE",
+      "softwareUpdateProgress": 0
+    },
+    "alignmentStats": {
+      "hasActuators": "HAS_ACTUATORS_NO",
+      "actuatorState": "ACTUATOR_STATE_IDLE",
+      "tiltAngleDeg": 17.91243,
+      "boresightAzimuthDeg": -10.603605,
+      "boresightElevationDeg": 72.13238,
+      "attitudeEstimationState": "FILTER_UNCONVERGED",
+      "attitudeUncertaintyDeg": 2.170362,
+      "desiredBoresightAzimuthDeg": 75.90632,
+      "desiredBoresightElevationDeg": 67.44912
+    },
+    "initializationDurationSeconds": {
+      "attitudeInitialization": 613,
+      "burstDetected": 70,
+      "ekfConverged": 729,
+      "firstCplane": 596,
+      "firstPopPing": 673,
+      "gpsValid": 577,
+      "initialNetworkEntry": 596,
+      "networkSchedule": 599,
+      "rfReady": 41,
+      "stableConnection": 1
+    },
+    "isCellDisabled": false,
+    "swupdateRebootReady": false,
+    "config": {
+      "snowMeltMode": "AUTO",
+      "locationRequestMode": "NONE",
+      "levelDishMode": "TILT_LIKE_NORMAL",
+      "powerSaveStartMinutes": 0,
+      "powerSaveDurationMinutes": 0,
+      "powerSaveMode": false,
+      "applySnowMeltMode": true,
+      "applyLocationRequestMode": true,
+      "applyLevelDishMode": true,
+      "applyPowerSaveStartMinutes": true,
+      "applyPowerSaveDurationMinutes": true,
+      "applyPowerSaveMode": true
+    }
+  }
+}
