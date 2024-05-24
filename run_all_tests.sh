@@ -195,6 +195,20 @@ while true; do
     echo "Ping summary: $summary"
 
     echo "------"
+    echo "Waiting for 5 seconds before starting traceroute test..."
+    sleep 5
+
+    start_time=$(date '+%H%M%S%3N')
+    echo "------"
+    echo "Traceroute test started: $start_time"
+    log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
+    echo "Start time: $(date '+%s%3N')">$log_file_name
+    # tracerout to the target server
+    traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    echo "End time: $(date '+%s%3N')">>$log_file_name
+    echo "Saved traceroute test to $log_file_name"
+
+    echo "------"
     echo "Waiting for 5 seconds before starting nslookup test..."
     sleep 5
 
@@ -211,20 +225,6 @@ while true; do
         echo "">>$log_file_name
     done
     echo "Saved nslookup test to $log_file_name"
-
-    echo "------"
-    echo "Waiting for 5 seconds before starting traceroute test..."
-    sleep 5
-
-    start_time=$(date '+%H%M%S%3N')
-    echo "------"
-    echo "Traceroute test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
-    # tracerout to the target server
-    traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
-    echo "Saved traceroute test to $log_file_name"
 
     echo "------"
     echo "All tests completed, cleaning up..."
