@@ -141,10 +141,10 @@ while true; do
     DL_TEST_DURATION=1
     if [ $thrpt_protocol == "udp" ]; then
         # udp downlink test
-        timeout 130 nuttcp -u -v -i0.5 -r -l640 -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 130 nuttcp -u -v -i0.5 -r -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp downlink test
-        timeout 130 nuttcp -v -i0.5 -r -F -l640 -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+        timeout 130 nuttcp -v -i0.5 -r -F  -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
@@ -166,10 +166,10 @@ while true; do
     UL_TEST_DURATION=1
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
-        timeout 130 nuttcp -u -v -i0.5 -l640  -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 130 nuttcp -u -v -i0.5 -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp uplink test
-        timeout 130 nuttcp -v -i0.5 -l640  -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 130 nuttcp -v -i0.5 -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
