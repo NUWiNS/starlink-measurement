@@ -2,8 +2,9 @@
 
 ip_address=""
 operator=""
-
+thrpt_protocol=""
 port_number=""
+
 SL_PULL_STATUS_PID=""
 SL_PULL_HISTORY_PID=""
 ISO_8601_TIMEZONE_FORMAT="%Y-%m-%dT%H:%M:%S.%6N%:z"
@@ -92,6 +93,26 @@ while true; do
     esac
 done
 
+echo "Please choose TCP or UDP for throughput test:"
+echo "1) TCP"
+echo "2) UDP"
+
+while true; do
+    read -p "Enter your choice (1-2): " thrpt_choice
+    case $thrpt_choice in
+        1)
+            thrpt_protocol="tcp"
+            break
+            ;;
+        2)
+            thrpt_protocol="udp"
+            break
+            ;;
+        *)
+            echo "Invalid choice, please enter a number within (1-2)"
+    esac
+done
+
 
 echo "Testing $operator, server $server_choice (ip: $ip_address, port: $port_number)"
 
@@ -112,13 +133,19 @@ while true; do
     sleep 3
     echo "------"
 
-    echo "TCP downlink test started: $start_time"
+    echo "${thrpt_protocol} downlink test started: $start_time"
     start_time=$(date '+%H%M%S%3N')
-    log_file_name="$data_folder$start_dl_time/tcp_downlink_${start_time}.out"
+    log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_downlink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    DL_TEST_DURATION=120
-    timeout 130 nuttcp -v -i0.5 -r -F -l640 -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+    DL_TEST_DURATION=1
+    if [ $thrpt_protocol == "udp" ]; then
+        # udp downlink test
+        timeout 130 nuttcp -u -v -i0.5 -r -l640 -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    else
+        # tcp downlink test
+        timeout 130 nuttcp -v -i0.5 -r -F -l640 -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+    fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
@@ -132,12 +159,18 @@ while true; do
 
     start_time=$(date '+%H%M%S%3N')
     echo "------"
-    echo "TCP uplink test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/tcp_uplink_${start_time}.out"
+    echo "${thrpt_protocol} uplink test started: $start_time"
+    log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_uplink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    UL_TEST_DURATION=120
-    timeout 130 nuttcp -v -i0.5 -l640  -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    UL_TEST_DURATION=1
+    if [ $thrpt_protocol == "udp" ]; then
+        # udp uplink test
+        timeout 130 nuttcp -u -v -i0.5 -l640  -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    else
+        # tcp uplink test
+        timeout 130 nuttcp -v -i0.5 -l640  -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
     rate=$(grep -E 'nuttcp -r' $log_file_name)
@@ -148,50 +181,50 @@ while true; do
     echo "Waiting for 5 seconds before starting ping test..."
     sleep 5
 
-    start_time=$(date '+%H%M%S%3N')
-    echo "------"
-    echo "Ping test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
-    # FIXME: change to 30s
-    PING_TEST_DURATION=30
-    timeout 35 ping -s 38 -i 0.2 -w $PING_TEST_DURATION $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
-    echo "Saved ping test to $log_file_name"
-    summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
-    echo "Ping summary: $summary"
+    # start_time=$(date '+%H%M%S%3N')
+    # echo "------"
+    # echo "Ping test started: $start_time"
+    # log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
+    # echo "Start time: $(date '+%s%3N')">$log_file_name
+    # # FIXME: change to 30s
+    # PING_TEST_DURATION=1
+    # timeout 35 ping -s 38 -i 0.2 -w $PING_TEST_DURATION $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    # echo "End time: $(date '+%s%3N')">>$log_file_name
+    # echo "Saved ping test to $log_file_name"
+    # summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
+    # echo "Ping summary: $summary"
 
-    echo "------"
-    echo "Waiting for 5 seconds before starting nslookup test..."
-    sleep 5
+    # echo "------"
+    # echo "Waiting for 5 seconds before starting nslookup test..."
+    # sleep 5
 
-    start_time=$(date '+%H%M%S%3N')
-    echo "------"
-    echo "Nslookup test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
-    # Top 5 websites worldwide: https://www.semrush.com/website/top/
-    top5_websites="google.com youtube.com facebook.com wikipedia.org instagram.com"
-    for domain in $top5_websites; do
-        echo "Start time: $(date '+%s%3N')">>$log_file_name
-        nslookup $domain | grep -v '^$' >> $log_file_name
-        echo "End time: $(date '+%s%3N')">>$log_file_name
-        echo "">>$log_file_name
-    done
-    echo "Saved nslookup test to $log_file_name"
+    # start_time=$(date '+%H%M%S%3N')
+    # echo "------"
+    # echo "Nslookup test started: $start_time"
+    # log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
+    # # Top 5 websites worldwide: https://www.semrush.com/website/top/
+    # top5_websites="google.com youtube.com facebook.com wikipedia.org instagram.com"
+    # for domain in $top5_websites; do
+    #     echo "Start time: $(date '+%s%3N')">>$log_file_name
+    #     nslookup $domain | grep -v '^$' >> $log_file_name
+    #     echo "End time: $(date '+%s%3N')">>$log_file_name
+    #     echo "">>$log_file_name
+    # done
+    # echo "Saved nslookup test to $log_file_name"
 
-    echo "------"
-    echo "Waiting for 5 seconds before starting traceroute test..."
-    sleep 5
+    # echo "------"
+    # echo "Waiting for 5 seconds before starting traceroute test..."
+    # sleep 5
 
-    start_time=$(date '+%H%M%S%3N')
-    echo "------"
-    echo "Traceroute test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
-    traceroute_domain="www.google.com"
-    traceroute $traceroute_domain | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
-    echo "Saved traceroute test to $log_file_name"
+    # start_time=$(date '+%H%M%S%3N')
+    # echo "------"
+    # echo "Traceroute test started: $start_time"
+    # log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
+    # echo "Start time: $(date '+%s%3N')">$log_file_name
+    # traceroute_domain="www.google.com"
+    # traceroute $traceroute_domain | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    # echo "End time: $(date '+%s%3N')">>$log_file_name
+    # echo "Saved traceroute test to $log_file_name"
 
     echo "------"
     echo "All tests completed, cleaning up..."
