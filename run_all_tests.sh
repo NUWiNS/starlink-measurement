@@ -2,7 +2,8 @@
 
 ip_address=""
 operator=""
-port_number=5002
+
+port_number=""
 SL_PULL_STATUS_PID=""
 SL_PULL_HISTORY_PID=""
 ISO_8601_TIMEZONE_FORMAT="%Y-%m-%dT%H:%M:%S.%6N%:z"
@@ -73,14 +74,17 @@ while true; do
     case $operator_choice in
         1)
             operator="verizon"
+            port_number=5001
             break
             ;;
         2)
-            operator="att"
+            operator="att"            
+            port_number=5002
             break
             ;;
         3)
             operator="starlink"
+            port_number=5003
             break
             ;;
         *)
