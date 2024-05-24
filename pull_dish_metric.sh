@@ -96,18 +96,22 @@ trap handle_exit INT SIGINT SIGTERM SIGHUP
 
 while true; do
     # If the output is JSON, use jq to convert it to a single line
+    req_time=$(get_datetime_with_iso_8601_local_timezone)
+    echo "request data from dish at ${req_time}"
+
     command_output=$(grpcurl -plaintext -emit-defaults -d "{\"${rpc_method}\":{}}" 192.168.100.1:9200 SpaceX.API.Device.Device/Handle \
     | jq -c '.')
 
     res_time=$(get_datetime_with_iso_8601_local_timezone)
-    echo "pulled data from dish: ${res_time}"
 
     if echo "$command_output" | jq -e . >/dev/null 2>&1; then
+        echo "receive json data from dish at ${res_time}"
         # compress json to oneline and prepend a res_time and command output to the file
         command_output=$(echo "$command_output" | jq -c .)
-        echo "[$res_time] $command_output" >> $OUTPUT_FILE
+
+        echo "req: ${req_time} | res: ${res_time} | data: ${command_output}" >> $OUTPUT_FILE
     else
-        echo "Failed to get data from dish, sleeping for $polling_interval seconds before retrying..."
+        echo "Failed to get json data from dish, sleeping for $polling_interval seconds before retrying..."
         sleep $polling_interval
         continue
     fi
