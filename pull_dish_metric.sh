@@ -45,7 +45,7 @@ request_metric=$1
 case $request_metric in
     "status")
         rpc_method="get_status"
-        polling_interval=0.5
+        polling_interval=0.1
         ;;
     "history")
         rpc_method="get_history"
@@ -116,7 +116,6 @@ while true; do
     fi
 
     # Wait for the specified interval before the next poll
-    polling_interval=1
     echo "Sleeping for $polling_interval seconds ..."
     sleep $polling_interval &
     wait $!
