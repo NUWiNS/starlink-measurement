@@ -126,11 +126,11 @@ while true; do
         # udp downlink test
         DL_UDP_RATE=400M
         echo "testing udp downlink with $ip_address:$iperf_port, rate $DL_UDP_RATE, interval $DL_INTERVAL, duration $DL_TEST_DURATION ..."
-        timeout 130 iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 140 iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp downlink test
         echo "testing tcp downlink with $ip_address:$nuttcp_port, interval $DL_INTERVAL, duration $DL_TEST_DURATION ..."
-        timeout 130 nuttcp -r -F -v -i $DL_INTERVAL -T $DL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+        timeout 140 nuttcp -r -F -v -i $DL_INTERVAL -T $DL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
@@ -155,11 +155,11 @@ while true; do
         # udp uplink test
         UL_UDP_RATE=0M
         echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
-        timeout 130 iperf3 -c $ip_address -p $iperf_port -u -b $UL_UDP_RATE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 140 iperf3 -c $ip_address -p $iperf_port -u -b $UL_UDP_RATE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp uplink test
         echo "testing tcp uplink with $ip_address:$nuttcp_port, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
-        timeout 130 nuttcp -v -i $UL_INTERVAL -T $UL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 140 nuttcp -v -i $UL_INTERVAL -T $UL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
@@ -178,7 +178,7 @@ while true; do
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 30s
     PING_TEST_DURATION=30
-    timeout 35 ping -s 38 -i 0.2 -w $PING_TEST_DURATION $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    timeout 50 ping -s 38 -i 0.2 -w $PING_TEST_DURATION $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved ping test to $log_file_name"
     summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
