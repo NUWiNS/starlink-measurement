@@ -5,8 +5,6 @@
 # 1. The metric to pull from the dish (status, history)
 # 2. The output folder to write the data to
 
-SLEEP_PID=""
-
 get_timestamp_in_millisec() {
     format="%s%3N"
 
@@ -35,7 +33,7 @@ get_datetime_with_iso_8601_local_timezone() {
     fi
 }
 
-bash ./command_guard.sh
+./command_guard.sh
 guard_status=$?
 
 if [ $guard_status -ne 0 ]; then
@@ -74,24 +72,23 @@ if [ ! -d "$OUTPUT_FOLDER" ]; then
     mkdir -p $OUTPUT_FOLDER
 fi
 
-start_timestamp=$(get_timestamp_in_millisec)
-echo "Start time: ${start_timestamp}" > $OUTPUT_FILE
-
-echo "Starting to pull $request_metric data from dish..."
 
 handle_exit(){
-    echo "Caught signal, performing cleanup..."
+    echo "Received signal, performing cleanup..."
 
     end_timestamp=$(get_timestamp_in_millisec)
     echo "End time: ${end_timestamp}">>$OUTPUT_FILE
 
-    # kill all child processes of the current script
     pkill -P $$
 
 	exit 0
 }
 
-trap handle_exit INT SIGINT SIGTERM SIGHUP
+trap handle_exit SIGINT SIGTERM SIGHUP
+
+start_timestamp=$(get_timestamp_in_millisec)
+echo "Start time: ${start_timestamp}" > $OUTPUT_FILE
+echo "Starting to pull $request_metric data from dish..."
 
 
 while true; do
@@ -99,26 +96,28 @@ while true; do
     req_time=$(get_datetime_with_iso_8601_local_timezone)
     echo "request data from dish at ${req_time}"
 
-    command_output=$(grpcurl -plaintext -emit-defaults -d "{\"${rpc_method}\":{}}" 192.168.100.1:9200 SpaceX.API.Device.Device/Handle \
-    | jq -c '.')
+    command_output=$(grpcurl -plaintext -emit-defaults -d "{\"${rpc_method}\":{}}" 192.168.100.1:9200 SpaceX.API.Device.Device/Handle)
 
     res_time=$(get_datetime_with_iso_8601_local_timezone)
+    echo "receive json data from dish at ${res_time}"
+
+    command_output=$(echo "$command_output" | jq -c .)
 
     if echo "$command_output" | jq -e . >/dev/null 2>&1; then
         echo "receive json data from dish at ${res_time}"
         # compress json to oneline and prepend a res_time and command output to the file
-        command_output=$(echo "$command_output" | jq -c .)
-
         echo "req: ${req_time} | res: ${res_time} | data: ${command_output}" >> $OUTPUT_FILE
     else
-        echo "Failed to get json data from dish, sleeping for $polling_interval seconds before retrying..."
-        sleep $polling_interval
+        retry_timeout=3
+        echo "Failed to get json data from dish, sleeping for $retry_timeout seconds before retrying..."
+        sleep $retry_timeout &
+        wait $!
         continue
     fi
 
     # Wait for the specified interval before the next poll
+    polling_interval=1
+    echo "Sleeping for $polling_interval seconds ..."
     sleep $polling_interval &
-    SLEEP_PID=$!
-    echo "Sleeping for $polling_interval seconds, PID: $SLEEP_PID ..."
-    wait $SLEEP_PID
+    wait $!
 done

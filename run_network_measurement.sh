@@ -9,39 +9,12 @@ SL_PULL_STATUS_PID=""
 SL_PULL_HISTORY_PID=""
 ISO_8601_TIMEZONE_FORMAT="%Y-%m-%dT%H:%M:%S.%6N%:z"
 
-start_starlink_processes() {
-    nohup bash ./pull_dish_metric.sh history $data_folder$start_dl_time > $data_folder$start_dl_time/pull_sl_history.log 2>&1 &
-    SL_PULL_HISTORY_PID=$!
-    echo "fetching starlink history in background, PID: $SL_PULL_HISTORY_PID"
-
-    nohup bash ./pull_dish_metric.sh status $data_folder$start_dl_time > $data_folder$start_dl_time/pull_sl_status.log 2>&1 &
-    SL_PULL_STATUS_PID=$!
-    echo "fetching starlink status in background, PID: $SL_PULL_STATUS_PID"
-}
-
-kill_starlink_processes() {
-    if [ -n  "$SL_PULL_HISTORY_PID" ]; then
-        kill $SL_PULL_HISTORY_PID
-        wait $SL_PULL_HISTORY_PID
-        echo "Killed SL history task, PID: $SL_PULL_HISTORY_PID"
-        SL_PULL_HISTORY_PID=""
-    fi
-
-    if [ -n "$SL_PULL_STATUS_PID" ]; then
-        kill $SL_PULL_STATUS_PID
-        wait $SL_PULL_STATUS_PID
-        echo "Killed SL status task, PID: $SL_PULL_STATUS_PID"
-        SL_PULL_STATUS_PID=""
-    fi
-}
-
 handle_exit(){
 	echo "Caught signal, performing cleanup..."
-    kill_starlink_processes
 	exit 0
 }
 
-trap handle_exit INT SIGINT SIGTERM SIGHUP
+trap handle_exit SIGINT SIGTERM SIGHUP
 
 echo "Starting a network measurement, please choose a server"
 echo "1) Virginia cloud server: 35.245.244.238"
@@ -124,11 +97,6 @@ while true; do
     start_dl_time=$(date '+%H%M%S%3N')
     start_time=$start_dl_time
     mkdir -p $data_folder$start_dl_time
-
-    # if operator is starlink, start starlink test as background
-    if [ $operator == "starlink" ]; then
-        start_starlink_processes
-    fi
 
     sleep 3
     echo "------"
@@ -228,8 +196,6 @@ while true; do
 
     echo "------"
     echo "All tests completed, cleaning up..."
-
-    kill_starlink_processes
 
     echo "------"
     read -p "Do you want to continue test with server $server_choice (y/n)? " answer
