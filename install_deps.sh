@@ -9,7 +9,8 @@ elif [[ "$OSTYPE" == "linux-android"* ]]; then
     pkg update
 
     # setup external storage in termux
-    if [! command -v termux-setup-storage &> /dev/null]; then
+    if ! command -v termux-setup-storage &> /dev/null
+    then
         pkg install termux-am 
         termux-setup-storage
     fi
@@ -18,7 +19,8 @@ elif [[ "$OSTYPE" == "linux-android"* ]]; then
     
     usr_bin_path=/data/data/com.termux/files/usr/bin
 
-    if [! command -v grpcurl &> /dev/null]; then
+    if ! command -v grpcurl &> /dev/null
+    then
         # check grpcurl version: https://github.com/fullstorydev/grpcurl/releases
         chmod +x grpcurl
         cp ./deps/grpcurl $usr_bin_path/grpcurl
@@ -27,13 +29,15 @@ elif [[ "$OSTYPE" == "linux-android"* ]]; then
     fi
 
     # nuttcp: https://nuttcp.net/nuttcp/
-    if [! command -v nuttcp &> /dev/null]; then
+    if ! command -v nuttcp &> /dev/null 
+    then
         cp ./deps/nuttcp-8.1.4 $usr_bin_path/nuttcp
         chmod +x $usr_bin_path/nuttcp
         echo "nuttcp installed in $usr_bin_path"
     fi
 
-    if [! command -v iperf3 &> /dev/null]; then
+    if ! command -v iperf3 &> /dev/null
+    then
         cp ./deps/iperf3.9 $usr_bin_path/iperf3
         chmod +x $usr_bin_path/iperf3
         echo "iperf3 installed in $usr_bin_path"
