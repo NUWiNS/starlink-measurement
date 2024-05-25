@@ -120,7 +120,7 @@ while true; do
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_downlink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    DL_TEST_DURATION=1
+    DL_TEST_DURATION=120
     DL_INTERVAL=0.5
     if [ $thrpt_protocol == "udp" ]; then
         # udp downlink test
@@ -147,7 +147,7 @@ while true; do
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_uplink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    UL_TEST_DURATION=1
+    UL_TEST_DURATION=120
     UL_INTERVAL=0.5
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
@@ -173,7 +173,7 @@ while true; do
     log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 30s
-    PING_TEST_DURATION=1
+    PING_TEST_DURATION=30
     timeout 35 ping -s 38 -i 0.2 -w $PING_TEST_DURATION $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved ping test to $log_file_name"
