@@ -124,7 +124,7 @@ while true; do
         timeout 130 iperf3 -c $ip_address -p $port_number -R -u -b $DL_UDP_RATE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp downlink test
-        timeout 130 nuttcp -v -i0.5 -r -F  -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+        timeout 130 nuttcp -v -i0.5 -r -F  -T$DL_TEST_DURATION -p $port_number $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
@@ -151,7 +151,7 @@ while true; do
         timeout 130 iperf3 -c $ip_address -p $port_number -u -b $UL_UDP_RATE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp uplink test
-        timeout 130 nuttcp -v -i0.5 -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 130 nuttcp -v -i0.5 -T$UL_TEST_DURATION -p $port_number $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
