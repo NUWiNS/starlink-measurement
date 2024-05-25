@@ -13,7 +13,8 @@ done
 ip_address=""
 operator=""
 thrpt_protocol=""
-port_number=""
+nuttcp_port=""
+iperf_port=""
 
 SL_PULL_STATUS_PID=""
 SL_PULL_HISTORY_PID=""
@@ -58,17 +59,20 @@ while true; do
     case $operator_choice in
         1)
             operator="verizon"
-            port_number=5001
+            nuttcp_port=5001
+            iperf_port=5201
             break
             ;;
         2)
             operator="att"            
-            port_number=5002
+            nuttcp_port=5002
+            iperf_port=5202
             break
             ;;
         3)
             operator="starlink"
-            port_number=5003
+            nuttcp_port=5003
+            iperf_port=5203
             break
             ;;
         *)
@@ -97,7 +101,7 @@ while true; do
 done
 
 
-echo "Testing $operator, server $server_choice (ip: $ip_address, port: $port_number)"
+echo "Testing $operator, server $server_choice (ip: $ip_address, port: $nuttcp_port)"
 
 while true; do
     # save the output to storage/shared folder for adb pull
@@ -121,10 +125,10 @@ while true; do
     if [ $thrpt_protocol == "udp" ]; then
         # udp downlink test
         DL_UDP_RATE=400M
-        timeout 130 iperf3 -c $ip_address -p $port_number -R -u -b $DL_UDP_RATE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 130 iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp downlink test
-        timeout 130 nuttcp -v -i0.5 -r -F  -T$DL_TEST_DURATION -p $port_number $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+        timeout 130 nuttcp -v -i0.5 -r -F  -T$DL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
@@ -148,10 +152,10 @@ while true; do
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
         UL_UDP_RATE=0M
-        timeout 130 iperf3 -c $ip_address -p $port_number -u -b $UL_UDP_RATE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 130 iperf3 -c $ip_address -p $iperf_port -u -b $UL_UDP_RATE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp uplink test
-        timeout 130 nuttcp -v -i0.5 -T$UL_TEST_DURATION -p $port_number $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 130 nuttcp -v -i0.5 -T$UL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
