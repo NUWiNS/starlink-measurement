@@ -99,7 +99,6 @@ while true; do
     command_output=$(grpcurl -plaintext -emit-defaults -d "{\"${rpc_method}\":{}}" 192.168.100.1:9200 SpaceX.API.Device.Device/Handle)
 
     res_time=$(get_datetime_with_iso_8601_local_timezone)
-    echo "receive json data from dish at ${res_time}"
 
     command_output=$(echo "$command_output" | jq -c .)
 
