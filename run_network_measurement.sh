@@ -101,7 +101,7 @@ while true; do
 done
 
 
-echo "Testing $operator, server $server_choice (ip: $ip_address, port: $nuttcp_port)"
+echo "Testing $operator, server $server_choice (ip: $ip_address, nuttcp_port: $nuttcp_port, iperf_port: $iperf_port)"
 
 while true; do
     # save the output to storage/shared folder for adb pull
@@ -125,10 +125,12 @@ while true; do
     if [ $thrpt_protocol == "udp" ]; then
         # udp downlink test
         DL_UDP_RATE=400M
+        echo "testing udp downlink with $ip_address:$iperf_port, rate $DL_UDP_RATE, interval $DL_INTERVAL, duration $DL_TEST_DURATION ..."
         timeout 130 iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp downlink test
-        timeout 130 nuttcp -v -i0.5 -r -F  -T$DL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
+        echo "testing tcp downlink with $ip_address:$nuttcp_port, interval $DL_INTERVAL, duration $DL_TEST_DURATION ..."
+        timeout 130 nuttcp -r -F -v -i $DL_INTERVAL -T $DL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved downlink test to $log_file_name"
@@ -152,10 +154,12 @@ while true; do
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
         UL_UDP_RATE=0M
+        echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
         timeout 130 iperf3 -c $ip_address -p $iperf_port -u -b $UL_UDP_RATE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp uplink test
-        timeout 130 nuttcp -v -i0.5 -T$UL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        echo "testing tcp uplink with $ip_address:$nuttcp_port, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
+        timeout 130 nuttcp -v -i $UL_INTERVAL -T $UL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     fi
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved uplink test to $log_file_name"
