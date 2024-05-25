@@ -1,5 +1,15 @@
 #!/bin/bash
 
+dependencies="nuttcp iperf3 ts"
+
+for _command in $dependencies; do
+  if ! command -v $_command &> /dev/null
+  then
+    echo "Error: $_command could not be found. Please install $_command."
+    exit 1
+  fi
+done
+
 ip_address=""
 operator=""
 thrpt_protocol=""
@@ -107,9 +117,11 @@ while true; do
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
     DL_TEST_DURATION=1
+    DL_INTERVAL=0.5
     if [ $thrpt_protocol == "udp" ]; then
         # udp downlink test
-        timeout 130 nuttcp -u -v -i0.5 -r -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        DL_UDP_RATE=400M
+        timeout 130 iperf3 -c $ip_address -p $port_number -R -u -b $DL_UDP_RATE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp downlink test
         timeout 130 nuttcp -v -i0.5 -r -F  -T$DL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name 
@@ -132,9 +144,11 @@ while true; do
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
     UL_TEST_DURATION=1
+    UL_INTERVAL=0.5
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
-        timeout 130 nuttcp -u -v -i0.5 -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        UL_UDP_RATE=0M
+        timeout 130 iperf3 -c $ip_address -p $port_number -u -b $UL_UDP_RATE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp uplink test
         timeout 130 nuttcp -v -i0.5 -T$UL_TEST_DURATION -p $port_number -w 32M $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
