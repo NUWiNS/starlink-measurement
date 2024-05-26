@@ -49,7 +49,8 @@ case $request_metric in
         ;;
     "history")
         rpc_method="get_history"
-        polling_interval=$((15*60))
+        # polling_interval=$((15*60))
+        polling_interval=1
         ;;
     *)
         echo "need to specify which metric (status, history) to pull from dish"
