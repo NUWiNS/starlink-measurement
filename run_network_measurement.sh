@@ -124,9 +124,10 @@ while true; do
     DL_INTERVAL=0.5
     if [ $thrpt_protocol == "udp" ]; then
         # udp downlink test
-        DL_UDP_RATE=400M
-        echo "testing udp downlink with $ip_address:$iperf_port, rate $DL_UDP_RATE, interval $DL_INTERVAL, duration $DL_TEST_DURATION ..."
-        timeout 140 iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        DL_UDP_RATE=500M
+        PACKET_SIZE=1400
+        echo "testing udp downlink with $ip_address:$iperf_port, rate $DL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $DL_INTERVAL, duration $DL_TEST_DURATION ..."
+        timeout 140 iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -l $PACKET_SIZE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp downlink test
         echo "testing tcp downlink with $ip_address:$nuttcp_port, interval $DL_INTERVAL, duration $DL_TEST_DURATION ..."
@@ -154,8 +155,9 @@ while true; do
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
         UL_UDP_RATE=0M
-        echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
-        timeout 140 iperf3 -c $ip_address -p $iperf_port -u -b $UL_UDP_RATE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        PACKET_SIZE=1400
+        echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
+        timeout 140 iperf3 -c $ip_address -p $iperf_port -u -b $UL_UDP_RATE -l $PACKET_SIZE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp uplink test
         echo "testing tcp uplink with $ip_address:$nuttcp_port, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
