@@ -10,6 +10,12 @@ for _command in $dependencies; do
   fi
 done
 
+# Input parameters
+# 1) ip_address: the target server ip address
+# 2) operator_choice: 1 - Verizon, 2 - ATT, 3 - Starlink
+
+
+
 ip_address=""
 operator=""
 thrpt_protocol=""
@@ -27,35 +33,39 @@ handle_exit(){
 
 trap handle_exit SIGINT SIGTERM SIGHUP
 
-echo "Starting a network measurement, please choose a server"
-echo "1) Virginia cloud server: 35.245.244.238"
-echo "2) Localhost (for testing): 127.0.0.1"
+ip_address=$1
+if [ -z "$ip_address" ]; then
+    echo "Starting a network measurement, please choose a server"
+    echo "1) Virginia cloud server: 35.245.244.238"
+    echo "2) Localhost (for testing): 127.0.0.1"
+    while true; do
+        read -p "Enter your choice (1-2): " server_choice
+        case $server_choice in
+            1)
+                ip_address=35.245.244.238
+                break
+                ;;
+            2)
+                ip_address=127.0.0.1
+                break
+                ;;
+            *)
+                echo "Invalid choice, please enter a number between 1 and 2"
+                ;;
+        esac
+    done
+fi
 
+
+operator_choice=$2
 while true; do
-    read -p "Enter your choice (1-2): " server_choice
-    case $server_choice in
-        1)
-            ip_address=35.245.244.238
-            break
-            ;;
-        2)
-            ip_address=127.0.0.1
-            break
-            ;;
-        *)
-            echo "Invalid choice, please enter a number between 1 and 5"
-            ;;
-    esac
-done
-
-
-echo "Please choose an operator:"
-echo "1) Verizon"
-echo "2) ATT"
-echo "3) Starlink"
-
-while true; do
-    read -p "Enter your choice (1-3): " operator_choice
+    if [ -z "$operator_choice" ]; then
+        echo "Please choose an operator:"
+        echo "1) Verizon"
+        echo "2) ATT"
+        echo "3) Starlink"
+        read -p "Enter your choice (1-3): " operator_choice
+    fi
     case $operator_choice in
         1)
             operator="verizon"
@@ -76,27 +86,27 @@ while true; do
             break
             ;;
         *)
-            echo "Invalid choice, please enter a number between 1 and 3"
+            echo "Invalid choice, please enter 1 for Verizon, 2 for ATT, or 3 for Starlink"
     esac
 done
 
 echo "Please choose TCP or UDP for throughput test:"
-echo "1) TCP"
-echo "2) UDP"
+echo "t) TCP"
+echo "u) UDP"
 
 while true; do
-    read -p "Enter your choice (1-2): " thrpt_choice
+    read -p "Enter your choice: " thrpt_choice
     case $thrpt_choice in
-        1)
+        [tT])
             thrpt_protocol="tcp"
             break
             ;;
-        2)
+        [uU])
             thrpt_protocol="udp"
             break
             ;;
         *)
-            echo "Invalid choice, please enter a number within (1-2)"
+            echo "Invalid choice, please enter 't' for TCP or 'u' for UDP"
     esac
 done
 
@@ -120,7 +130,7 @@ while true; do
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_downlink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    DL_TEST_DURATION=120
+    DL_TEST_DURATION=1
     DL_INTERVAL=0.5
     if [ $thrpt_protocol == "udp" ]; then
         # udp downlink test
@@ -150,7 +160,7 @@ while true; do
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_uplink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 120s
-    UL_TEST_DURATION=120
+    UL_TEST_DURATION=1
     UL_INTERVAL=0.5
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
@@ -179,7 +189,7 @@ while true; do
     log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
     # FIXME: change to 30s
-    PING_TEST_DURATION=30
+    PING_TEST_DURATION=1
     timeout 50 ping -s 38 -i 0.2 -w $PING_TEST_DURATION $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved ping test to $log_file_name"
