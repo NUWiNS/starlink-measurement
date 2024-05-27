@@ -22,7 +22,6 @@ elif [[ "$OSTYPE" == "linux-android"* ]]; then
     if ! command -v grpcurl &> /dev/null
     then
         # check grpcurl version: https://github.com/fullstorydev/grpcurl/releases
-        chmod +x grpcurl
         cp ./deps/grpcurl $usr_bin_path/grpcurl
         chmod +x $usr_bin_path/grpcurl
         echo "grpcurl installed in $usr_bin_path"
