@@ -17,10 +17,9 @@ FETCH_STATUS_PID=$!
 echo "fetching starlink status in background, PID: ${FETCH_STATUS_PID}..."
 
 # run history polling
-bash ./pull_dish_metric.sh history $data_folder >$data_folder/pull_sl_history.log &
-FETCH_HISTORY_PID=$!
-echo "fetching starlink history in background, PID: ${FETCH_HISTORY_PID}..."
-
+# bash ./pull_dish_metric.sh history $data_folder >$data_folder/pull_sl_history.log &
+# FETCH_HISTORY_PID=$!
+# echo "fetching starlink history in background, PID: ${FETCH_HISTORY_PID}..."
 
 while true; do
   read -p "Do you want to quit (y/n)? " answer
