@@ -27,7 +27,7 @@ while true; do
   [Yy]*) 
     pkill -P $$
     break ;;
-  [Nn]*) contine ;;
+  [Nn]*) continue ;;
   *) 
     echo "Please answer yes or no."
     continue
