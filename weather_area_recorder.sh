@@ -26,6 +26,7 @@ fi
 
 if [ ! -f "$$file_path" ]; then
   echo "Creating a record file: $file_path"
+  echo "----------------------" 
   touch $file_path
 fi
 
@@ -33,7 +34,7 @@ echo "The recoreder will log the timestamp with any weather or area changes in t
 echo "----------------------" 
 
 while true; do
-  read -p "Hey, do you notice any changes? enter 1 for weather, 2 for area: " choice
+  read -p "Do you notice any changes? enter 1 for weather, 2 for area: " choice
 
   case $choice in
     1)
@@ -53,6 +54,7 @@ while true; do
           ;;
         *)
           echo "Invalid input, enter 1 for sunny, 2 for rainy, 3 for cloudy, 4 for snowy"
+          echo "----------------------" 
           continue
           ;;
       esac
@@ -74,6 +76,7 @@ while true; do
           ;;
         *)
           echo "Invalid input, enter 1 for urban, 2 for suburban, 3 for rural"
+          echo "----------------------" 
           continue
           ;;
       esac
@@ -83,6 +86,7 @@ while true; do
       ;;
     *)
       echo "Invalid input, please enter 1 for weather, 2 for area"
+      echo "----------------------" 
       continue
       ;;
   esac
