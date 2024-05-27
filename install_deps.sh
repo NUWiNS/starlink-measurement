@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install dependencies
-dependencies="wget jq moreutils"
+dependencies="wget jq moreutils dnsutils traceroute"
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     apt install $dependencies
