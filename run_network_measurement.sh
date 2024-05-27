@@ -232,7 +232,7 @@ while true; do
     echo "All tests completed, cleaning up..."
 
     echo "------"
-    read -p "Do you want to continue test with server $server_choice (y/n)? " answer
+    read -p "Do you want to continue test with server $ip_address (y/n)? " answer
     case $answer in
         [Yy]* ) continue;;
         [Nn]* ) break  ;;
