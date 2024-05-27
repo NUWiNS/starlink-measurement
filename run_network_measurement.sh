@@ -21,6 +21,7 @@ operator=""
 thrpt_protocol=""
 nuttcp_port=""
 iperf_port=""
+round=0
 
 SL_PULL_STATUS_PID=""
 SL_PULL_HISTORY_PID=""
@@ -122,6 +123,7 @@ while true; do
     start_time=$start_dl_time
     mkdir -p $data_folder$start_dl_time
 
+    round=$((round+1))
     sleep 3
     echo "------"
 
@@ -232,7 +234,7 @@ while true; do
     echo "All tests completed, cleaning up..."
 
     echo "------"
-    read -p "Do you want to continue test with server $ip_address (y/n)? " answer
+    read -p "Round ${round} finished, continue to test with server $ip_address (y/n)?" answer
     case $answer in
         [Yy]* ) continue;;
         [Nn]* ) break  ;;
