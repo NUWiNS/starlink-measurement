@@ -11,8 +11,10 @@ for _command in $dependencies; do
 done
 
 # Input parameters
-# 1) ip_address: the target server ip address
-# 2) operator_choice: 1 - Verizon, 2 - ATT, 3 - Starlink
+# 1) mode: 1 - loop, 2 - one-shot
+# 2) ip_address: the target server ip address
+# 3) operator_choice: 1 - Verizon, 2 - ATT, 3 - Starlink
+# 4) thrpt_choice: t - TCP, u - UDP
 
 
 
@@ -34,12 +36,30 @@ handle_exit(){
 
 trap handle_exit SIGINT SIGTERM SIGHUP
 
-ip_address=$1
+mode=$1
+while true; do
+    if [ -z $mode ]; then
+        echo "Please choose a mode:"
+        echo "1) Loop mode"
+        echo "2) One-shot mode"
+        read -p "Enter your choice (1-2): " mode
+    fi
+    case $mode in
+        1) break;;
+        2) break;;
+        *)
+            echo "Invalid choice, please enter a number between 1 and 2"
+            mode=""
+            ;;
+    esac
+done
+
+ip_address=$2
 if [ -z "$ip_address" ]; then
-    echo "Starting a network measurement, please choose a server"
-    echo "1) Virginia cloud server: 35.245.244.238"
-    echo "2) Localhost (for testing): 127.0.0.1"
     while true; do
+        echo "Starting a network measurement, please choose a server"
+        echo "1) Virginia cloud server: 35.245.244.238"
+        echo "2) Localhost (for testing): 127.0.0.1"
         read -p "Enter your choice (1-2): " server_choice
         case $server_choice in
             1)
@@ -52,13 +72,14 @@ if [ -z "$ip_address" ]; then
                 ;;
             *)
                 echo "Invalid choice, please enter a number between 1 and 2"
+                ip_address=""
                 ;;
         esac
     done
 fi
 
 
-operator_choice=$2
+operator_choice=$3
 while true; do
     if [ -z "$operator_choice" ]; then
         echo "Please choose an operator:"
@@ -88,15 +109,20 @@ while true; do
             ;;
         *)
             echo "Invalid choice, please enter 1 for Verizon, 2 for ATT, or 3 for Starlink"
+            operator_choice=""
+            ;;
     esac
 done
 
-echo "Please choose TCP or UDP for throughput test:"
-echo "t) TCP"
-echo "u) UDP"
 
+thrpt_choice=$4
 while true; do
-    read -p "Enter your choice: " thrpt_choice
+    if [ -z "$thrpt_choice" ]; then
+        echo "Please choose a protocol for throughput test:"
+        echo "t) TCP"
+        echo "u) UDP"
+        read -p "Enter your choice: " thrpt_choice
+    fi
     case $thrpt_choice in
         [tT])
             thrpt_protocol="tcp"
@@ -108,11 +134,13 @@ while true; do
             ;;
         *)
             echo "Invalid choice, please enter 't' for TCP or 'u' for UDP"
+            thrpt_choice=""
+            ;;
     esac
 done
 
 
-echo "Testing $operator, server $server_choice (ip: $ip_address, nuttcp_port: $nuttcp_port, iperf_port: $iperf_port)"
+echo "Testing $operator with $thrpt_protocol, server $server_choice (ip: $ip_address, nuttcp_port: $nuttcp_port, iperf_port: $iperf_port)"
 
 while true; do
     # save the output to storage/shared folder for adb pull
@@ -125,7 +153,7 @@ while true; do
 
     round=$((round+1))
     sleep 3
-    echo "------"
+    echo "-----------------------------------"
 
     echo "${thrpt_protocol} downlink test started: $start_time"
     start_time=$(date '+%H%M%S%3N')
@@ -152,12 +180,12 @@ while true; do
     grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
 	    sed -E 's/\s*KB\/sec//'
 
-    echo "------"
+    echo "-----------------------------------"
     echo "Waiting for 5 seconds before starting uplink test..."
     sleep 5
 
     start_time=$(date '+%H%M%S%3N')
-    echo "------"
+    echo "-----------------------------------"
     echo "${thrpt_protocol} uplink test started: $start_time"
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_uplink_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
@@ -181,12 +209,12 @@ while true; do
     echo "UL average throughput: $rate"
     grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
 
-    echo "------"
+    echo "-----------------------------------"
     echo "Waiting for 5 seconds before starting ping test..."
     sleep 5
 
     start_time=$(date '+%H%M%S%3N')
-    echo "------"
+    echo "-----------------------------------"
     echo "Ping test started: $start_time"
     log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
@@ -198,12 +226,12 @@ while true; do
     summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
     echo "Ping summary: $summary"
 
-    echo "------"
+    echo "-----------------------------------"
     echo "Waiting for 5 seconds before starting traceroute test..."
     sleep 5
 
     start_time=$(date '+%H%M%S%3N')
-    echo "------"
+    echo "-----------------------------------"
     echo "Traceroute test started: $start_time"
     log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
     echo "Start time: $(date '+%s%3N')">$log_file_name
@@ -212,12 +240,12 @@ while true; do
     echo "End time: $(date '+%s%3N')">>$log_file_name
     echo "Saved traceroute test to $log_file_name"
 
-    echo "------"
+    echo "-----------------------------------"
     echo "Waiting for 5 seconds before starting nslookup test..."
     sleep 5
 
     start_time=$(date '+%H%M%S%3N')
-    echo "------"
+    echo "-----------------------------------"
     echo "Nslookup test started: $start_time"
     log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
     # Top 5 websites worldwide: https://www.semrush.com/website/top/
@@ -230,14 +258,19 @@ while true; do
     done
     echo "Saved nslookup test to $log_file_name"
 
-    echo "------"
-    echo "All tests completed, cleaning up..."
+    echo "-----------------------------------"
+    echo "All tests (${thrpt_protocol}) completed, cleaning up..."
 
-    echo "------"
-    read -p "Round ${round} finished, continue to test with server $ip_address (y/n)?" answer
-    case $answer in
-        [Yy]* ) continue;;
-        [Nn]* ) break  ;;
-        * ) echo "Please answer yes or no." && break;;
-    esac
+    if [ $mode -eq 2 ]; then
+        break;
+    else
+        # loop mode
+        echo "-----------------------------------"
+        read -p "Round ${round} finished, continue to test with server $ip_address (y/n)?" answer
+        case $answer in
+            [Yy]* ) continue;;
+            [Nn]* ) break  ;;
+            * ) echo "Please answer yes or no." && break;;
+        esac
+    fi
 done
