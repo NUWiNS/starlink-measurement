@@ -193,7 +193,7 @@ while true; do
     UL_INTERVAL=0.5
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
-        UL_UDP_RATE=0M
+        UL_UDP_RATE=300M
         PACKET_SIZE=1400
         echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
         timeout 140 nuttcp -u -R $UL_UDP_RATE -v -i $UL_INTERVAL -l $PACKET_SIZE -T $UL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
