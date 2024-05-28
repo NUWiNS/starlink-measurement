@@ -17,7 +17,6 @@ done
 # 4) thrpt_choice: t - TCP, u - UDP
 
 
-
 ip_address=""
 operator=""
 thrpt_protocol=""
@@ -197,7 +196,7 @@ while true; do
         UL_UDP_RATE=0M
         PACKET_SIZE=1400
         echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
-        timeout 140 iperf3 -c $ip_address -p $iperf_port -u -b $UL_UDP_RATE -l $PACKET_SIZE -i $UL_INTERVAL -t $UL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+        timeout 140 nuttcp -u -R $UL_UDP_RATE -v -i $UL_INTERVAL -l $PACKET_SIZE -T $UL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
         # tcp uplink test
         echo "testing tcp uplink with $ip_address:$nuttcp_port, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
