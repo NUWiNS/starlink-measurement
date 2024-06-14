@@ -4,6 +4,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
 base_dir = os.path.join(os.getcwd(), "../outputs/maine_starlink_trip/")
 
@@ -81,6 +82,21 @@ def plot_cdf_of_rtt_with_all_operators(
     # plt.show()
 
 
+def plot_boxplot_of_rtt(df, output_dir='.'):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.boxplot(data=df, ax=ax, x='operator', y='rtt_ms')
+    ax.set_xlabel('Operator')
+    ax.set_ylabel('RTT (ms)')
+    ax.set_title('Boxplot of RTT by operator')
+    plt.grid(True)
+    plt.yscale('log')
+    if output_dir:
+        plt.savefig(os.path.join(output_dir, 'boxplot_rtt_all_operators.png'))
+    else:
+        plt.show()
+    plt.close(fig)
+
+
 def plot_all_cdf_for_rtt(df: pd.DataFrame, output_dir='.', xscale="linear"):
     operators = df['operator'].unique()
 
@@ -117,15 +133,16 @@ def main():
 
     all_rtt_df = get_data_frame_from_all_csv()
 
-    all_rtt_df.sort_values(by='rtt_ms', ascending=False)
-
-    # # Plot the CDF of throughput
+    # all_rtt_df.sort_values(by='rtt_ms', ascending=False)
+    #
+    # # # Plot the CDF of throughput
     output_plots_dir = os.path.join(base_dir, 'plots')
     if not os.path.exists(output_plots_dir):
         os.makedirs(output_plots_dir, exist_ok=True)
 
-    plot_all_cdf_for_rtt(df=all_rtt_df, output_dir=output_plots_dir)
-    plot_all_cdf_for_rtt(df=all_rtt_df, output_dir=output_plots_dir, xscale='log')
+    # plot_all_cdf_for_rtt(df=all_rtt_df, output_dir=output_plots_dir)
+    # plot_all_cdf_for_rtt(df=all_rtt_df, output_dir=output_plots_dir, xscale='log')
+    plot_boxplot_of_rtt(df=all_rtt_df, output_dir=output_plots_dir)
 
 
 if __name__ == '__main__':
