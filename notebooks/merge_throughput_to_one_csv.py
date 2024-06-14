@@ -64,17 +64,24 @@ def main():
         os.makedirs(dataset_dir, exist_ok=True)
 
     # print('-----------------------------------')
-    # all_tcp_downlink_df = get_data_frame_from_all_csv('tcp', 'downlink')
-    # save_throughput_metric_to_csv(data_frame=all_tcp_downlink_df, protocol='tcp', direction='downlink', output_dir=dataset_dir)
+    all_tcp_downlink_df = get_data_frame_from_all_csv('tcp', 'downlink')
+    save_throughput_metric_to_csv(data_frame=all_tcp_downlink_df, protocol='tcp', direction='downlink',
+                                  output_dir=dataset_dir)
 
     # print('-----------------------------------')
 
     # all_tcp_uplink_df = get_data_frame_from_all_csv('tcp', 'uplink')
-    # save_throughput_metric_to_csv(data_frame=all_tcp_uplink_df, protocol='tcp', direction='uplink', output_dir=dataset_dir)
-
-    # print('-----------------------------------')
+    # save_throughput_metric_to_csv(data_frame=all_tcp_uplink_df, protocol='tcp', direction='uplink',
+    #                               output_dir=dataset_dir)
+    # #
+    # # print('-----------------------------------')
     # all_udp_uplink_df = get_data_frame_from_all_csv('udp', 'uplink')
-    # save_throughput_metric_to_csv(data_frame=all_udp_uplink_df, protocol='udp', direction='uplink', output_dir=dataset_dir)
+    # save_throughput_metric_to_csv(data_frame=all_udp_uplink_df, protocol='udp', direction='uplink',
+    #                               output_dir=dataset_dir)
+    #
+    # all_udp_downlink_df = get_data_frame_from_all_csv('udp', 'downlink')
+    # save_throughput_metric_to_csv(data_frame=all_udp_downlink_df, protocol='udp', direction='downlink',
+    #                               output_dir=dataset_dir)
 
 
 if __name__ == '__main__':

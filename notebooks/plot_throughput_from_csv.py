@@ -96,18 +96,26 @@ def plot_tcp_downlink_data(df, output_dir='.'):
     # plot CDF of throughput for each operator
     for operator in operators:
         throughput_df = extract_throughput_df(df, operator)
-        plot_cdf_of_throughput(
+
+        plot_freq_distribution_of_throughput(
             throughput_df,
-            title=f'CDF of TCP Downlink Throughput ({operator.capitalize()})',
-            output_file_path=os.path.join(output_dir, f'cdf_tcp_downlink_{operator}.png')
+            operator,
+            output_dir,
+            plot_title=f'Frequency Distribution of head 100 values of TCP Downlink Throughput ({operator})'
         )
 
-    # plot one CDF of throughput for all operators
-    plot_cdf_of_throughput_with_all_operators(
-        df,
-        title='CDF of TCP Downlink Throughput (All Operators)',
-        output_file_path=os.path.join(output_dir, f'cdf_tcp_downlink_all.png')
-    )
+    #     plot_cdf_of_throughput(
+    #         throughput_df,
+    #         title=f'CDF of TCP Downlink Throughput ({operator.capitalize()})',
+    #         output_file_path=os.path.join(output_dir, f'cdf_tcp_downlink_{operator}.png')
+    #     )
+    #
+    # # plot one CDF of throughput for all operators
+    # plot_cdf_of_throughput_with_all_operators(
+    #     df,
+    #     title='CDF of TCP Downlink Throughput (All Operators)',
+    #     output_file_path=os.path.join(output_dir, f'cdf_tcp_downlink_all.png')
+    # )
 
 
 def plot_tcp_uplink_data(df: pd.DataFrame, output_dir='.'):
@@ -116,18 +124,66 @@ def plot_tcp_uplink_data(df: pd.DataFrame, output_dir='.'):
     # plot CDF of throughput for each operator
     for operator in operators:
         throughput_df = extract_throughput_df(df, operator)
-        plot_cdf_of_throughput(
+        print(f"Describe throughput data of {operator}")
+        print(throughput_df.describe())
+
+        plot_freq_distribution_of_throughput(
             throughput_df,
-            title=f'CDF of TCP Uplink Throughput ({operator.capitalize()})',
-            output_file_path=os.path.join(output_dir, f'cdf_tcp_uplink_{operator}.png')
+            operator,
+            output_dir,
+            plot_title=f'Frequency Distribution of TCP Uplink Throughput ({operator})'
         )
 
-    # plot one CDF of throughput for all operators
-    plot_cdf_of_throughput_with_all_operators(
-        df,
-        title='CDF of TCP Uplink Throughput (All Operators)',
-        output_file_path=os.path.join(output_dir, f'cdf_tcp_uplink_all.png')
-    )
+    #     plot_cdf_of_throughput(
+    #         throughput_df,
+    #         title=f'CDF of TCP Uplink Throughput ({operator.capitalize()})',
+    #         output_file_path=os.path.join(output_dir, f'cdf_tcp_uplink_{operator}.png')
+    #     )
+    #
+    # # plot one CDF of throughput for all operators
+    # plot_cdf_of_throughput_with_all_operators(
+    #     df,
+    #     title='CDF of TCP Uplink Throughput (All Operators)',
+    #     output_file_path=os.path.join(output_dir, f'cdf_tcp_uplink_all.png')
+    # )
+
+
+def plot_freq_distribution_of_throughput(
+        single_col_df: pd.DataFrame,
+        operator: str,
+        output_dir: str,
+        plot_title: str = 'Frequency Distribution of Throughput'
+):
+    print('count df', single_col_df.count())
+
+    unique_values = single_col_df.unique()
+    print(f"Number of unique values: {unique_values}")
+
+    frequency_distribution = single_col_df.value_counts()
+    print("Frequency distribution:\n", frequency_distribution)
+
+    # Calculate the total number of observations
+    total_observations = frequency_distribution.sum()
+    print("Total number of observations:", total_observations)
+
+    # Calculate the percentage distribution
+    percentage_distribution = (frequency_distribution / total_observations) * 100
+
+    # Plot a bar chart for frequency distribution
+    plt.figure(figsize=(15, 9))
+    percentage_distribution.sort_index().head(100).plot(kind='bar', edgecolor='black')
+    plt.xlabel('Throughput (Mbps)')
+    plt.ylabel('Percentage (%)')
+    plt.title(plot_title)
+    plt.grid(True)
+
+    # Save the plot
+    plot_path = os.path.join(output_dir, f'frequency_distribution_{operator}.png')
+    plt.savefig(plot_path)
+    print(f"Plot saved to {plot_path}")
+
+    # Show the plot
+    plt.show()
 
 
 def plot_udp_uplink_data(df: pd.DataFrame, output_dir='.'):
@@ -175,17 +231,20 @@ def main():
     if not os.path.exists(dataset_dir):
         os.makedirs(dataset_dir, exist_ok=True)
 
-    all_udp_downlink_df = get_data_frame_from_all_csv('udp', 'downlink')
+    all_tcp_downlink_df = get_data_frame_from_all_csv('tcp', 'downlink')
+    # all_tcp_uplink_df = get_data_frame_from_all_csv('tcp', 'uplink')
+    # all_udp_downlink_df = get_data_frame_from_all_csv('udp', 'downlink')
+    # print(all_udp_downlink_df.describe())
 
     # Plot the CDF of throughput
     output_plots_dir = os.path.join(base_directory, 'plots')
     if not os.path.exists(output_plots_dir):
         os.makedirs(output_plots_dir, exist_ok=True)
 
-    # plot_tcp_downlink_data(all_tcp_downlink_df, output_dir=output_plots_dir)
+    plot_tcp_downlink_data(all_tcp_downlink_df, output_dir=output_plots_dir)
     # plot_tcp_uplink_data(all_tcp_uplink_df, output_dir=output_plots_dir)
     # plot_udp_uplink_data(df=all_udp_uplink_df, output_dir=output_plots_dir)
-    plot_udp_downlink_data(df=all_udp_downlink_df, output_dir=output_plots_dir)
+    # plot_udp_downlink_data(df=all_udp_downlink_df, output_dir=output_plots_dir)
 
 
 if __name__ == '__main__':
