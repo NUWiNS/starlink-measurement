@@ -11,9 +11,10 @@ from scripts.nuttcp_utils import find_tcp_downlink_files, parse_nuttcp_tcp_resul
     find_tcp_uplink_files, find_udp_uplink_files, parse_nuttcp_udp_result
 
 base_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/')
+merged_csv_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/csv')
 
 
-def process_nuttcp_files(files: List[str], protocol: str):
+def process_nuttcp_files(files: List[str], protocol: str, output_csv_filename: str):
     """
     Process nuttcp TCP files and save the extracted data to CSV files
     :param files:
@@ -21,6 +22,7 @@ def process_nuttcp_files(files: List[str], protocol: str):
     :return:
     """
     empty_files = []
+    main_data_frame = pd.DataFrame()
     for file in files:
         try:
             with open(file, 'r') as f:
@@ -36,7 +38,7 @@ def process_nuttcp_files(files: List[str], protocol: str):
                     empty_files.append(file)
                     continue
                 df = pd.DataFrame(extracted_data)
-
+                main_data_frame = pd.concat([main_data_frame, df], ignore_index=True)
                 # Save to the same directory with the same filename but with .csv extension
                 csv_file_path = file.replace('.out', '.csv')
                 df.to_csv(csv_file_path, index=False)
@@ -49,6 +51,13 @@ def process_nuttcp_files(files: List[str], protocol: str):
     print(
         f'Processing complete: {processed_files_length}/{total_file_length} files, {empty_files_length} files are empty.')
 
+    main_data_frame.to_csv(output_csv_filename, index=False)
+    print(f'Saved all extracted data to the CSV file: {output_csv_filename}')
+
+
+def get_merged_csv_filename(operator: str, protocol: str, direction: str):
+    return os.path.join(merged_csv_dir, f'{operator}_{protocol}_{direction}.csv')
+
 
 def process_nuttcp_data_for_operator(operator: str):
     """
@@ -60,15 +69,27 @@ def process_nuttcp_data_for_operator(operator: str):
     tcp_downlink_files = find_tcp_downlink_files(operator_base_dir)
     print(f'Processing {operator.capitalize()} Phone\'s NUTTCP throughput data...')
     print(f'Found {len(tcp_downlink_files)} TCP downlink files, processing...')
-    process_nuttcp_files(tcp_downlink_files, protocol='tcp')
+    process_nuttcp_files(
+        tcp_downlink_files,
+        protocol='tcp',
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink')
+    )
 
     tcp_uplink_files = find_tcp_uplink_files(operator_base_dir)
     print(f'Found {len(tcp_uplink_files)} TCP uplink files, processing...')
-    process_nuttcp_files(tcp_uplink_files, protocol='tcp')
+    process_nuttcp_files(
+        tcp_uplink_files,
+        protocol='tcp',
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink')
+    )
 
     udp_uplink_files = find_udp_uplink_files(operator_base_dir)
     print(f'Found {len(udp_uplink_files)} UDP uplink files, processing...')
-    process_nuttcp_files(udp_uplink_files, protocol='udp')
+    process_nuttcp_files(
+        udp_uplink_files,
+        protocol='udp',
+        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'uplink')
+    )
     print(
         '--- NOTE: We skip the UDP uplink data on 20240527 because we used iperf3 and they are not the throughputs from the receiver side')
 
