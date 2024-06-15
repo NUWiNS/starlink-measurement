@@ -2,3 +2,7 @@ outputs/*
 .DS_Store
 storage/*
 maine_starlink_trip/*
+.idea/*
+datasets/dev/*
+**/__pycache__/*
+**/storage/*

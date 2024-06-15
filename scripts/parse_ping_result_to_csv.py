@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 import re
 
-from notebooks.common import extract_operator_from_filename
+from scripts.common import extract_operator_from_filename
 
 
 def find_files(base_dir, prefix, suffix):
