@@ -1,17 +1,9 @@
-# Plot CDF of throughput
 import os
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-
-base_dir = os.path.join(os.getcwd(), "../outputs/maine_starlink_trip/")
-
-
-def get_data_frame_from_all_csv():
-    file_path = os.path.join(base_dir, f'datasets/ping_all.csv')
-    return pd.read_csv(file_path)
 
 
 def extract_rtt_df(data_frame, operator=None):
@@ -82,7 +74,7 @@ def plot_cdf_of_rtt_with_all_operators(
     # plt.show()
 
 
-def plot_boxplot_of_rtt(df, output_dir='.'):
+def plot_boxplot_of_rtt(df: pd.DataFrame, output_dir='.'):
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.boxplot(data=df, ax=ax, x='operator', y='rtt_ms')
     ax.set_xlabel('Operator')
@@ -124,26 +116,3 @@ def plot_all_cdf_for_rtt(df: pd.DataFrame, output_dir='.', xscale="linear"):
         output_file_path=os.path.join(output_dir, f'{filename_prefix}_all.png'),
         xscale=xscale,
     )
-
-
-def main():
-    dataset_dir = os.path.join(base_dir, 'datasets')
-    if not os.path.exists(dataset_dir):
-        os.makedirs(dataset_dir, exist_ok=True)
-
-    all_rtt_df = get_data_frame_from_all_csv()
-
-    # all_rtt_df.sort_values(by='rtt_ms', ascending=False)
-    #
-    # # # Plot the CDF of throughput
-    output_plots_dir = os.path.join(base_dir, 'plots')
-    if not os.path.exists(output_plots_dir):
-        os.makedirs(output_plots_dir, exist_ok=True)
-
-    # plot_all_cdf_for_rtt(df=all_rtt_df, output_dir=output_plots_dir)
-    # plot_all_cdf_for_rtt(df=all_rtt_df, output_dir=output_plots_dir, xscale='log')
-    plot_boxplot_of_rtt(df=all_rtt_df, output_dir=output_plots_dir)
-
-
-if __name__ == '__main__':
-    main()
