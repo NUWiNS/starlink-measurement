@@ -1,0 +1,42 @@
+Start time: 1717011677530
+[2024-05-29 15:41:18.343684] nuttcp-t: v8.1.4: socket
+[2024-05-29 15:41:18.344107] nuttcp-t: buflen=65536, nstream=1, port=5003 tcp -> 35.245.244.238
+[2024-05-29 15:41:18.344155] nuttcp-t: time limit = 120.00 seconds
+[2024-05-29 15:41:18.344185] nuttcp-t: connect to 35.245.244.238 with mss=1408, RTT=51.265 ms af=inet
+[2024-05-29 15:41:18.344212] nuttcp-t: send window size = 1048576, receive window size = 1048576
+[2024-05-29 15:41:18.344240] nuttcp-t: available send window = 786432, available receive window = 786432
+[2024-05-29 15:41:18.344266] nuttcp-t: initial congestion window = 13 KB (10 packets)
+[2024-05-29 15:41:18.344291] nuttcp-r: v8.1.4: socket
+[2024-05-29 15:41:18.344316] nuttcp-r: buflen=65536, nstream=1, port=5003 tcp
+[2024-05-29 15:41:18.344341] nuttcp-r: interval reporting every 0.50 seconds
+[2024-05-29 15:41:18.344368] nuttcp-r: accept from 98.97.16.43 with af=inet
+[2024-05-29 15:41:18.344393] nuttcp-r: send window size = 450000000, receive window size = 450000000
+[2024-05-29 15:41:18.344416] nuttcp-r: available send window = 225000000, available receive window = 225000000
+[2024-05-29 15:41:18.344442]     0.2500 MB /   0.50 sec =    4.1937 Mbps     7 retrans    232 KB-cwnd
+[2024-05-29 15:41:19.030029]     1.6875 MB /   0.50 sec =   28.3130 Mbps    43 retrans     45 KB-cwnd
+[2024-05-29 15:41:19.734482]     0.5625 MB /   0.50 sec =    9.4367 Mbps     2 retrans     39 KB-cwnd
+[2024-05-29 15:41:20.475262]     0.4375 MB /   0.50 sec =    7.3400 Mbps     2 retrans     37 KB-cwnd
+[2024-05-29 15:41:20.475902]     0.4375 MB /   0.50 sec =    7.3400 Mbps     0 retrans     37 KB-cwnd
+[2024-05-29 15:41:21.470517]     0.3750 MB /   0.50 sec =    6.2917 Mbps     6 retrans     20 KB-cwnd
+[2024-05-29 15:41:21.470762]     0.3125 MB /   0.50 sec =    5.2429 Mbps     0 retrans     20 KB-cwnd
+[2024-05-29 15:41:58.998055]     0.1250 MB /   0.50 sec =    2.0971 Mbps    33 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.998576]     0.1250 MB /   0.50 sec =    2.0972 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.998724]     0.0625 MB /   0.50 sec =    1.0486 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.998852]     0.0625 MB /   0.50 sec =    1.0486 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.999069]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.999208]     0.1250 MB /   0.50 sec =    2.0971 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.999330]     0.0625 MB /   0.50 sec =    1.0486 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.999627]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.999750]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.999860]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:58.999971]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:59.000079]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:59.000192]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:59.000303]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:59.000407]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:59.000513]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:59.000614]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:59.000715]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:41:59.000819]     0.0000 MB /   0.50 sec =    0.0000 Mbps     0 retrans      1 KB-cwnd
+[2024-05-29 15:43:18.999183] nuttcp-t: v8.1.4: Error: timeout while draining socket send queue
+End time: 1717011799018

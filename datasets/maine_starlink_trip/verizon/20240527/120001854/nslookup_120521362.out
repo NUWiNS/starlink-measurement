@@ -1,0 +1,78 @@
+Start time: 1716825921382
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	google.com
+Address: 142.251.111.100
+Name:	google.com
+Address: 142.251.111.139
+Name:	google.com
+Address: 142.251.111.113
+Name:	google.com
+Address: 142.251.111.101
+Name:	google.com
+Address: 142.251.111.138
+Name:	google.com
+Address: 142.251.111.102
+Name:	google.com
+Address: 2607:f8b0:4004:c19::71
+Name:	google.com
+Address: 2607:f8b0:4004:c19::8a
+Name:	google.com
+Address: 2607:f8b0:4004:c19::64
+Name:	google.com
+Address: 2607:f8b0:4004:c19::66
+End time: 1716825921700
+
+Start time: 1716825921726
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	youtube.com
+Address: 142.251.167.190
+Name:	youtube.com
+Address: 142.251.167.93
+Name:	youtube.com
+Address: 142.251.167.91
+Name:	youtube.com
+Address: 142.251.167.136
+Name:	youtube.com
+Address: 2607:f8b0:4004:c1d::5d
+Name:	youtube.com
+Address: 2607:f8b0:4004:c1d::88
+Name:	youtube.com
+Address: 2607:f8b0:4004:c1d::be
+Name:	youtube.com
+Address: 2607:f8b0:4004:c1d::5b
+End time: 1716825921953
+
+Start time: 1716825921978
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	facebook.com
+Address: 157.240.245.35
+Name:	facebook.com
+Address: 2a03:2880:f172:81:face:b00c:0:25de
+End time: 1716825922206
+
+Start time: 1716825922225
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	wikipedia.org
+Address: 208.80.154.224
+Name:	wikipedia.org
+Address: 2620:0:861:ed1a::1
+End time: 1716825922464
+
+Start time: 1716825922484
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	instagram.com
+Address: 157.240.245.174
+Name:	instagram.com
+Address: 2a03:2880:f272:e9:face:b00c:0:4420
+End time: 1716825922720
+

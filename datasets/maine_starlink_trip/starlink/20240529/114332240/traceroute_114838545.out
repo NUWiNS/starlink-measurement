@@ -1,0 +1,10 @@
+Start time: 1716997718560
+[2024-05-29 11:48:38.656911] traceroute to 35.245.244.238 (35.245.244.238), 30 hops max, 60 byte packets
+[2024-05-29 11:48:38.708913]  1  192.168.1.1 (192.168.1.1)  2.881 ms  2.025 ms  1.546 ms
+[2024-05-29 11:48:38.757117]  2  100.64.0.1 (100.64.0.1)  29.953 ms  34.481 ms  33.853 ms
+[2024-05-29 11:48:38.871336]  3  172.16.250.66 (172.16.250.66)  37.789 ms  37.209 ms  41.719 ms
+[2024-05-29 11:48:38.979137]  4  undefined.hostname.localhost (206.224.64.166)  41.133 ms  62.123 ms undefined.hostname.localhost (206.224.64.154)  141.629 ms
+[2024-05-29 11:48:39.255252]  5  undefined.hostname.localhost (206.224.64.149)  55.792 ms undefined.hostname.localhost (206.224.64.173)  55.043 ms undefined.hostname.localhost (206.224.64.159)  54.513 ms
+[2024-05-29 11:48:39.593152]  6  undefined.hostname.localhost (206.224.64.63)  53.953 ms undefined.hostname.localhost (206.224.64.57)  37.562 ms  37.181 ms
+[2024-05-29 11:48:39.594395]  7  238.244.245.35.bc.googleusercontent.com (35.245.244.238)  47.471 ms  38.868 ms  36.959 ms
+End time: 1716997719624

@@ -1,0 +1,8 @@
+Start time: 1716821701440
+[2024-05-27 10:55:01.502216] PING 35.245.244.238 (35.245.244.238) 38(66) bytes of data.
+[2024-05-27 10:55:01.502868] From 192.168.1.1: icmp_seq=1 Destination Net Unreachable
+[2024-05-27 10:55:01.502904] 
+[2024-05-27 10:55:01.502933] --- 35.245.244.238 ping statistics ---
+[2024-05-27 10:55:01.502959] 1 packets transmitted, 0 received, +1 errors, 100% packet loss, time 0ms
+[2024-05-27 10:55:01.503002] 
+End time: 1716821701513

@@ -1,0 +1,11 @@
+Start time: 1716847819943
+[2024-05-27 18:12:39.965661] Connecting to host 35.245.244.238, port 5202
+[2024-05-27 18:12:39.966541] Reverse mode, remote host 35.245.244.238 is sending
+[2024-05-27 18:12:39.966644] [  5] local 10.96.167.85 port 57656 connected to 35.245.244.238 port 5202
+[2024-05-27 18:12:39.966728] [ ID] Interval           Transfer     Bitrate         Jitter    Lost/Total Datagrams
+[2024-05-27 18:12:39.966806] [  5]   0.00-11693.80 sec  0.00 Bytes  0.00 bits/sec  0.000 ms  0/0 (0%)  
+[2024-05-27 18:12:39.966882] - - - - - - - - - - - - - - - - - - - - - - - - -
+[2024-05-27 18:12:39.966956] [ ID] Interval           Transfer     Bitrate         Jitter    Lost/Total Datagrams
+[2024-05-27 18:12:39.967031] [  5]   0.00-11693.80 sec  0.00 Bytes  0.00 bits/sec  0.000 ms  0/0 (0%)  sender
+[2024-05-27 18:12:39.967170] [  5]   0.00-11693.80 sec  0.00 Bytes  0.00 bits/sec  0.000 ms  0/0 (0%)  receiver
+End time: 1716847959991

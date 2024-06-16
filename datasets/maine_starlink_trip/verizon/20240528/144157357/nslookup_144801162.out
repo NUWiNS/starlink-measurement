@@ -1,0 +1,44 @@
+Start time: 1716922081174
+;; connection timed out; no servers could be reached
+End time: 1716922099259
+
+Start time: 1716922099268
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	youtube.com
+Address: 142.250.176.206
+Name:	youtube.com
+Address: 2607:f8b0:4006:81c::200e
+End time: 1716922102878
+
+Start time: 1716922102888
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	facebook.com
+Address: 157.240.245.35
+Name:	facebook.com
+Address: 2a03:2880:f172:81:face:b00c:0:25de
+End time: 1716922103080
+
+Start time: 1716922103091
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	wikipedia.org
+Address: 208.80.154.224
+Name:	wikipedia.org
+Address: 2620:0:861:ed1a::1
+End time: 1716922103313
+
+Start time: 1716922103323
+Server:		8.8.8.8
+Address:	8.8.8.8#53
+Non-authoritative answer:
+Name:	instagram.com
+Address: 157.240.245.174
+Name:	instagram.com
+Address: 2a03:2880:f272:e9:face:b00c:0:4420
+End time: 1716922103538
+
