@@ -1,3 +1,4 @@
+import unittest
 from datetime import datetime
 from typing import List, Dict
 
@@ -28,30 +29,40 @@ def format_nuttcp_timestamp(dt_str: str, timezone_str=None):
     return format_datetime_as_iso_8601(dt)
 
 
+def parse_nuttcp_tcp_line(line: str) -> Dict[str, str]:
+    """
+    Parse a single line of nuttcp TCP log
+    :param line:
+    :return:
+    """
+    pattern = re.compile(
+        r"\[(.*?)\]\s+.*?=\s+([\d.]+)\s+Mbps\s+(\d+)\s+retrans\s+(\d+)\s+KB-cwnd"
+    )
+    match = pattern.search(line)
+    if not match:
+        return None
+    dt, throughput, retrans, cwnd = match.groups()
+    dt_isoformat = format_nuttcp_timestamp(dt)
+    return {
+        'time': dt_isoformat,
+        'throughput_mbps': throughput,
+        'retrans': retrans,
+        'cwnd_kb': cwnd
+    }
+
+
 def parse_nuttcp_tcp_result(content: str) -> List[Dict[str, str]]:
     """
     Extract timestamp, throughput, retrans and cwnd from the TCP log of nuttcp
     :param content:
     :return: List[Dict[str, str]]
     """
-    # Regular expression to match the target line
-    pattern = re.compile(
-        r"\[(.*?)\]\s+.*?=\s+([\d.]+)\s+Mbps\s+(\d+)\s+retrans\s+(\d+)\s+KB-cwnd"
-    )
-
     extracted_data = []
 
     for line in content.splitlines():
-        match = pattern.search(line)
+        match = parse_nuttcp_tcp_line(line)
         if match:
-            dt, throughput, retrans, cwnd = match.groups()
-            dt_isoformat = format_nuttcp_timestamp(dt)
-            extracted_data.append({
-                'time': dt_isoformat,
-                'throughput_mbps': throughput,
-                'retrans': retrans,
-                'cwnd_kb': cwnd
-            })
+            extracted_data.append(match)
     return extracted_data
 
 
@@ -92,9 +103,16 @@ def find_tcp_uplink_files(base_dir: str):
     return find_files(base_dir, prefix="tcp_uplink", suffix=".out")
 
 
-def find_udp_downlink_files(base_dir: str):
-    return find_files(base_dir, prefix="udp_downlink", suffix=".out")
-
-
 def find_udp_uplink_files(base_dir: str):
     return find_files(base_dir, prefix="udp_uplink", suffix=".out")
+
+
+class UnitTest(unittest.TestCase):
+    def test_tcp_downlink_result_parsing(self):
+        line = '[2024-05-27 10:57:21.047467]     1.6875 MB /   0.50 sec =   28.3104 Mbps     1 retrans   1375 KB-cwnd'
+        self.assertEqual({
+            'time': '2024-05-27T10:57:21.047467',
+            'throughput_mbps': '28.3104',
+            'retrans': '1',
+            'cwnd_kb': '1375'
+        }, parse_nuttcp_tcp_line(line))
