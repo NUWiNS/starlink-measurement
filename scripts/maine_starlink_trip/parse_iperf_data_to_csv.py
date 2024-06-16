@@ -73,6 +73,7 @@ def process_iperf_data_for_operator(operator: str):
     operator_base_dir = os.path.join(base_dir, operator)
 
     udp_downlink_files = find_udp_downlink_files(operator_base_dir)
+    print(f'Processing {operator.capitalize()} Phone\'s iperf throughput data...')
     print(f'Found {len(udp_downlink_files)} UDP downlink files, processing...')
     process_iperf_files(
         udp_downlink_files,
@@ -83,11 +84,11 @@ def process_iperf_data_for_operator(operator: str):
 
 def main():
     process_iperf_data_for_operator('att')
-    # print('----------------------------------')
-    # process_iperf_data_for_operator('verizon')
-    # print('----------------------------------')
-    # process_iperf_data_for_operator('starlink')
-    # print('----------------------------------')
+    print('----------------------------------')
+    process_iperf_data_for_operator('verizon')
+    print('----------------------------------')
+    process_iperf_data_for_operator('starlink')
+    print('----------------------------------')
 
 
 if __name__ == '__main__':
