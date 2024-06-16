@@ -9,7 +9,7 @@ base_directory = os.path.join(os.getcwd(), "../outputs/maine_starlink_trip/")
 
 
 def get_data_frame_from_all_csv(protocol, direction):
-    file_path = os.path.join(base_directory, f'datasets/{protocol}_{direction}_all.csv')
+    file_path = os.path.join(base_directory, f'csv/{protocol}_{direction}_all.csv')
     return pd.read_csv(file_path)
 
 
@@ -64,13 +64,22 @@ def plot_cdf_of_throughput_with_all_operators(
 ):
     plt.figure(figsize=(10, 6))
 
-    operators = ['starlink', 'att', 'verizon']
-    colors = ['r', 'g', 'b']
+    all_operators = ['starlink', 'att', 'verizon', 'tmobile']
+    # ensure the order by making Categorical
+    df['operator'] = pd.Categorical(df['operator'], categories=all_operators, ordered=True)
+    # make sure the colors are consistent for each operator
+    color_map = {
+        'starlink': 'r',
+        'att': 'g',
+        'verizon': 'b',
+        'tmobile': 'orange'
+    }
+    operators = df['operator'].unique()
 
     for index, operator in enumerate(operators):
         operator_data = extract_throughput_df(df, operator)
         data_sorted = np.sort(operator_data)
-        color = colors[index]
+        color = color_map[operator]
         cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
         plt.plot(
             data_sorted,
@@ -88,34 +97,6 @@ def plot_cdf_of_throughput_with_all_operators(
     if output_file_path:
         plt.savefig(output_file_path)
     plt.show()
-
-
-def plot_tcp_downlink_data(df, output_dir='.'):
-    operators = df['operator'].unique()
-
-    # plot CDF of throughput for each operator
-    for operator in operators:
-        throughput_df = extract_throughput_df(df, operator)
-
-        plot_freq_distribution_of_throughput(
-            throughput_df,
-            operator,
-            output_dir,
-            plot_title=f'Frequency Distribution of head 100 values of TCP Downlink Throughput ({operator})'
-        )
-
-    #     plot_cdf_of_throughput(
-    #         throughput_df,
-    #         title=f'CDF of TCP Downlink Throughput ({operator.capitalize()})',
-    #         output_file_path=os.path.join(output_dir, f'cdf_tcp_downlink_{operator}.png')
-    #     )
-    #
-    # # plot one CDF of throughput for all operators
-    # plot_cdf_of_throughput_with_all_operators(
-    #     df,
-    #     title='CDF of TCP Downlink Throughput (All Operators)',
-    #     output_file_path=os.path.join(output_dir, f'cdf_tcp_downlink_all.png')
-    # )
 
 
 def plot_tcp_uplink_data(df: pd.DataFrame, output_dir='.'):
@@ -224,28 +205,3 @@ def plot_udp_downlink_data(df: pd.DataFrame, output_dir='.'):
         title='CDF of UDP Downlink Throughput (All Operators)',
         output_file_path=os.path.join(output_dir, f'cdf_udp_downlink_all.png')
     )
-
-
-def main():
-    dataset_dir = os.path.join(base_directory, 'datasets')
-    if not os.path.exists(dataset_dir):
-        os.makedirs(dataset_dir, exist_ok=True)
-
-    all_tcp_downlink_df = get_data_frame_from_all_csv('tcp', 'downlink')
-    # all_tcp_uplink_df = get_data_frame_from_all_csv('tcp', 'uplink')
-    # all_udp_downlink_df = get_data_frame_from_all_csv('udp', 'downlink')
-    # print(all_udp_downlink_df.describe())
-
-    # Plot the CDF of throughput
-    output_plots_dir = os.path.join(base_directory, 'plots')
-    if not os.path.exists(output_plots_dir):
-        os.makedirs(output_plots_dir, exist_ok=True)
-
-    plot_tcp_downlink_data(all_tcp_downlink_df, output_dir=output_plots_dir)
-    # plot_tcp_uplink_data(all_tcp_uplink_df, output_dir=output_plots_dir)
-    # plot_udp_uplink_data(df=all_udp_uplink_df, output_dir=output_plots_dir)
-    # plot_udp_downlink_data(df=all_udp_downlink_df, output_dir=output_plots_dir)
-
-
-if __name__ == '__main__':
-    main()
