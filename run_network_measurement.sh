@@ -181,7 +181,9 @@ while true; do
 
     echo "-----------------------------------"
     echo "Waiting for 5 seconds before starting uplink test..."
-    sleep 5
+
+    # 2s to ensure 5G will not switch back to LTE
+    sleep 2
 
     start_time=$(date '+%H%M%S%3N')
     echo "-----------------------------------"
@@ -210,7 +212,9 @@ while true; do
 
     echo "-----------------------------------"
     echo "Waiting for 5 seconds before starting ping test..."
-    sleep 5
+
+    # 2s to ensure 5G will not switch back to LTE
+    sleep 2
 
     start_time=$(date '+%H%M%S%3N')
     echo "-----------------------------------"
