@@ -99,7 +99,13 @@ class StarlinkMetric:
         return {
             'latency_ms': self.get('popPingLatencyMs'),
             'tput_dl_bps': self.get('downlinkThroughputBps'),
-            'tput_ul_bps': self.get('uplinkThroughputBps')
+            'tput_ul_bps': self.get('uplinkThroughputBps'),
+            'snr_above_noise_floor': self.get('isSnrAboveNoiseFloor'),
+            'snr_persistently_low': self.get('isSnrPersistentlyLow'),
+            'outage_cause': self.get('outage.cause'),
+            'outage_start_time_ns': self.get('outage.startTimestampNs'),
+            'outage.duration_ns': self.get('outage.durationNs'),
+            'outage.did_switch': self.get('outage.didSwitch'),
         }
 
 
@@ -127,5 +133,11 @@ class Unittest(unittest.TestCase):
             "res_time": "2024-05-27T10:53:14.085348",
             'latency_ms': -1,
             'tput_dl_bps': 0,
-            'tput_ul_bps': 12499.026
+            'tput_ul_bps': 12499.026,
+            'snr_above_noise_floor': True,
+            'snr_persistently_low': False,
+            'outage_cause': 'BOOTING',
+            'outage_start_time_ns': '-1',
+            'outage.duration_ns': '0',
+            'outage.did_switch': False
         }], result)
