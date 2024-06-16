@@ -10,8 +10,8 @@ from scripts.constants import DATASET_DIR
 from scripts.nuttcp_utils import find_tcp_downlink_files, parse_nuttcp_tcp_result, save_extracted_data_to_csv, \
     find_tcp_uplink_files, find_udp_uplink_files, parse_nuttcp_udp_result
 
-base_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/')
-merged_csv_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/csv')
+base_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/raw')
+merged_csv_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/throughput')
 
 
 def process_nuttcp_files(files: List[str], protocol: str, output_csv_filename: str):
@@ -91,7 +91,7 @@ def process_nuttcp_data_for_operator(operator: str):
         output_csv_filename=get_merged_csv_filename(operator, 'udp', 'uplink')
     )
     print(
-        '--- NOTE: We skip the UDP uplink data on 20240527 because we used iperf3 and they are not the throughputs from the receiver side')
+        '--- NOTE: We skip the UDP uplink data on 20240527 because we used iperf3 and they are not the throughput from the receiver side')
 
 
 def main():
