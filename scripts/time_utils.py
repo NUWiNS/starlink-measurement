@@ -4,7 +4,6 @@ from datetime import datetime
 
 def format_datetime_as_iso_8601(dt: datetime):
     """
-    Format the time in the EDT timezone
     :param dt:
     :return:
     """

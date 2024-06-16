@@ -1,11 +1,12 @@
 import os
 import sys
 from datetime import datetime
-from typing import List
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
 
 from scripts.ping_utils import find_ping_file, parse_ping_result
+from scripts.time_utils import format_datetime_as_iso_8601
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.constants import DATASET_DIR, OUTPUT_DIR
 
@@ -13,10 +14,6 @@ from typing import Tuple, List
 
 import pandas as pd
 import pytz
-
-import re
-
-from scripts.common import extract_operator_from_filename
 
 
 def find_files(base_dir, prefix, suffix):
@@ -28,15 +25,6 @@ def find_files(base_dir, prefix, suffix):
             if file.startswith(prefix) and file.endswith(suffix):
                 target_files.append(os.path.join(root, file))
     return target_files
-
-
-def format_datetime_as_iso_8601(dt: datetime):
-    """
-    Format the time in the EDT timezone
-    :param dt:
-    :return:
-    """
-    return dt.isoformat()
 
 
 def append_timezone(dt: datetime, timezone_str: str, is_dst: bool = True):

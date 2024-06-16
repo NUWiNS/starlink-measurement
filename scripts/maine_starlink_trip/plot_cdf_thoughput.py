@@ -5,7 +5,8 @@ import pandas as pd
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from scripts.cdf_tput_plotting_utils import get_data_frame_from_all_csv, plot_cdf_of_throughput_with_all_operators
+from scripts.cdf_tput_plotting_utils import get_data_frame_from_all_csv, plot_cdf_of_throughput_with_all_operators, \
+    plot_cdf_of_throughput
 
 from scripts.constants import DATASET_DIR, OUTPUT_DIR
 
@@ -44,6 +45,20 @@ def read_and_plot_throughput_data(protocol: str, direction: str, output_dir: str
     )
     print('Done!')
 
+def read_and_plot_starlink_throughput_data(output_dir: str):
+    data_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/starlink')
+    sl_metric_df = pd.read_csv(os.path.join(data_dir, 'starlink_metric.csv'))
+
+    # convert the throughput to Mbps
+    tput_df = sl_metric_df['tput_dl_bps'] / 1e6
+
+    plot_cdf_of_throughput(
+        tput_df,
+        title=f'CDF of Starlink Downlink Throughput',
+        output_file_path=os.path.join(output_dir, f'cdf_starlink_metric_downlink_tput.png')
+    )
+    print('Done!')
+
 
 def main():
     if not os.path.exists(base_dir):
@@ -53,13 +68,16 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    # read_and_plot_throughput_data('tcp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    # print("--------------")
+
+    read_and_plot_starlink_throughput_data(output_dir)
     print("--------------")
 
 
