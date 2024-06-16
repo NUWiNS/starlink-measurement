@@ -252,7 +252,8 @@ while true; do
     echo "Nslookup test started: $start_time"
     log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
     # Top 5 websites worldwide: https://www.semrush.com/website/top/
-    top5_websites="google.com youtube.com facebook.com wikipedia.org instagram.com"
+    # Only keep facebook.com for now because starlink uses 8.8.8.8 as DNS server all the time
+    top5_websites="facebook.com"
     for domain in $top5_websites; do
         echo "Start time: $(date '+%s%3N')">>$log_file_name
         nslookup $domain | grep -v '^$' >> $log_file_name
