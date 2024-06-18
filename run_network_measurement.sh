@@ -85,6 +85,7 @@ while true; do
         echo "1) Verizon"
         echo "2) ATT"
         echo "3) Starlink"
+        echo "4) Tmobile"
         read -p "Enter your choice (1-3): " operator_choice
     fi
     case $operator_choice in
@@ -106,8 +107,14 @@ while true; do
             iperf_port=5203
             break
             ;;
+        4)
+            operator="tmobile"
+            nuttcp_port=5004
+            iperf_port=5204
+            break
+            ;;
         *)
-            echo "Invalid choice, please enter 1 for Verizon, 2 for ATT, or 3 for Starlink"
+            echo "Invalid choice, please enter 1 for Verizon, 2 for ATT, 3 for Starlink, 4 for Tmobile"
             operator_choice=""
             ;;
     esac
