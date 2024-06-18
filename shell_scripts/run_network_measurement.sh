@@ -187,9 +187,9 @@ while true; do
 	    sed -E 's/\s*KB\/sec//'
 
     echo "-----------------------------------"
-    echo "Waiting for 5 seconds before starting uplink test..."
 
     # 2s to ensure 5G will not switch back to LTE
+    echo "Waiting for 2 seconds before starting uplink test..."
     sleep 2
 
     start_time=$(date '+%H%M%S%3N')
@@ -218,9 +218,9 @@ while true; do
     grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
 
     echo "-----------------------------------"
-    echo "Waiting for 5 seconds before starting ping test..."
 
     # 2s to ensure 5G will not switch back to LTE
+    echo "Waiting for 2 seconds before starting ping test..."
     sleep 2
 
     start_time=$(date '+%H%M%S%3N')
