@@ -150,7 +150,7 @@ echo "Testing $operator with $thrpt_protocol, server $server_choice (ip: $ip_add
 
 while true; do
     # save the output to storage/shared folder for adb pull
-    data_folder=~/storage/shared/maine_starlink_trip/$operator/$(date '+%Y%m%d')/
+    data_folder=~/storage/shared/alaska_starlink_trip/$operator/$(date '+%Y%m%d')/
     mkdir -p $data_folder
 
     start_dl_time=$(date '+%H%M%S%3N')

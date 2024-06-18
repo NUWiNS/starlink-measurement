@@ -1,6 +1,6 @@
 #!/bin/bash
 
-data_folder=~/storage/shared/maine_starlink_trip/weather_area/$(date '+%Y%m%d')/
+data_folder=~/storage/shared/alaska_starlink_trip/weather_area/$(date '+%Y%m%d')/
 file_name="weather_area_record.out"
 file_path=$data_folder$file_name
 
