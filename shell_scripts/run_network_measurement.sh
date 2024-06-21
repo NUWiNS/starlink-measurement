@@ -237,38 +237,41 @@ while true; do
     summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
     echo "Ping summary: $summary"
 
-    echo "-----------------------------------"
-    echo "Waiting for 5 seconds before starting traceroute test..."
-    sleep 5
+    # NOTE: Just a hack to make traceroute and nslookup run till the end of tcp + udp measurement
+    if [ $thrpt_protocol == "udp" ]; then
+      echo "-----------------------------------"
+      echo "Waiting for 5 seconds before starting traceroute test..."
+      sleep 5
 
-    start_time=$(date '+%H%M%S%3N')
-    echo "-----------------------------------"
-    echo "Traceroute test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
-    echo "Start time: $(date '+%s%3N')">$log_file_name
-    # tracerout to the target server
-    traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    echo "End time: $(date '+%s%3N')">>$log_file_name
-    echo "Saved traceroute test to $log_file_name"
+      start_time=$(date '+%H%M%S%3N')
+      echo "-----------------------------------"
+      echo "Traceroute test started: $start_time"
+      log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
+      echo "Start time: $(date '+%s%3N')">$log_file_name
+      # tracerout to the target server
+      traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+      echo "End time: $(date '+%s%3N')">>$log_file_name
+      echo "Saved traceroute test to $log_file_name"
 
-    echo "-----------------------------------"
-    echo "Waiting for 5 seconds before starting nslookup test..."
-    sleep 5
+      echo "-----------------------------------"
+      echo "Waiting for 5 seconds before starting nslookup test..."
+      sleep 5
 
-    start_time=$(date '+%H%M%S%3N')
-    echo "-----------------------------------"
-    echo "Nslookup test started: $start_time"
-    log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
-    # Top 5 websites worldwide: https://www.semrush.com/website/top/
-    # Only keep facebook.com for now because starlink uses 8.8.8.8 as DNS server all the time
-    top5_websites="facebook.com"
-    for domain in $top5_websites; do
-        echo "Start time: $(date '+%s%3N')">>$log_file_name
-        nslookup $domain | grep -v '^$' >> $log_file_name
-        echo "End time: $(date '+%s%3N')">>$log_file_name
-        echo "">>$log_file_name
-    done
-    echo "Saved nslookup test to $log_file_name"
+      start_time=$(date '+%H%M%S%3N')
+      echo "-----------------------------------"
+      echo "Nslookup test started: $start_time"
+      log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
+      # Top 5 websites worldwide: https://www.semrush.com/website/top/
+      # Only keep facebook.com for now because starlink uses 8.8.8.8 as DNS server all the time
+      top5_websites="facebook.com"
+      for domain in $top5_websites; do
+          echo "Start time: $(date '+%s%3N')">>$log_file_name
+          nslookup $domain | grep -v '^$' >> $log_file_name
+          echo "End time: $(date '+%s%3N')">>$log_file_name
+          echo "">>$log_file_name
+      done
+      echo "Saved nslookup test to $log_file_name"
+    fi
 
     echo "-----------------------------------"
     echo "All tests (${thrpt_protocol}) completed, cleaning up..."
