@@ -249,7 +249,7 @@ while true; do
       log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
       echo "Start time: $(date '+%s%3N')">$log_file_name
       # tracerout to the target server
-      traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+      timeout 120 traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
       echo "End time: $(date '+%s%3N')">>$log_file_name
       echo "Saved traceroute test to $log_file_name"
 
@@ -266,7 +266,7 @@ while true; do
       top5_websites="facebook.com"
       for domain in $top5_websites; do
           echo "Start time: $(date '+%s%3N')">>$log_file_name
-          nslookup $domain | grep -v '^$' >> $log_file_name
+          timeout 120 nslookup $domain | grep -v '^$' >> $log_file_name
           echo "End time: $(date '+%s%3N')">>$log_file_name
           echo "">>$log_file_name
       done
