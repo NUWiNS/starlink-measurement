@@ -171,7 +171,8 @@ while true; do
     if [ $thrpt_protocol == "udp" ]; then
         # udp downlink test
         DL_UDP_RATE=500M
-        PACKET_SIZE=1400
+        # Avoid TCP MSS limitation for cellular (1376 for verizon e.g.)
+        PACKET_SIZE=1300
         echo "testing udp downlink with $ip_address:$iperf_port, rate $DL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $DL_INTERVAL, duration $DL_TEST_DURATION ..."
         timeout 140 iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -l $PACKET_SIZE -i $DL_INTERVAL -t $DL_TEST_DURATION | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
@@ -203,7 +204,7 @@ while true; do
     if [ $thrpt_protocol == "udp" ]; then
         # udp uplink test
         UL_UDP_RATE=300M
-        PACKET_SIZE=1400
+        PACKET_SIZE=1300
         echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $UL_INTERVAL, duration $UL_TEST_DURATION ..."
         timeout 140 nuttcp -u -R $UL_UDP_RATE -v -i $UL_INTERVAL -l $PACKET_SIZE -T $UL_TEST_DURATION -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
     else
