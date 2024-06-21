@@ -91,25 +91,25 @@ while true; do
     case $operator_choice in
         1)
             operator="verizon"
-            nuttcp_port=5001
+            nuttcp_port=5101
             iperf_port=5201
             break
             ;;
         2)
             operator="att"            
-            nuttcp_port=5002
+            nuttcp_port=5102
             iperf_port=5202
             break
             ;;
         3)
             operator="starlink"
-            nuttcp_port=5003
+            nuttcp_port=5103
             iperf_port=5203
             break
             ;;
         4)
             operator="tmobile"
-            nuttcp_port=5004
+            nuttcp_port=5104
             iperf_port=5204
             break
             ;;
