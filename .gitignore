@@ -7,7 +7,7 @@ datasets/dev/*
 **/__pycache__/*
 **/storage/*
 datasets/maine_starlink_trip/xcal
-datasets/maine_starlink_trip/power
 datasets/maine_starlink_trip/dish_history
 datasets/maine_starlink_trip/dish_metrics
 datasets/maine_starlink_trip/raw/**/*.csv
+datasets/alaska_starlink_trip/
