@@ -1,0 +1,9 @@
+import enum
+
+
+class DatasetLabel(enum.Enum):
+    NORMAL = 'NORMAL'
+    UDP_1440 = 'UDP_1440'
+    SMALL_MEMORY_AND_CUBIC = 'SMALL_MEMORY_AND_CUBIC'
+    TWO_TRACEROUTE_RUN = 'TWO_TRACEROUTE_RUN'
+    TEST_DATA = 'TEST_DATA'
