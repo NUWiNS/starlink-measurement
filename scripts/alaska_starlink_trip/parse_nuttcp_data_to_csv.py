@@ -11,9 +11,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 import pandas as pd
 
 from scripts.constants import DATASET_DIR
-from scripts.nuttcp_utils import find_tcp_downlink_files, parse_nuttcp_tcp_result, save_extracted_data_to_csv, \
-    find_tcp_uplink_files, find_udp_uplink_files, parse_nuttcp_udp_result, find_tcp_downlink_files_by_dir_list, \
-    NuttcpDataAnalyst, NuttcpContentProcessor
+from scripts.nuttcp_utils import parse_nuttcp_tcp_result, \
+    parse_nuttcp_udp_result, find_tcp_downlink_files_by_dir_list, \
+    NuttcpDataAnalyst, NuttcpProcessorFactory, find_tcp_uplink_files_by_dir_list
 
 base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw')
 merged_csv_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
@@ -58,7 +58,7 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
         try:
             with open(file, 'r') as f:
                 content = f.read()
-                processor = NuttcpContentProcessor(
+                processor = NuttcpProcessorFactory.create(
                     content=content,
                     protocol=protocol,
                     direction=direction,
@@ -100,26 +100,27 @@ def process_nuttcp_data_for_operator(operator: str):
     operator_base_dir = os.path.join(base_dir, operator)
     dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
 
-    tcp_downlink_files = find_tcp_downlink_files_by_dir_list(dir_list)
-
     logger.info(f'Processing {operator.capitalize()} Phone\'s NUTTCP throughput data...')
-    logger.info(f'Found {len(tcp_downlink_files)} TCP downlink files, processing...')
+
+    # tcp_downlink_files = find_tcp_downlink_files_by_dir_list(dir_list)
+    # logger.info(f'Found {len(tcp_downlink_files)} TCP downlink files, processing...')
+    # process_nuttcp_files(
+    #     tcp_downlink_files,
+    #     protocol='tcp',
+    #     direction='downlink',
+    #     output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink')
+    # )
+
+    tcp_uplink_files = find_tcp_uplink_files_by_dir_list(dir_list)
+    logger.info(f'Found {len(tcp_uplink_files)} TCP uplink files, processing...')
     process_nuttcp_files(
-        tcp_downlink_files,
+        tcp_uplink_files,
         protocol='tcp',
-        direction='downlink',
-        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink')
+        direction='uplink',
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink')
     )
 
-    # tcp_uplink_files = find_tcp_uplink_files(operator_base_dir)
-    # logger.info(f'Found {len(tcp_uplink_files)} TCP uplink files, processing...')
-    # process_nuttcp_files(
-    #     tcp_uplink_files,
-    #     protocol='tcp',
-    #     direction='uplink',
-    #     output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink')
-    # )
-    #
+
     # udp_uplink_files = find_udp_uplink_files(operator_base_dir)
     # logger.info(f'Found {len(udp_uplink_files)} UDP uplink files, processing...')
     # process_nuttcp_files(
