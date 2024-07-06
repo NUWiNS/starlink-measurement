@@ -102,24 +102,23 @@ def process_nuttcp_data_for_operator(operator: str):
 
     logger.info(f'Processing {operator.capitalize()} Phone\'s NUTTCP throughput data...')
 
-    # tcp_downlink_files = find_tcp_downlink_files_by_dir_list(dir_list)
-    # logger.info(f'Found {len(tcp_downlink_files)} TCP downlink files, processing...')
-    # process_nuttcp_files(
-    #     tcp_downlink_files,
-    #     protocol='tcp',
-    #     direction='downlink',
-    #     output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink')
-    # )
+    tcp_downlink_files = find_tcp_downlink_files_by_dir_list(dir_list)
+    logger.info(f'Found {len(tcp_downlink_files)} TCP downlink files, processing...')
+    process_nuttcp_files(
+        tcp_downlink_files,
+        protocol='tcp',
+        direction='downlink',
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink')
+    )
 
-    # tcp_uplink_files = find_tcp_uplink_files_by_dir_list(dir_list)
-    # logger.info(f'Found {len(tcp_uplink_files)} TCP uplink files, processing...')
-    # process_nuttcp_files(
-    #     tcp_uplink_files,
-    #     protocol='tcp',
-    #     direction='uplink',
-    #     output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink')
-    # )
-
+    tcp_uplink_files = find_tcp_uplink_files_by_dir_list(dir_list)
+    logger.info(f'Found {len(tcp_uplink_files)} TCP uplink files, processing...')
+    process_nuttcp_files(
+        tcp_uplink_files,
+        protocol='tcp',
+        direction='uplink',
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink')
+    )
 
     udp_uplink_files = find_udp_uplink_files_by_dir_list(dir_list)
     logger.info(f'Found {len(udp_uplink_files)} UDP uplink files, processing...')
