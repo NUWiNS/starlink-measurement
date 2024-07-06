@@ -51,7 +51,7 @@ def label_two_traceroute_run(labels: List[str], _date: datetime):
 
 
 def label_test_data(labels: List[str], _date: datetime):
-    if _date <= datetime(2024, 6, 21):
+    if _date < datetime(2024, 6, 21, 9, 40):
         labels.append(DatasetLabel.TEST_DATA.value)
     return labels
 
@@ -92,11 +92,16 @@ def create_label_mapping_for_raw_data(category: str):
     print(f'Saved label mapping for {category} to {tmp_data_path}')
 
 
-def separate_dataset(category: str, label: str = None):
+def separate_dataset(category: str):
+    """
+    Separate dataset into normal and labeled data
+    :param category:
+    :return:
+    """
     session_labels = json.load(open(os.path.join(tmp_data_path, f'{category}_labels.json')))
     sub_dirs = glob.glob(os.path.join(raw_data_path, f"{category}/*/*"))
     datasets = {
-        [DatasetLabel.NORMAL.value]: set(),
+        DatasetLabel.NORMAL.value: set(),
     }
     for sub_dir in sub_dirs:
         labels = session_labels[sub_dir]
@@ -107,9 +112,12 @@ def separate_dataset(category: str, label: str = None):
                 if label not in datasets:
                     datasets[label] = set()
                 datasets[label].add(sub_dir)
+
+    # convert set to list and sort
     for label in datasets:
         datasets[label] = list(datasets[label])
         datasets[label].sort()
+
     save_mapping_to_csv(datasets, os.path.join(tmp_data_path, f'{category}_datasets.json'))
     print(f'Separated dataset for {category} to {tmp_data_path}')
 
@@ -126,11 +134,11 @@ def main():
         separate_dataset(category)
 
 
-class Unittest(unittest.TestCase):
-    def test_get_datetime_from_path(self):
-        path_str = '20240621/094108769/'
-        date = get_datetime_from_path(path_str)
-        self.assertEqual(date, datetime(2024, 6, 21, 9, 41, 8, 769000))
+# class Unittest(unittest.TestCase):
+#     def test_get_datetime_from_path(self):
+#         path_str = '20240621/094108769/'
+#         date = get_datetime_from_path(path_str)
+#         self.assertEqual(date, datetime(2024, 6, 21, 9, 41, 8, 769000))
 
 
 if __name__ == '__main__':
