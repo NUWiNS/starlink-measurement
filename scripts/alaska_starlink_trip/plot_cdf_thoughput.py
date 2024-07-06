@@ -3,6 +3,8 @@ import sys
 
 import pandas as pd
 
+from scripts.logging_utils import create_logger
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.cdf_tput_plotting_utils import get_data_frame_from_all_csv, plot_cdf_of_throughput_with_all_operators, \
@@ -11,15 +13,22 @@ from scripts.cdf_tput_plotting_utils import get_data_frame_from_all_csv, plot_cd
 from scripts.constants import DATASET_DIR, OUTPUT_DIR
 
 base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
+tmp_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
 output_dir = os.path.join(OUTPUT_DIR, 'alaska_starlink_trip/plots')
+
+logger = create_logger('plot_cdf_throughput', filename=os.path.join(tmp_dir, 'plot_cdf_throughput.log'))
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
+
 def get_data_frame_from_all_csv(operator: str, protocol: str, direction: str):
-    file_path = os.path.join(base_dir, f'{operator}_{protocol}_{direction}.csv')
+    csv_filename = f'{operator}_{protocol}_{direction}.csv'
+    file_path = os.path.join(base_dir, csv_filename)
     try:
-        return pd.read_csv(file_path)
+        df = pd.read_csv(file_path)
+        logger.info(f'{csv_filename} count: {df.count()}')
+        return df
     except Exception:
         return pd.DataFrame()
 
@@ -52,6 +61,7 @@ def read_and_plot_throughput_data(protocol: str, direction: str, output_dir: str
     )
     print('Done!')
 
+
 def read_and_plot_starlink_throughput_data(output_dir: str):
     data_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/starlink')
     sl_metric_df = pd.read_csv(os.path.join(data_dir, 'starlink_metric.csv'))
@@ -76,15 +86,15 @@ def main():
         os.makedirs(output_dir, exist_ok=True)
 
     read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'uplink', output_dir)
-    print("--------------")
-
-    read_and_plot_starlink_throughput_data(output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    # print("--------------")
+    #
+    # read_and_plot_starlink_throughput_data(output_dir)
     print("--------------")
 
 

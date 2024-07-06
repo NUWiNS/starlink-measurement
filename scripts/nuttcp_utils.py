@@ -121,19 +121,19 @@ class NuttcpContentProcessor:
         self.data_points = list(map(lambda x: NuttcpTcpMetric(**x), result['data_points']))
         self.status = self.check_validity(result)
 
+        # auto complete the data points if the data points are less than 240
         self.auto_complete_data_points()
-        pass
 
     def auto_complete_data_points(self):
         """
-        if the data points are less than 240, auto complete the data points
+        if the data points are less than 240, auto complete the data points with 0 throughput
         :return:
         """
         missing_count = self.EXPECTED_NUM_OF_DATA_POINTS - len(self.data_points)
         if missing_count <= 0:
             return
 
-        if self.direction == 'downlink':
+        if self.protocol == 'tcp' and self.direction == 'downlink':
             if self.status == NuttcpContentProcessor.Status.INCOMPLETE:
                 self.data_points = NuttcpContentProcessor.pad_tcp_tput_data_points(
                     raw_data=self.data_points,
@@ -147,6 +147,7 @@ class NuttcpContentProcessor:
                     start_time=self.start_time,  # need to specify start time if the raw data is empty
                     interval_sec=self.INTERVAL_SEC
                 )
+            return
 
     @staticmethod
     def pad_tcp_tput_data_points(

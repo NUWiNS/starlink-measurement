@@ -45,7 +45,7 @@ def label_small_memory_and_cubic(labels: List[str], _date: datetime):
 
 
 def label_two_traceroute_run(labels: List[str], _date: datetime):
-    if datetime(2024, 6, 21, 9, 40) <= _date <= datetime(2024, 6, 21, 15, 38):
+    if datetime(2024, 6, 21, 9, 40) <= _date <= datetime(2024, 6, 21, 15, 37):
         labels.append(DatasetLabel.TWO_TRACEROUTE_RUN.value)
     return labels
 
