@@ -22,6 +22,15 @@ class NuttcpTcpMetric:
     cwnd_kb: str
 
 
+@dataclass
+class NuttcpUdpMetric:
+    time: str
+    throughput_mbps: str
+    pkt_drop: str
+    pkt_total: str
+    loss: str
+
+
 def parse_nuttcp_timestamp(timestamp: str):
     # Parse the timestamp in the format of "2024-05-27 15:00:00.000000"
     return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
@@ -102,7 +111,7 @@ class NuttcpBaseProcessor(ABC):
         self.protocol = protocol
         self.direction = direction
         self.file_path = file_path
-        self.data_points: List[NuttcpTcpMetric] = []
+        self.data_points: List = []
         self.status = self.Status.EMPTY
         self.timezone_str = timezone_str
         self.start_time = None
@@ -286,7 +295,11 @@ class NuttcpTcpUplinkProcessor(NuttcpTcpBaseProcessor):
 # --- UDP processors START ---
 class NuttcpUdpBaseProcessor(NuttcpBaseProcessor):
     def parse_nuttcp_data_points(self, content: str):
-        return parse_nuttcp_udp_result(content)
+        json_data = parse_nuttcp_udp_result(content)
+        return list(map(lambda x: NuttcpUdpMetric(**x), json_data))
+
+    def auto_complete_data_points(self):
+        pass
 
 
 class NuttcpUdpUplinkProcessor(NuttcpUdpBaseProcessor):
@@ -388,13 +401,15 @@ def parse_nuttcp_udp_result(content: str) -> List[Dict[str, str]]:
         if match:
             dt, throughput, pkt_drop, pkt_total, loss = match.groups()
             dt_isoformat = format_nuttcp_timestamp(dt)
-            extracted_data.append({
-                'time': dt_isoformat,
-                'throughput_mbps': throughput,
-                'pkt_drop': pkt_drop,
-                'pkt_total': pkt_total,
-                'loss': loss
-            })
+            extracted_data.append(asdict(
+                NuttcpUdpMetric(
+                    time=dt_isoformat,
+                    throughput_mbps=throughput,
+                    pkt_total=pkt_total,
+                    pkt_drop=pkt_drop,
+                    loss=loss
+                )
+            ))
     return extracted_data
 
 
