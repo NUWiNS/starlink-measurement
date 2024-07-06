@@ -1,3 +1,4 @@
+import enum
 import unittest
 from datetime import datetime
 from typing import List, Dict
@@ -66,6 +67,141 @@ def parse_nuttcp_tcp_result(content: str) -> List[Dict[str, str]]:
     return extracted_data
 
 
+class NuttcpContentProcessor:
+    class Status(enum.Enum):
+        EMPTY = 'EMPTY'
+        NORMAL = 'NORMAL'
+        TIMEOUT = 'TIMEOUT'
+        INCOMPLETE = 'INCOMPLETE'
+
+    def __init__(self, content: str, protocol: str, file_path: str = None):
+        self.content = content
+        self.protocol = protocol
+        self.file_path = file_path
+        self.data_points = None
+        self.status = self.Status.EMPTY
+
+    def process(self):
+        result = self.parse_nuttcp_content(self.content, self.protocol)
+        self.data_points = result['data_points']
+        self.status = self.check_validity(result)
+
+    @staticmethod
+    def parse_nuttcp_content(content, protocol):
+        """
+        Parse nuttcp content
+        :param content:
+        :param protocol:
+        :return:
+        """
+
+        if protocol == 'tcp':
+            data_points = parse_nuttcp_tcp_result(content)
+        elif protocol == 'udp':
+            data_points = parse_nuttcp_udp_result(content)
+        else:
+            raise ValueError('Please specify protocol with eithers tcp or udp')
+
+        summary = extract_nuttcp_receiver_summary(content)
+
+        return {
+            'data_points': data_points,
+            'has_summary': summary['has_summary'],
+            'avg_tput_mbps': summary['avg_tput_mbps'],
+        }
+
+    @staticmethod
+    def check_validity(parsed_result: Dict):
+        data_points = parsed_result['data_points']
+
+        if parsed_result['has_summary']:
+            return NuttcpContentProcessor.Status.NORMAL
+
+        if data_points is None or len(data_points) == 0:
+            return NuttcpContentProcessor.Status.EMPTY
+
+        data_len = len(data_points)
+        if data_len >= 240:
+            return NuttcpContentProcessor.Status.TIMEOUT
+        else:
+            return NuttcpContentProcessor.Status.INCOMPLETE
+
+    def get_result(self):
+        return self.data_points
+
+    def get_status(self):
+        return self.status.value
+
+
+class NuttcpDataAnalyst:
+    def __init__(self):
+        self.processors = {}
+        self.current_id = 0
+        self.status_summary = {}
+
+    def add_processor(self, processor: NuttcpContentProcessor):
+        self.processors[self.current_id] = processor
+        self.current_id += 1
+
+    @staticmethod
+    def format_status_summary(status_summary):
+        summary = {}
+        for status in status_summary:
+            summary[status] = len(status_summary[status])
+        return summary
+
+    def get_status_summary(self):
+        self.status_summary = {}
+        for id in self.processors.keys():
+            processor = self.processors[id]
+            status = processor.get_status()
+            if status not in self.status_summary:
+                self.status_summary[status] = set()
+            self.status_summary[status].add(id)
+        return self.status_summary
+
+    def get_summary(self):
+        summary = {}
+        status_summary = self.get_status_summary()
+        summary['total'] = len(self.processors)
+        summary['status'] = status_summary
+        return summary
+
+    def describe(self):
+        summary = self.get_summary()
+        status_count_summary = self.format_status_summary(summary['status'])
+        print('NuttcpDataAnalyst Summary:')
+        print(f"- Total files: {summary['total']}")
+        print(f"- Count by Status:")
+        for status in status_count_summary:
+            print(f"-- {status}: {status_count_summary[status]}")
+        return summary
+
+
+def has_nuttcp_receiver_summary(content: str) -> bool:
+    pattern = r'nuttcp-r:.*?real seconds.*?bps'
+    return re.search(pattern, content) is not None
+
+
+def extract_nuttcp_receiver_summary(content: str) -> Dict[str, float]:
+    if not has_nuttcp_receiver_summary(content):
+        return {'has_summary': False, 'avg_tput_mbps': -1}
+
+    # Define the regex pattern to match the receiver summary log
+    pattern = r'nuttcp-r: .* = (\d+\.\d+) Mbps'
+
+    # Search for the pattern in the log
+    match = re.search(pattern, content)
+
+    # Check if the pattern was found
+    if match:
+        # Extract the average throughput in Mbps
+        avg_tput_mbps = float(match.group(1))
+        return {'has_summary': True, 'avg_tput_mbps': avg_tput_mbps}
+    else:
+        return {'has_summary': True, 'avg_tput_mbps': -1}
+
+
 def parse_nuttcp_udp_result(content: str) -> List[Dict[str, str]]:
     """
     Extract timestamp, throughput, pkt_drop, pkt_total and loss from the UDP log of nuttcp
@@ -99,6 +235,13 @@ def find_tcp_downlink_files(base_dir: str):
     return find_files(base_dir, prefix="tcp_downlink", suffix=".out")
 
 
+def find_tcp_downlink_files_by_dir_list(dir_list: List[str]):
+    files = []
+    for dir in dir_list:
+        files.extend(find_tcp_downlink_files(dir))
+    return files
+
+
 def find_tcp_uplink_files(base_dir: str):
     return find_files(base_dir, prefix="tcp_uplink", suffix=".out")
 
@@ -116,3 +259,48 @@ class UnitTest(unittest.TestCase):
             'retrans': '1',
             'cwnd_kb': '1375'
         }, parse_nuttcp_tcp_line(line))
+
+    def test_check_validity(self):
+        # --- has summary cases ---
+        input_data = {
+            'data_points': [0] * 240,
+            'has_summary': True,
+            'avg_tput_mbps': 10
+        }
+        self.assertEqual(NuttcpContentProcessor.Status.NORMAL, NuttcpContentProcessor.check_validity(input_data))
+
+        input_data = {
+            'data_points': [0] * 250,
+            'has_summary': True,
+            'avg_tput_mbps': 10
+        }
+        self.assertEqual(NuttcpContentProcessor.Status.NORMAL, NuttcpContentProcessor.check_validity(input_data))
+
+        # --- no summary cases ---
+        input_data = {
+            'data_points': [],
+            'has_summary': False,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(NuttcpContentProcessor.Status.EMPTY, NuttcpContentProcessor.check_validity(input_data))
+
+        input_data = {
+            'data_points': None,
+            'has_summary': False,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(NuttcpContentProcessor.Status.EMPTY, NuttcpContentProcessor.check_validity(input_data))
+
+        input_data = {
+            'data_points': [0] * 239,
+            'has_summary': False,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(NuttcpContentProcessor.Status.INCOMPLETE, NuttcpContentProcessor.check_validity(input_data))
+
+        input_data = {
+            'data_points': [0] * 250,
+            'has_summary': False,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(NuttcpContentProcessor.Status.TIMEOUT, NuttcpContentProcessor.check_validity(input_data))

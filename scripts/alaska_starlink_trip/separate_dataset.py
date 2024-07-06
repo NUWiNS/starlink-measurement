@@ -115,7 +115,7 @@ def separate_dataset(category: str, label: str = None):
 
 
 def read_dataset(category: str, label: str):
-    datasets = json.load(open(os.path.join(tmp_data_path, f'{category}_datasets.json'))
+    datasets = json.load(open(os.path.join(tmp_data_path, f'{category}_datasets.json')))
     return datasets[label]
 
 
