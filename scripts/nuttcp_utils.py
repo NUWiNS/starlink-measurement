@@ -79,7 +79,7 @@ def parse_nuttcp_tcp_result(content: str) -> List[Dict[str, str]]:
     return extracted_data
 
 
-class NuttcpContentBaseProcessor(ABC):
+class NuttcpBaseProcessor(ABC):
     # Assume data is collected for 2min with 500ms interval
     EXPECTED_NUM_OF_DATA_POINTS = 240
     INTERVAL_SEC = 0.5
@@ -119,30 +119,78 @@ class NuttcpContentBaseProcessor(ABC):
             self.start_time, self.end_time = start_end_time_list[0]
 
         extracted_result = self.parse_nuttcp_content(self.content)
-
         self.status = self.check_validity(extracted_result)
-        self.data_points = list(map(lambda x: NuttcpTcpMetric(**x), extracted_result['data_points']))
+
+        self.data_points = extracted_result['data_points']
         self.postprocess_data_points()
 
         # auto complete the data points if the data points are less than 240
         self.auto_complete_data_points()
 
-    @abstractmethod
-    def postprocess_data_points(self):
-        """
-        Left for the child class to implement
-        :return:
-        """
-        pass
-
-    def parse_nuttcp_content(self, content):
-        data_points = parse_nuttcp_tcp_result(content)
+    def parse_nuttcp_content(self, content: str):
+        data_points = self.parse_nuttcp_data_points(content)
         summary = extract_nuttcp_receiver_summary(content)
         return {
             'data_points': data_points,
             'has_summary': summary['has_summary'],
             'avg_tput_mbps': summary['avg_tput_mbps'],
         }
+
+    @abstractmethod
+    def postprocess_data_points(self):
+        pass
+
+    @abstractmethod
+    def parse_nuttcp_data_points(self, content: str):
+        pass
+
+    @abstractmethod
+    def auto_complete_data_points(self):
+        pass
+
+    @staticmethod
+    def check_validity(parsed_result: Dict):
+        data_points = parsed_result['data_points']
+
+        if parsed_result['has_summary']:
+            return NuttcpBaseProcessor.Status.NORMAL
+
+        if data_points is None or len(data_points) == 0:
+            return NuttcpBaseProcessor.Status.EMPTY
+
+        data_len = len(data_points)
+        if data_len >= 240:
+            return NuttcpBaseProcessor.Status.TIMEOUT
+        else:
+            return NuttcpBaseProcessor.Status.INCOMPLETE
+
+    def get_result(self) -> List[Dict[str, str]]:
+        return list(map(lambda x: asdict(x), self.data_points))
+
+    def get_status(self) -> str:
+        return self.status.value
+
+
+class NuttcpProcessorFactory:
+    @staticmethod
+    def create(content: str, protocol: str, direction: str, file_path: str,
+               timezone_str: str) -> NuttcpBaseProcessor:
+        if protocol == 'tcp':
+            if direction == 'downlink':
+                return NuttcpTcpDownlinkProcessor(content, protocol, direction, file_path, timezone_str)
+            elif direction == 'uplink':
+                return NuttcpTcpUplinkProcessor(content, protocol, direction, file_path, timezone_str)
+        if protocol == 'udp':
+            if direction == 'uplink':
+                return NuttcpUdpUplinkProcessor(content, protocol, direction, file_path, timezone_str)
+        raise ValueError('Unsupported protocol')
+
+
+# --- TCP processors START ---
+class NuttcpTcpBaseProcessor(NuttcpBaseProcessor):
+    def parse_nuttcp_data_points(self, content: str):
+        json_data = parse_nuttcp_tcp_result(content)
+        return list(map(lambda x: NuttcpTcpMetric(**x), json_data))
 
     def auto_complete_data_points(self):
         """
@@ -153,14 +201,14 @@ class NuttcpContentBaseProcessor(ABC):
         if missing_count <= 0:
             return
 
-        if self.status == NuttcpContentBaseProcessor.Status.INCOMPLETE:
-            self.data_points = NuttcpContentBaseProcessor.pad_tcp_tput_data_points(
+        if self.status == NuttcpBaseProcessor.Status.INCOMPLETE:
+            self.data_points = NuttcpTcpBaseProcessor.pad_tcp_tput_data_points(
                 raw_data=self.data_points,
                 expected_len=self.EXPECTED_NUM_OF_DATA_POINTS,
                 interval_sec=self.INTERVAL_SEC
             )
-        elif self.status == NuttcpContentBaseProcessor.Status.EMPTY:
-            self.data_points = NuttcpContentBaseProcessor.pad_tcp_tput_data_points(
+        elif self.status == NuttcpBaseProcessor.Status.EMPTY:
+            self.data_points = NuttcpTcpBaseProcessor.pad_tcp_tput_data_points(
                 raw_data=self.data_points,
                 expected_len=self.EXPECTED_NUM_OF_DATA_POINTS,
                 start_time=self.start_time,  # need to specify start time if the raw data is empty
@@ -205,50 +253,13 @@ class NuttcpContentBaseProcessor(ABC):
             new_time += timedelta(seconds=interval_sec)
         return _raw_data
 
-    @staticmethod
-    def check_validity(parsed_result: Dict):
-        data_points = parsed_result['data_points']
 
-        if parsed_result['has_summary']:
-            return NuttcpContentBaseProcessor.Status.NORMAL
-
-        if data_points is None or len(data_points) == 0:
-            return NuttcpContentBaseProcessor.Status.EMPTY
-
-        data_len = len(data_points)
-        if data_len >= 240:
-            return NuttcpContentBaseProcessor.Status.TIMEOUT
-        else:
-            return NuttcpContentBaseProcessor.Status.INCOMPLETE
-
-    def get_result(self) -> List[Dict[str, str]]:
-        return list(map(lambda x: asdict(x), self.data_points))
-
-    def get_status(self) -> str:
-        return self.status.value
-
-
-class NuttcpProcessorFactory:
-    @staticmethod
-    def create(content: str, protocol: str, direction: str, file_path: str,
-               timezone_str: str) -> NuttcpContentBaseProcessor:
-        if protocol == 'tcp':
-            if direction == 'downlink':
-                return NuttcpTcpDownlinkProcessor(content, protocol, direction, file_path, timezone_str)
-            elif direction == 'uplink':
-                return NuttcpTcpUplinkProcessor(content, protocol, direction, file_path, timezone_str)
-            else:
-                raise ValueError('Invalid direction')
-        else:
-            raise ValueError('Unsupported protocol')
-
-
-class NuttcpTcpDownlinkProcessor(NuttcpContentBaseProcessor):
+class NuttcpTcpDownlinkProcessor(NuttcpTcpBaseProcessor):
     def postprocess_data_points(self):
         pass
 
 
-class NuttcpTcpUplinkProcessor(NuttcpContentBaseProcessor):
+class NuttcpTcpUplinkProcessor(NuttcpTcpBaseProcessor):
     def postprocess_data_points(self):
         # recalculate timestamp for data points
         self.recalculate_timestamps_of_receiver_for_data_points()
@@ -270,13 +281,28 @@ class NuttcpTcpUplinkProcessor(NuttcpContentBaseProcessor):
             new_time += timedelta(seconds=self.INTERVAL_SEC)
 
 
+# --- TCP processors END ---
+
+# --- UDP processors START ---
+class NuttcpUdpBaseProcessor(NuttcpBaseProcessor):
+    def parse_nuttcp_data_points(self, content: str):
+        return parse_nuttcp_udp_result(content)
+
+
+class NuttcpUdpUplinkProcessor(NuttcpUdpBaseProcessor):
+    def postprocess_data_points(self):
+        pass
+
+
+# --- UDP processors END ---
+
 class NuttcpDataAnalyst:
     def __init__(self):
         self.processors = {}
         self.current_id = 0
         self.status_summary = {}
 
-    def add_processor(self, processor: NuttcpContentBaseProcessor):
+    def add_processor(self, processor: NuttcpBaseProcessor):
         self.processors[self.current_id] = processor
         self.current_id += 1
 
@@ -395,6 +421,13 @@ def find_tcp_uplink_files_by_dir_list(dir_list: List[str]):
     return files
 
 
+def find_udp_uplink_files_by_dir_list(dir_list: List[str]):
+    files = []
+    for dir in dir_list:
+        files.extend(find_udp_uplink_files(dir))
+    return files
+
+
 def find_tcp_uplink_files(base_dir: str):
     return find_files(base_dir, prefix="tcp_uplink", suffix=".out")
 
@@ -420,16 +453,16 @@ class UnitTest(unittest.TestCase):
             'has_summary': True,
             'avg_tput_mbps': 10
         }
-        self.assertEqual(NuttcpContentBaseProcessor.Status.NORMAL,
-                         NuttcpContentBaseProcessor.check_validity(input_data))
+        self.assertEqual(NuttcpBaseProcessor.Status.NORMAL,
+                         NuttcpBaseProcessor.check_validity(input_data))
 
         input_data = {
             'data_points': [0] * 250,
             'has_summary': True,
             'avg_tput_mbps': 10
         }
-        self.assertEqual(NuttcpContentBaseProcessor.Status.NORMAL,
-                         NuttcpContentBaseProcessor.check_validity(input_data))
+        self.assertEqual(NuttcpBaseProcessor.Status.NORMAL,
+                         NuttcpBaseProcessor.check_validity(input_data))
 
         # --- no summary cases ---
         input_data = {
@@ -437,30 +470,30 @@ class UnitTest(unittest.TestCase):
             'has_summary': False,
             'avg_tput_mbps': -1
         }
-        self.assertEqual(NuttcpContentBaseProcessor.Status.EMPTY, NuttcpContentBaseProcessor.check_validity(input_data))
+        self.assertEqual(NuttcpBaseProcessor.Status.EMPTY, NuttcpBaseProcessor.check_validity(input_data))
 
         input_data = {
             'data_points': None,
             'has_summary': False,
             'avg_tput_mbps': -1
         }
-        self.assertEqual(NuttcpContentBaseProcessor.Status.EMPTY, NuttcpContentBaseProcessor.check_validity(input_data))
+        self.assertEqual(NuttcpBaseProcessor.Status.EMPTY, NuttcpBaseProcessor.check_validity(input_data))
 
         input_data = {
             'data_points': [0] * 239,
             'has_summary': False,
             'avg_tput_mbps': -1
         }
-        self.assertEqual(NuttcpContentBaseProcessor.Status.INCOMPLETE,
-                         NuttcpContentBaseProcessor.check_validity(input_data))
+        self.assertEqual(NuttcpBaseProcessor.Status.INCOMPLETE,
+                         NuttcpBaseProcessor.check_validity(input_data))
 
         input_data = {
             'data_points': [0] * 250,
             'has_summary': False,
             'avg_tput_mbps': -1
         }
-        self.assertEqual(NuttcpContentBaseProcessor.Status.TIMEOUT,
-                         NuttcpContentBaseProcessor.check_validity(input_data))
+        self.assertEqual(NuttcpBaseProcessor.Status.TIMEOUT,
+                         NuttcpBaseProcessor.check_validity(input_data))
 
     def test_pad_tcp_tput_data_points(self):
         raw_data = [
@@ -471,7 +504,7 @@ class UnitTest(unittest.TestCase):
         interval = 0.5
 
         start_time = datetime.fromisoformat('2024-05-27T10:57:21.547467')
-        data_after_padding = NuttcpContentBaseProcessor.pad_tcp_tput_data_points(
+        data_after_padding = NuttcpTcpBaseProcessor.pad_tcp_tput_data_points(
             raw_data=raw_data,
             expected_len=expected_len,
             start_time=start_time,
