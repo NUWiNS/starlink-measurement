@@ -85,12 +85,12 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    print("--------------")
+    # read_and_plot_throughput_data('tcp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    # print("--------------")
     read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    print("--------------")
+    # print("--------------")
     # read_and_plot_throughput_data('udp', 'uplink', output_dir)
     # print("--------------")
     #

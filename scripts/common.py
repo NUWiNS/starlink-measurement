@@ -1,5 +1,6 @@
 import enum
 import os
+import unittest
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from datetime import datetime, timedelta
@@ -86,7 +87,7 @@ class TputBaseProcessor(ABC):
     def check_validity(parsed_result: Dict):
         data_points = parsed_result['data_points']
 
-        if parsed_result['has_summary']:
+        if parsed_result['has_summary'] and len(data_points) > 1:
             return TputBaseProcessor.Status.NORMAL
 
         if data_points is None or len(data_points) == 0:
@@ -133,3 +134,63 @@ class TputBaseProcessor(ABC):
 
     def get_status(self) -> str:
         return self.status.value
+    
+    
+class Unittest(unittest.TestCase):
+
+    def test_check_validity(self):
+        # --- has summary cases ---
+        input_data = {
+            'data_points': [0] * 240,
+            'has_summary': True,
+            'avg_tput_mbps': 10
+        }
+        self.assertEqual(TputBaseProcessor.Status.NORMAL,
+                         TputBaseProcessor.check_validity(input_data))
+
+        input_data = {
+            'data_points': [0] * 250,
+            'has_summary': True,
+            'avg_tput_mbps': 10
+        }
+        self.assertEqual(TputBaseProcessor.Status.NORMAL,
+                         TputBaseProcessor.check_validity(input_data))
+
+        # if there is only one data point with 0 throughput, it should be considered as empty
+        input_data = {
+            'data_points': [0],
+            'has_summary': True,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(TputBaseProcessor.Status.INCOMPLETE, TputBaseProcessor.check_validity(input_data))
+
+        # --- no summary cases ---
+        input_data = {
+            'data_points': [],
+            'has_summary': False,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(TputBaseProcessor.Status.EMPTY, TputBaseProcessor.check_validity(input_data))
+
+        input_data = {
+            'data_points': None,
+            'has_summary': False,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(TputBaseProcessor.Status.EMPTY, TputBaseProcessor.check_validity(input_data))
+
+        input_data = {
+            'data_points': [0] * 239,
+            'has_summary': False,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(TputBaseProcessor.Status.INCOMPLETE,
+                         TputBaseProcessor.check_validity(input_data))
+
+        input_data = {
+            'data_points': [0] * 250,
+            'has_summary': False,
+            'avg_tput_mbps': -1
+        }
+        self.assertEqual(TputBaseProcessor.Status.TIMEOUT,
+                         TputBaseProcessor.check_validity(input_data))

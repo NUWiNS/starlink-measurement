@@ -114,14 +114,14 @@ class NuttcpBaseProcessor(TputBaseProcessor):
         if missing_count <= 0:
             return
 
-        if self.status == TputBaseProcessor.Status.INCOMPLETE:
+        if self.status == self.Status.INCOMPLETE:
             self.data_points = self.pad_tput_data_points(
                 raw_data=self.data_points,
                 create_default_value=self.create_default_value,
                 expected_len=self.EXPECTED_NUM_OF_DATA_POINTS,
                 interval_sec=self.INTERVAL_SEC
             )
-        elif self.status == TputBaseProcessor.Status.EMPTY:
+        elif self.status == self.Status.EMPTY:
             self.data_points = self.pad_tput_data_points(
                 raw_data=self.data_points,
                 create_default_value=self.create_default_value,
@@ -368,55 +368,6 @@ class UnitTest(unittest.TestCase):
             'retrans': '1',
             'cwnd_kb': '1375'
         }, parse_nuttcp_tcp_line(line))
-
-    def test_check_validity(self):
-        # --- has summary cases ---
-        input_data = {
-            'data_points': [0] * 240,
-            'has_summary': True,
-            'avg_tput_mbps': 10
-        }
-        self.assertEqual(TputBaseProcessor.Status.NORMAL,
-                         NuttcpBaseProcessor.check_validity(input_data))
-
-        input_data = {
-            'data_points': [0] * 250,
-            'has_summary': True,
-            'avg_tput_mbps': 10
-        }
-        self.assertEqual(TputBaseProcessor.Status.NORMAL,
-                         NuttcpBaseProcessor.check_validity(input_data))
-
-        # --- no summary cases ---
-        input_data = {
-            'data_points': [],
-            'has_summary': False,
-            'avg_tput_mbps': -1
-        }
-        self.assertEqual(TputBaseProcessor.Status.EMPTY, NuttcpBaseProcessor.check_validity(input_data))
-
-        input_data = {
-            'data_points': None,
-            'has_summary': False,
-            'avg_tput_mbps': -1
-        }
-        self.assertEqual(TputBaseProcessor.Status.EMPTY, NuttcpBaseProcessor.check_validity(input_data))
-
-        input_data = {
-            'data_points': [0] * 239,
-            'has_summary': False,
-            'avg_tput_mbps': -1
-        }
-        self.assertEqual(TputBaseProcessor.Status.INCOMPLETE,
-                         NuttcpBaseProcessor.check_validity(input_data))
-
-        input_data = {
-            'data_points': [0] * 250,
-            'has_summary': False,
-            'avg_tput_mbps': -1
-        }
-        self.assertEqual(TputBaseProcessor.Status.TIMEOUT,
-                         NuttcpBaseProcessor.check_validity(input_data))
 
     def test_pad_tcp_tput_data_points(self):
         raw_data = [
