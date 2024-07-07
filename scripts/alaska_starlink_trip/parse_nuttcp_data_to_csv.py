@@ -97,7 +97,6 @@ def process_nuttcp_data_for_operator(operator: str):
     :param operator: att | verizon | starlink
     :return:
     """
-    operator_base_dir = os.path.join(base_dir, operator)
     dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
 
     logger.info(f'Processing {operator.capitalize()} Phone\'s NUTTCP throughput data...')
