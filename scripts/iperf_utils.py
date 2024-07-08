@@ -39,7 +39,7 @@ def convert_to_mbps(tput: str):
         return "{:.2f}".format(float(tput.strip()) / 1000000)
 
 
-def extract_data_from_line(line: str):
+def extract_data_from_line(line: str, timezone_str: str = None):
     pattern = re.compile(
         r"\[(.*?)\]\s+\[\s*\d+\]\s+[\d.]+-[\d.]+\s+sec\s+[\d.]+\s+\w?Bytes\s+([\d.]+\s+\w?)bits/sec\s+[\d.]+\s+ms\s+([-\d]+)/(\d+)\s+\((.+)%\)\s*$"
     )
@@ -48,7 +48,7 @@ def extract_data_from_line(line: str):
         return None
 
     timestamp, throughput, pkt_drop, pkt_total, loss = match.groups()
-    dt_isoformat = format_iperf_timestamp(timestamp)
+    dt_isoformat = format_iperf_timestamp(timestamp, timezone_str=timezone_str)
     return asdict(IperfUdpMetric(
         time=dt_isoformat,
         throughput_mbps=convert_to_mbps(throughput),
@@ -58,7 +58,7 @@ def extract_data_from_line(line: str):
     ))
 
 
-def parse_iperf_udp_result(content: str):
+def parse_iperf_udp_result(content: str, timezone_str: str = None):
     """
     Extract timestamp, throughput, pkt_drop, pkt_total and loss from the UDP log of iperf
     :param content:
@@ -69,7 +69,7 @@ def parse_iperf_udp_result(content: str):
     extracted_data = []
 
     for line in content.splitlines():
-        match = extract_data_from_line(line)
+        match = extract_data_from_line(line, timezone_str=timezone_str)
         if match:
             extracted_data.append(match)
     return extracted_data
@@ -122,7 +122,7 @@ def extract_iperf_receiver_summary(content: str) -> Dict[str, float]:
 class IperfUdpBaseProcessor(TputBaseProcessor):
     @overrides
     def parse_data_points(self, content: str):
-        json_data = parse_iperf_udp_result(content)
+        json_data = parse_iperf_udp_result(content, timezone_str=self.timezone_str)
         return list(map(lambda x: IperfUdpMetric(**x), json_data))
 
     @overrides
@@ -182,7 +182,13 @@ class IperfProcessorFactory:
                timezone_str: str) -> IperfUdpBaseProcessor:
         if protocol == 'udp':
             if direction == 'downlink':
-                return IperfUdpDownlinkProcessor(content, protocol, direction, file_path, timezone_str)
+                return IperfUdpDownlinkProcessor(
+                    content=content,
+                    protocol=protocol,
+                    direction=direction,
+                    file_path=file_path,
+                    timezone_str=timezone_str
+                )
         raise NotImplementedError('No processor found for the given protocol and direction.')
 
 

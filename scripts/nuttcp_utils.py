@@ -49,7 +49,7 @@ def format_nuttcp_timestamp(dt_str: str, timezone_str=None):
     return format_datetime_as_iso_8601(dt)
 
 
-def parse_nuttcp_tcp_line(line: str) -> Dict[str, str]:
+def parse_nuttcp_tcp_line(line: str, timezone_str: str) -> Dict[str, str]:
     """
     Parse a single line of nuttcp TCP log
     :param line:
@@ -62,7 +62,7 @@ def parse_nuttcp_tcp_line(line: str) -> Dict[str, str]:
     if not match:
         return None
     dt, throughput, retrans, cwnd = match.groups()
-    dt_isoformat = format_nuttcp_timestamp(dt)
+    dt_isoformat = format_nuttcp_timestamp(dt, timezone_str)
     return asdict(
         NuttcpTcpMetric(
             time=dt_isoformat,
@@ -73,7 +73,7 @@ def parse_nuttcp_tcp_line(line: str) -> Dict[str, str]:
     )
 
 
-def parse_nuttcp_tcp_result(content: str) -> List[Dict[str, str]]:
+def parse_nuttcp_tcp_result(content: str, timezone_str: str) -> List[Dict[str, str]]:
     """
     Extract timestamp, throughput, retrans and cwnd from the TCP log of nuttcp
     :param content:
@@ -82,7 +82,7 @@ def parse_nuttcp_tcp_result(content: str) -> List[Dict[str, str]]:
     extracted_data = []
 
     for line in content.splitlines():
-        match = parse_nuttcp_tcp_line(line)
+        match = parse_nuttcp_tcp_line(line, timezone_str)
         if match:
             extracted_data.append(match)
     return extracted_data
@@ -135,7 +135,7 @@ class NuttcpBaseProcessor(TputBaseProcessor):
 class NuttcpTcpBaseProcessor(NuttcpBaseProcessor):
     @overrides
     def parse_data_points(self, content: str):
-        json_data = parse_nuttcp_tcp_result(content)
+        json_data = parse_nuttcp_tcp_result(content, timezone_str=self.timezone_str)
         return list(map(lambda x: NuttcpTcpMetric(**x), json_data))
 
     @overrides
@@ -182,7 +182,7 @@ class NuttcpTcpUplinkProcessor(NuttcpTcpBaseProcessor):
 class NuttcpUdpBaseProcessor(NuttcpBaseProcessor):
     @overrides
     def parse_data_points(self, content: str):
-        json_data = parse_nuttcp_udp_result(content)
+        json_data = parse_nuttcp_udp_result(content, timezone_str=self.timezone_str)
         return list(map(lambda x: NuttcpUdpMetric(**x), json_data))
 
     @overrides
@@ -295,7 +295,7 @@ def extract_nuttcp_rtt_ms_from_tcp_log(content: str) -> float:
     return float(match.group(1))
 
 
-def parse_nuttcp_udp_result(content: str) -> List[Dict[str, str]]:
+def parse_nuttcp_udp_result(content: str, timezone_str: str = None) -> List[Dict[str, str]]:
     """
     Extract timestamp, throughput, pkt_drop, pkt_total and loss from the UDP log of nuttcp
     :param content:
@@ -308,7 +308,7 @@ def parse_nuttcp_udp_result(content: str) -> List[Dict[str, str]]:
         match = pattern.search(line)
         if match:
             dt, throughput, pkt_drop, pkt_total, loss = match.groups()
-            dt_isoformat = format_nuttcp_timestamp(dt)
+            dt_isoformat = format_nuttcp_timestamp(dt, timezone_str=timezone_str)
             extracted_data.append(asdict(
                 NuttcpUdpMetric(
                     time=dt_isoformat,
