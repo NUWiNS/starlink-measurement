@@ -1,5 +1,7 @@
 import re
 import unittest
+from bisect import bisect_right
+from typing import List
 
 import pytz
 from datetime import datetime
@@ -44,6 +46,24 @@ class StartEndLogTimeProcessor:
         return time_pairs
 
 
+class TimeIntervalQuery:
+    def __init__(self, ts_traces: List[float]):
+        self.ts_traces = ts_traces
+
+    def query_interval_start_end_index(self, ts: float) -> (float, float):
+        """
+        Query the interval with start and end time that the timestamp ts belongs to
+        :param ts:
+        :return:
+        """
+        pos = bisect_right(self.ts_traces, ts)
+        if pos == 0:
+            return None, 0
+        if pos == len(self.ts_traces):
+            return len(self.ts_traces) - 1, None
+        return pos - 1, pos
+
+
 class Unittest(unittest.TestCase):
     def test_start_end_time_extraction(self):
         d1 = datetime(2021, 6, 21, 0, 0, 0)
@@ -62,3 +82,11 @@ class Unittest(unittest.TestCase):
         self.assertEqual(time_pairs[0][1], d2)
         self.assertEqual(time_pairs[1][0], d3)
         self.assertEqual(time_pairs[1][1], d4)
+
+    def test_time_interval_query(self):
+        ts_traces = [100, 200, 300, 400, 500]
+        query = TimeIntervalQuery(ts_traces)
+        self.assertEqual(query.query_interval_start_end_index(50), (None, 0))
+        self.assertEqual(query.query_interval_start_end_index(100), (0, 1))
+        self.assertEqual(query.query_interval_start_end_index(250), (1, 2))
+        self.assertEqual(query.query_interval_start_end_index(550), (4, None))
