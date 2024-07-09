@@ -34,6 +34,16 @@ def save_throughput_metric_to_csv(data_frame, protocol, direction, output_dir='.
     print(f'save all the {prefix} data to csv file: {csv_filepath}')
 
 
+def get_statistics(data_frame: pd.DataFrame):
+    return {
+        'min': data_frame.min(),
+        'max': data_frame.max(),
+        'median': np.median(data_frame),
+    }
+
+def format_statistics(stats):
+    return f"Min: {stats['min']:.2f} Mbps\nMax: {stats['max']:.2f} Mbps\nMedian: {stats['median']:.2f} Mbps"
+
 def plot_cdf_of_throughput(
         data_frame,
         xlabel='Throughput (Mbps)',
@@ -44,8 +54,11 @@ def plot_cdf_of_throughput(
     data_sorted = np.sort(data_frame)
     cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
 
+    stats = get_statistics(data_frame)
+    label = format_statistics(stats)
+
     plt.figure(figsize=(10, 6))
-    plt.plot(data_sorted, cdf, linestyle='-')
+    plt.plot(data_sorted, cdf, linestyle='-', label=label)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
@@ -81,12 +94,15 @@ def plot_cdf_of_throughput_with_all_operators(
         data_sorted = np.sort(operator_data)
         color = color_map[operator]
         cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
+
+        stats = get_statistics(data_sorted)
+        label = format_statistics(stats)
         plt.plot(
             data_sorted,
             cdf,
             color=color,
             linestyle='-',
-            label=f'{operator}'
+            label=f'{operator}\n{label}'
         )
 
     plt.xlabel(xlabel)
