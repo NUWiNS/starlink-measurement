@@ -168,8 +168,8 @@ class NuttcpTcpUplinkProcessor(NuttcpTcpBaseProcessor):
             return
 
         init_rtt_ms = extract_nuttcp_rtt_ms_from_tcp_log(self.content)
-        # subtract half of the RTT from the first timestamp of data points on the sender side
-        new_time = datetime.fromisoformat(self.data_points[0].time) - timedelta(milliseconds=init_rtt_ms * 0.5)
+        # add half of the RTT to reflect the timestamp on the receiver side
+        new_time = datetime.fromisoformat(self.data_points[0].time) + timedelta(milliseconds=init_rtt_ms * 0.5)
 
         for data_point in self.data_points:
             data_point.time = format_datetime_as_iso_8601(new_time)
