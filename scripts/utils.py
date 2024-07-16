@@ -1,4 +1,8 @@
 import os
+from typing import Dict
+
+import numpy as np
+import pandas as pd
 
 
 def find_files(base_dir, prefix, suffix):
@@ -31,3 +35,24 @@ def safe_get(source, key, default_value=None):
         return source.get(key, default_value)
     else:
         return getattr(source, key, default_value)
+
+
+def get_statistics(data_frame: pd.DataFrame, data_stats: Dict = None):
+    return {
+        'min': data_frame.min(),
+        'max': data_frame.max(),
+        'median': np.median(data_frame),
+        'total_count': safe_get(data_stats, 'total_count', len(data_frame)),
+        'filtered_count': safe_get(data_stats, 'filtered_count', len(data_frame)),
+    }
+
+
+def format_statistics(stats, unit: str = ''):
+    total_count = safe_get(stats, 'total_count')
+    filtered_count = safe_get(stats, 'filtered_count')
+    if total_count is None or total_count == 0:
+        percentage = 'N/A'
+    else:
+        # fixed to 2 decimal places
+        percentage = f"{(filtered_count / total_count) * 100:.2f}%"
+    return f"Median: {stats['median']:.2f} {unit}\nMin: {stats['min']:.2f} {unit}\nMax: {stats['max']:.2f} {unit}\nCount: {filtered_count}/{total_count} ({percentage})"

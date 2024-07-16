@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from scripts.utils import get_statistics, format_statistics
+
 
 def extract_rtt_df(data_frame, operator=None):
     df = data_frame.copy()
@@ -46,20 +48,31 @@ def plot_cdf_of_rtt_with_all_operators(
 ):
     plt.figure(figsize=(10, 6))
 
-    operators = ['starlink', 'att', 'verizon']
-    colors = ['r', 'g', 'b']
+    all_operators = ['starlink', 'att', 'verizon', 'tmobile']
+    df['operator'] = pd.Categorical(df['operator'], categories=all_operators, ordered=True)
+    operators = df['operator'].unique()
+    color_map = {
+        'starlink': 'black',
+        'att': 'b',
+        'verizon': 'r',
+        'tmobile': 'deeppink'
+    }
 
     for index, operator in enumerate(operators):
         operator_data = extract_rtt_df(df, operator)
         data_sorted = np.sort(operator_data)
-        color = colors[index]
+        color = color_map[operator]
         cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
+
+        stats = get_statistics(operator_data)
+        label = f'{operator}\n' + format_statistics(stats, unit='ms')
+
         plt.plot(
             data_sorted,
             cdf,
             color=color,
+            label=label,
             linestyle='-',
-            label=f'{operator}'
         )
 
     plt.xscale(xscale)
@@ -74,14 +87,14 @@ def plot_cdf_of_rtt_with_all_operators(
     # plt.show()
 
 
-def plot_boxplot_of_rtt(df: pd.DataFrame, output_dir='.'):
+def plot_boxplot_of_rtt(df: pd.DataFrame, output_dir='.', yscale='linear'):
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.boxplot(data=df, ax=ax, x='operator', y='rtt_ms')
+    sns.boxplot(data=df, ax=ax, x='operator', y='rtt_ms', showfliers=False)
     ax.set_xlabel('Operator')
     ax.set_ylabel('RTT (ms)')
     ax.set_title('Boxplot of RTT by operator')
     plt.grid(True)
-    plt.yscale('log')
+    plt.yscale(yscale)
     if output_dir:
         plt.savefig(os.path.join(output_dir, 'boxplot_rtt_all_operators.png'))
     else:
@@ -97,17 +110,17 @@ def plot_all_cdf_for_rtt(df: pd.DataFrame, output_dir='.', xscale="linear"):
         filename_prefix = f'{filename_prefix}_{xscale}'
 
     # plot CDF of throughput for each operator
-    for operator in operators:
-        throughput_df = extract_rtt_df(df, operator)
-        print(f"Describe rtt data of {operator}")
-        print(throughput_df.describe())
-        print('---')
-        plot_cdf_of_rtt(
-            throughput_df,
-            title=f'CDF of Round-Trip Time ({operator.capitalize()})',
-            output_file_path=os.path.join(output_dir, f'{filename_prefix}_{operator}.png'),
-            xscale=xscale,
-        )
+    # for operator in operators:
+    #     throughput_df = extract_rtt_df(df, operator)
+    #     print(f"Describe rtt data of {operator}")
+    #     print(throughput_df.describe())
+    #     print('---')
+    #     plot_cdf_of_rtt(
+    #         throughput_df,
+    #         title=f'CDF of Round-Trip Time ({operator.capitalize()})',
+    #         output_file_path=os.path.join(output_dir, f'{filename_prefix}_{operator}.png'),
+    #         xscale=xscale,
+    #     )
 
     # plot one CDF of throughput for all operators
     plot_cdf_of_rtt_with_all_operators(
