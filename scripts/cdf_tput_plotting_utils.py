@@ -1,9 +1,12 @@
 # Plot CDF of throughput_cubic
 import os
+from typing import Dict
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+
+from scripts.utils import safe_get
 
 base_directory = os.path.join(os.getcwd(), "../outputs/maine_starlink_trip/")
 
@@ -34,16 +37,25 @@ def save_throughput_metric_to_csv(data_frame, protocol, direction, output_dir='.
     print(f'save all the {prefix} data to csv file: {csv_filepath}')
 
 
-def get_statistics(data_frame: pd.DataFrame):
+def get_statistics(data_frame: pd.DataFrame, data_stats: Dict = None):
     return {
         'min': data_frame.min(),
         'max': data_frame.max(),
         'median': np.median(data_frame),
+        'total_count': safe_get(data_stats, 'total_count', len(data_frame)),
+        'filtered_count': safe_get(data_stats, 'filtered_count', len(data_frame)),
     }
 
 
 def format_statistics(stats):
-    return f"Min: {stats['min']:.2f} Mbps\nMax: {stats['max']:.2f} Mbps\nMedian: {stats['median']:.2f} Mbps"
+    total_count = safe_get(stats, 'total_count')
+    filtered_count = safe_get(stats, 'filtered_count')
+    if total_count is None or total_count == 0:
+        percentage = 'N/A'
+    else:
+        # fixed to 2 decimal places
+        percentage = f"{(filtered_count / total_count) * 100:.2f}%"
+    return f"Median: {stats['median']:.2f} Mbps\nMin: {stats['min']:.2f} Mbps\nMax: {stats['max']:.2f} Mbps\nCount: {filtered_count}/{total_count} ({percentage})"
 
 
 def plot_cdf_of_throughput(
@@ -71,17 +83,28 @@ def plot_cdf_of_throughput(
 
 
 def plot_cdf_of_throughput_with_all_operators(
-        df,
+        data_frame,
+        data_stats=None,
         xlabel='Throughput (Mbps)',
         ylabel='CDF',
         title='CDF of Throughput with all Operators',
         output_file_path=None
 ):
+    """
+
+    :param data_frame:
+    :param data_stats: containing data stats of all operators, keyed by operator name
+    :param xlabel:
+    :param ylabel:
+    :param title:
+    :param output_file_path:
+    :return:
+    """
     plt.figure(figsize=(10, 6))
 
     all_operators = ['starlink', 'att', 'verizon', 'tmobile']
     # ensure the order by making Categorical
-    df['operator'] = pd.Categorical(df['operator'], categories=all_operators, ordered=True)
+    data_frame['operator'] = pd.Categorical(data_frame['operator'], categories=all_operators, ordered=True)
     # make sure the colors are consistent for each operator
     color_map = {
         'starlink': 'r',
@@ -89,15 +112,18 @@ def plot_cdf_of_throughput_with_all_operators(
         'verizon': 'b',
         'tmobile': 'orange'
     }
-    operators = df['operator'].unique()
+    operators = data_frame['operator'].unique()
 
     for index, operator in enumerate(operators):
-        operator_data = extract_throughput_df(df, operator)
+        operator_data = extract_throughput_df(data_frame, operator)
         data_sorted = np.sort(operator_data)
         color = color_map[operator]
         cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
 
-        stats = get_statistics(data_sorted)
+        stats = get_statistics(
+            data_sorted,
+            data_stats=(safe_get(data_stats, operator, None))
+        )
         label = format_statistics(stats)
         plt.plot(
             data_sorted,

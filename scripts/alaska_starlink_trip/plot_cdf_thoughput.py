@@ -105,7 +105,7 @@ def read_and_plot_throughput_data(
         output_dir: str,
 ):
     print(f"Reading and plotting {protocol}_{direction} with all operator data...")
-    combined_df = read_all_throughput_data(direction, protocol)
+    combined_df, _ = read_all_throughput_data(direction, protocol)
 
     plot_cdf_of_throughput_with_all_operators(
         combined_df,
@@ -122,7 +122,7 @@ def read_and_plot_throughput_data_by_area(
         area_type: str,
 ):
     print(f"Reading and plotting {protocol}_{direction} with all operator data...")
-    combined_df = read_all_throughput_data(direction, protocol, filter_by=('area', area_type))
+    combined_df, stats = read_all_throughput_data(direction, protocol, filter_by=('area', area_type))
 
     by_area_output_dir = os.path.join(output_dir, 'by_area')
     if not os.path.exists(by_area_output_dir):
@@ -130,6 +130,7 @@ def read_and_plot_throughput_data_by_area(
 
     plot_cdf_of_throughput_with_all_operators(
         combined_df,
+        data_stats=stats,
         title=f'CDF of {protocol.upper()} {direction.capitalize()} Throughput ({area_type.capitalize()} Area)',
         output_file_path=os.path.join(by_area_output_dir, f'cdf_{protocol}_{direction}_{area_type}.png')
     )
@@ -165,19 +166,34 @@ def read_and_plot_throughput_data_by_weather(
     print('Done!')
 
 
-def read_all_throughput_data(direction: str, protocol: str, filter_by: (str, str) = None):
-    att_df = get_data_frame_from_all_csv('att', protocol, direction)
-    att_df['operator'] = 'att'
-    verizon_df = get_data_frame_from_all_csv('verizon', protocol, direction)
-    verizon_df['operator'] = 'verizon'
-    starlink_df = get_data_frame_from_all_csv('starlink', protocol, direction)
-    starlink_df['operator'] = 'starlink'
-    tmobile_df = get_data_frame_from_all_csv('tmobile', protocol, direction)
-    tmobile_df['operator'] = 'tmobile'
-    combined_df = pd.concat([att_df, verizon_df, starlink_df, tmobile_df], ignore_index=True)
+def read_throughput_data(operator: str, direction: str, protocol: str, filter_by: (str, str) = None):
+    def create_stats(total_count: int = 0, filter_by_count: int = 0):
+        return {
+            'is_filtered': filter_by is not None,
+            'total_count': total_count,
+            'filtered_count': filter_by_count,
+        }
+
+    df = get_data_frame_from_all_csv(operator, protocol, direction)
+    df['operator'] = operator
+    stats = create_stats(total_count=len(df))
     if filter_by:
-        combined_df = combined_df[combined_df[filter_by[0]] == filter_by[1]]
-    return combined_df
+        df = df[df[filter_by[0]] == filter_by[1]]
+        stats['filtered_count'] = len(df)
+    return df, stats
+
+
+def read_all_throughput_data(direction: str, protocol: str, filter_by: (str, str) = None):
+    combined_df = pd.DataFrame()
+    all_stats = {}
+    for operator in ['att', 'verizon', 'starlink', 'tmobile']:
+        df, stats = read_throughput_data(operator, direction, protocol, filter_by=filter_by)
+        all_stats[operator] = stats
+        if operator == 'att':
+            combined_df = df
+        else:
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
+    return combined_df, all_stats
 
 
 def read_and_plot_starlink_throughput_data(output_dir: str, filter_by: str = None):
@@ -223,24 +239,24 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'uplink', output_dir)
-    print("--------------")
+    # read_and_plot_throughput_data('tcp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    # print("--------------")
 
-    # for area_type in ['urban', 'suburban', 'rural']:
-    #     read_and_plot_throughput_data_by_area('tcp', 'downlink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('tcp', 'uplink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('udp', 'downlink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('udp', 'uplink', output_dir, area_type=area_type)
-    #     print("--------------")
+    for area_type in ['urban', 'suburban', 'rural']:
+        read_and_plot_throughput_data_by_area('tcp', 'downlink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('tcp', 'uplink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('udp', 'downlink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('udp', 'uplink', output_dir, area_type=area_type)
+        print("--------------")
 
     # for weather_type in ['sunny', 'cloudy', 'rainy', 'snowy']:
     #     read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir, weather_type=weather_type)

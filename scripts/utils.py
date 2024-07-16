@@ -24,3 +24,10 @@ def find_files(base_dir, prefix, suffix):
 
 def count_subfolders(base_dir):
     return len(os.listdir(base_dir))
+
+
+def safe_get(source, key, default_value=None):
+    if isinstance(source, dict):
+        return source.get(key, default_value)
+    else:
+        return getattr(source, key, default_value)
