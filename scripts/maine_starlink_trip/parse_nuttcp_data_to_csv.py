@@ -40,7 +40,7 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
                     protocol=protocol,
                     direction=direction,
                     file_path=file,
-                    timezone_str='US/Alaska'
+                    timezone_str='US/Eastern'
                 )
                 processor.process()
                 data_points = processor.get_result()

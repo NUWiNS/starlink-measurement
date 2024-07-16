@@ -46,7 +46,7 @@ def process_iperf_files(files: List[str], protocol: str, direction: str, output_
                     protocol=protocol,
                     direction=direction,
                     file_path=file,
-                    timezone_str='US/Alaska'
+                    timezone_str='US/Eastern'
                 )
                 processor.process()
                 data_points = processor.get_result()
