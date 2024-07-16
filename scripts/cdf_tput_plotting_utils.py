@@ -1,4 +1,4 @@
-# Plot CDF of throughput
+# Plot CDF of throughput_cubic
 import os
 
 import numpy as np
@@ -41,8 +41,10 @@ def get_statistics(data_frame: pd.DataFrame):
         'median': np.median(data_frame),
     }
 
+
 def format_statistics(stats):
     return f"Min: {stats['min']:.2f} Mbps\nMax: {stats['max']:.2f} Mbps\nMedian: {stats['median']:.2f} Mbps"
+
 
 def plot_cdf_of_throughput(
         data_frame,
@@ -115,13 +117,60 @@ def plot_cdf_of_throughput_with_all_operators(
     plt.show()
 
 
+def plot_cdf_of_starlink_throughput_by_weather(
+        df,
+        xlabel='Throughput (Mbps)',
+        ylabel='CDF',
+        title='CDF of Throughput with all Operators',
+        output_file_path=None
+):
+    plt.figure(figsize=(10, 6))
+
+    all_weather = ['sunny', 'cloudy', 'rainy', 'snowy']
+    df['weather'] = pd.Categorical(df['weather'], categories=all_weather, ordered=True)
+    # make sure the colors are consistent for each operator
+    color_map = {
+        'sunny': 'r',
+        'cloudy': 'g',
+        'rainy': 'b',
+        'snowy': 'orange'
+    }
+    weathers = df['weather'].unique()
+
+    for index, weather in enumerate(weathers):
+        weather_df = df[df['weather'] == weather]['throughput_mbps']
+
+        data_sorted = np.sort(weather_df)
+        color = color_map[weather]
+        cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
+
+        stats = get_statistics(data_sorted)
+        label = format_statistics(stats)
+        plt.plot(
+            data_sorted,
+            cdf,
+            color=color,
+            linestyle='-',
+            label=f'{weather}\n{label}'
+        )
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+    if output_file_path:
+        plt.savefig(output_file_path)
+    plt.show()
+
+
 def plot_tcp_uplink_data(df: pd.DataFrame, output_dir='.'):
     operators = df['operator'].unique()
 
-    # plot CDF of throughput for each operator
+    # plot CDF of throughput_cubic for each operator
     for operator in operators:
         throughput_df = extract_throughput_df(df, operator)
-        print(f"Describe throughput data of {operator}")
+        print(f"Describe throughput_normal data of {operator}")
         print(throughput_df.describe())
 
         plot_freq_distribution_of_throughput(
@@ -137,7 +186,7 @@ def plot_tcp_uplink_data(df: pd.DataFrame, output_dir='.'):
     #         output_file_path=os.path.join(output_dir, f'cdf_tcp_uplink_{operator}.png')
     #     )
     #
-    # # plot one CDF of throughput for all operators
+    # # plot one CDF of throughput_cubic for all operators
     # plot_cdf_of_throughput_with_all_operators(
     #     df,
     #     title='CDF of TCP Uplink Throughput (All Operators)',
@@ -186,7 +235,7 @@ def plot_freq_distribution_of_throughput(
 def plot_udp_uplink_data(df: pd.DataFrame, output_dir='.'):
     operators = df['operator'].unique()
 
-    # plot CDF of throughput for each operator
+    # plot CDF of throughput_cubic for each operator
     for operator in operators:
         throughput_df = extract_throughput_df(df, operator)
         plot_cdf_of_throughput(
@@ -195,7 +244,7 @@ def plot_udp_uplink_data(df: pd.DataFrame, output_dir='.'):
             output_file_path=os.path.join(output_dir, f'cdf_udp_uplink_{operator}.png')
         )
 
-    # plot one CDF of throughput for all operators
+    # plot one CDF of throughput_cubic for all operators
     plot_cdf_of_throughput_with_all_operators(
         df,
         title='CDF of UDP Uplink Throughput (All Operators)',
@@ -206,7 +255,7 @@ def plot_udp_uplink_data(df: pd.DataFrame, output_dir='.'):
 def plot_udp_downlink_data(df: pd.DataFrame, output_dir='.'):
     operators = df['operator'].unique()
 
-    # plot CDF of throughput for each operator
+    # plot CDF of throughput_cubic for each operator
     for operator in operators:
         throughput_df = extract_throughput_df(df, operator)
         plot_cdf_of_throughput(
@@ -215,7 +264,7 @@ def plot_udp_downlink_data(df: pd.DataFrame, output_dir='.'):
             output_file_path=os.path.join(output_dir, f'cdf_udp_downlink_{operator}.png')
         )
 
-    # plot one CDF of throughput for all operators
+    # plot one CDF of throughput_cubic for all operators
     plot_cdf_of_throughput_with_all_operators(
         df,
         title='CDF of UDP Downlink Throughput (All Operators)',
