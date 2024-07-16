@@ -145,6 +145,7 @@ def plot_cdf_of_throughput_with_all_operators(
 
 def plot_cdf_of_starlink_throughput_by_weather(
         df,
+        data_stats: Dict = None,
         xlabel='Throughput (Mbps)',
         ylabel='CDF',
         title='CDF of Throughput with all Operators',
@@ -165,12 +166,12 @@ def plot_cdf_of_starlink_throughput_by_weather(
 
     for index, weather in enumerate(weathers):
         weather_df = df[df['weather'] == weather]['throughput_mbps']
-
         data_sorted = np.sort(weather_df)
         color = color_map[weather]
         cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
 
-        stats = get_statistics(data_sorted)
+        weather_data_stats = safe_get(data_stats, weather)
+        stats = get_statistics(data_sorted, data_stats=weather_data_stats)
         label = format_statistics(stats)
         plt.plot(
             data_sorted,
