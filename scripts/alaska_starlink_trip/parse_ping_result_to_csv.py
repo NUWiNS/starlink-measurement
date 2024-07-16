@@ -1,12 +1,14 @@
 import os
 import sys
 from datetime import datetime
+
+from scripts.alaska_starlink_trip.labels import DatasetLabel
+from scripts.alaska_starlink_trip.separate_dataset import read_dataset
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-
-from scripts.ping_utils import find_ping_file, parse_ping_result
+from scripts.ping_utils import find_ping_file, parse_ping_result, find_ping_files_by_dir_list
 from scripts.time_utils import format_datetime_as_iso_8601
-
 
 from scripts.constants import DATASET_DIR, OUTPUT_DIR
 
@@ -14,6 +16,8 @@ from typing import Tuple, List
 
 import pandas as pd
 import pytz
+
+output_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/ping')
 
 
 def find_files(base_dir, prefix, suffix):
@@ -69,13 +73,9 @@ def save_data_frame_to_csv(data_frame, output_dir='.'):
 
 def parse_ping_for_operator(operator: str):
     print(f'Processing {operator} phone\'s ping data...')
-    base_dir = os.path.join(DATASET_DIR, f"alaska_starlink_trip/raw/{operator}")
-    if not os.path.exists(base_dir):
-        raise FileNotFoundError(f"Operator {operator} does not exist.")
+    dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
 
-    output_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/ping')
-
-    ping_files = find_ping_file(base_dir)
+    ping_files = find_ping_files_by_dir_list(dir_list)
     excluded_files = []
     total_df = pd.DataFrame()
 
@@ -84,7 +84,12 @@ def parse_ping_for_operator(operator: str):
         try:
             with open(file, 'r') as f:
                 content = f.read()
+                total_lines = len(content.splitlines())
                 extracted_data = parse_ping_result(content)
+                print('Processing:', file)
+                print(f'-- total lines: {total_lines}')
+                print(f'-- extracted lines: {len(extracted_data)}')
+
                 if not extracted_data:
                     excluded_files.append(file)
                     continue
@@ -97,6 +102,7 @@ def parse_ping_for_operator(operator: str):
 
                 total_df = pd.concat([total_df, df], ignore_index=True)
         except Exception as e:
+            excluded_files.append(file)
             print(f"Error reading {file}: {e}")
 
     print('Total files:', len(ping_files))
@@ -110,6 +116,9 @@ def parse_ping_for_operator(operator: str):
 
 
 def main():
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
     operators = ['att', 'verizon', 'starlink', 'tmobile']
     for operator in operators:
         parse_ping_for_operator(operator)

@@ -89,6 +89,13 @@ def find_ping_file(base_dir):
     return find_files(base_dir, prefix="ping", suffix=".out")
 
 
+def find_ping_files_by_dir_list(dir_list: List[str]):
+    files = []
+    for dir in dir_list:
+        files.extend(find_ping_file(dir))
+    return files
+
+
 def count_subfolders(base_dir):
     return len(os.listdir(base_dir))
 
@@ -112,7 +119,6 @@ class Unittest(unittest.TestCase):
         ]
 
         self.assertEqual(parse_ping_result(content), expected)
-
 
         content = """
         [2024-05-27 11:02:08.775511] PING 35.245.244.238 (35.245.244.238) 38(66) bytes of data.
