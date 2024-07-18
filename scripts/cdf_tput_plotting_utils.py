@@ -107,10 +107,10 @@ def plot_cdf_of_throughput_with_all_operators(
     data_frame['operator'] = pd.Categorical(data_frame['operator'], categories=all_operators, ordered=True)
     # make sure the colors are consistent for each operator
     color_map = {
-        'starlink': 'r',
-        'att': 'g',
-        'verizon': 'b',
-        'tmobile': 'orange'
+        'starlink': 'black',
+        'att': 'b',
+        'verizon': 'r',
+        'tmobile': 'deeppink'
     }
     operators = data_frame['operator'].unique()
 
