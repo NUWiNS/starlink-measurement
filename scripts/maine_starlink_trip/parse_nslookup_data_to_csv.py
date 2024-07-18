@@ -21,7 +21,6 @@ timezone_str = 'US/Eastern'
 
 logger = create_logger('nslookup_parsing', filename=os.path.join(tmp_data_path, 'parse_nslookup_data_to_csv.log'))
 
-
 def save_resolve_duration_info_to_csv(parsed_results: List[Dict], output_filename: str):
     """
     Save the resolve duration information to a csv file
@@ -29,7 +28,6 @@ def save_resolve_duration_info_to_csv(parsed_results: List[Dict], output_filenam
     :return:
     """
     df = pd.DataFrame(parsed_results)
-    df.drop(columns=['answers'], inplace=True)
     df.to_csv(output_filename, index=False)
     return df
 
@@ -55,12 +53,22 @@ def main():
                                                                                        timezone_str=timezone_str)
                 parsed_results = [parse_nslookup_result(result) for result in
                                   (split_multiple_nslookup_results(content))]
+
+                data_points = []
                 for start_end_time, result in zip(start_end_times, parsed_results):
                     result['start_ms'] = format_datetime_as_iso_8601(start_end_time[0])
                     result['end_ms'] = format_datetime_as_iso_8601(start_end_time[1])
                     result['duration_ms'] = (start_end_time[1] - start_end_time[0]).total_seconds() * 1000
+
+                    for answer in result['answers']:
+                        data_point = result.copy()
+                        data_point['req_domain'] = answer[0]
+                        data_point['res_address'] = answer[1]
+                        del data_point['answers']
+                        data_points.append(data_point)
+
             output_filename = file.replace('.out', '.csv')
-            df = save_resolve_duration_info_to_csv(parsed_results, output_filename=output_filename)
+            df = save_resolve_duration_info_to_csv(data_points, output_filename=output_filename)
             main_data_frame = pd.concat([main_data_frame, df], ignore_index=True)
             logger.info(f'Saved DNS resolve data to {output_filename}')
         except Exception as e:
