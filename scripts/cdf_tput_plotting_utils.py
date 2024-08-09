@@ -1,4 +1,5 @@
 # Plot CDF of throughput_cubic
+import logging
 import os
 from typing import Dict, List, Tuple
 
@@ -311,3 +312,65 @@ def plot_udp_downlink_data(df: pd.DataFrame, output_dir='.'):
         title='CDF of UDP Downlink Throughput (All Operators)',
         output_file_path=os.path.join(output_dir, f'cdf_udp_downlink_all.png')
     )
+
+
+def plot_cdf_tput_tcp_vs_udp_for_starlink_and_cellular(
+        tcp_dl_df: pd.DataFrame,
+        udp_dl_df: pd.DataFrame,
+        direction: str = 'downlink',
+        output_dir='.',
+        logger: logging.Logger = logging.getLogger(),
+):
+    config = {
+        'legends': ['Starlink-TCP', 'Cellular-TCP', 'Starlink-UDP', 'Cellular-UDP'],
+        'filename': f'tcp_vs_udp_{direction}.png'
+    }
+    all_throughputs = []
+
+    cmap20 = plt.cm.tab20
+
+    starlink_tcp = tcp_dl_df[tcp_dl_df['operator'] == 'starlink']['throughput_mbps']
+    cellular_tcp = tcp_dl_df[tcp_dl_df['operator'] != 'starlink']['throughput_mbps']
+
+    starlink_udp = udp_dl_df[udp_dl_df['operator'] == 'starlink']['throughput_mbps']
+    cellular_udp = udp_dl_df[udp_dl_df['operator'] != 'starlink']['throughput_mbps']
+
+    logger.info('Starlink TCP: %s', starlink_tcp.describe())
+    logger.info('Cellular TCP: %s', cellular_tcp.describe())
+    logger.info('Starlink UDP: %s', starlink_udp.describe())
+    logger.info('Cellular UDP: %s', cellular_udp.describe())
+
+    all_throughputs.extend([starlink_tcp, cellular_tcp, starlink_udp, cellular_udp])
+    colors = [cmap20(0), cmap20(4), cmap20(0), cmap20(4)]
+    linestyles = ['--', '--', '-', '-']
+
+    fig, ax = plt.subplots(figsize=(6.4, 4.8))
+
+    for idx, data in enumerate(all_throughputs):
+        sorted_data = np.sort(data)
+        count, bins_count = np.histogram(sorted_data, bins=np.unique(sorted_data).shape[0])
+        cdf = np.cumsum(count) / len(sorted_data)
+        plt.plot(bins_count[1:], cdf, label=config['legends'][idx], color=colors[idx],
+                 linestyle=linestyles[idx], linewidth=4)
+
+    fzsize = 22
+    ax.tick_params(axis='y', labelsize=fzsize)
+    ax.tick_params(axis='x', labelsize=fzsize)
+    ax.set_xlabel('Throughput (Mbps)', fontsize=fzsize)
+    ax.set_ylabel('CDF', fontsize=fzsize)
+    ax.legend(prop={'size': 20}, loc='lower right')
+    if direction == 'uplink':
+        plt.xlim(0, 150)
+        ax.set_xticks(range(0, 151, 25))
+        ax.set_xticklabels(list(map(lambda x: str(x), range(0, 151, 25))))
+    else:
+        plt.xlim(0, 600)
+        ax.set_xticks([0, 100, 200, 300, 400, 500, 600])
+        ax.set_xticklabels(['0', '100', '200', '300', '400', '500', '600'])
+    plt.ylim(0, 1.02)
+    ax.set_yticks(np.arange(0, 1.1, 0.25))
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, config['filename']))
+    plt.show()
+    plt.close(fig)

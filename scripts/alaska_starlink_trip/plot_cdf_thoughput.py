@@ -10,7 +10,8 @@ from scripts.logging_utils import create_logger
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.cdf_tput_plotting_utils import get_data_frame_from_all_csv, plot_cdf_of_throughput_with_all_operators, \
-    plot_cdf_of_throughput, plot_cdf_of_starlink_throughput_by_weather
+    plot_cdf_of_throughput, plot_cdf_of_starlink_throughput_by_weather, \
+    plot_cdf_tput_tcp_vs_udp_for_starlink_and_cellular
 
 from scripts.constants import DATASET_DIR, OUTPUT_DIR
 
@@ -41,61 +42,6 @@ def plot_tcp_downlink_data(df: pd.DataFrame, output_dir='.'):
         title='CDF of TCP Downlink Throughput (All Operators)',
         output_file_path=os.path.join(output_dir, f'cdf_tcp_downlink_all.png')
     )
-
-
-def plot_cdf_tput_tcp_vs_udp_for_starlink_and_cellular(tcp_dl_df: pd.DataFrame, udp_dl_df: pd.DataFrame,
-                                                       direction: str = 'downlink',
-                                                       output_dir='.'):
-    config = {
-        'legends': ['Starlink-TCP', 'Cellular-TCP', 'Starlink-UDP', 'Cellular-UDP'],
-        'filename': f'tcp_vs_udp_{direction}.png'
-    }
-    all_throughputs = []
-
-    cmap20 = plt.cm.tab20
-
-    starlink_tcp = tcp_dl_df[tcp_dl_df['operator'] == 'starlink']['throughput_mbps']
-    cellular_tcp = tcp_dl_df[tcp_dl_df['operator'] != 'starlink']['throughput_mbps']
-
-    starlink_udp = udp_dl_df[udp_dl_df['operator'] == 'starlink']['throughput_mbps']
-    cellular_udp = udp_dl_df[udp_dl_df['operator'] != 'starlink']['throughput_mbps']
-
-    logger.info('Starlink TCP: %s', starlink_tcp.describe())
-    logger.info('Cellular TCP: %s', cellular_tcp.describe())
-    logger.info('Starlink UDP: %s', starlink_udp.describe())
-    logger.info('Cellular UDP: %s', cellular_udp.describe())
-
-    all_throughputs.extend([starlink_tcp, cellular_tcp, starlink_udp, cellular_udp])
-    colors = [cmap20(0), cmap20(4), cmap20(0), cmap20(4)]
-    linestyles = ['--', '--', '-', '-']
-
-    fig, ax = plt.subplots(figsize=(6.4, 4.8))
-
-    for idx, data in enumerate(all_throughputs):
-        sorted_data = np.sort(data)
-        count, bins_count = np.histogram(sorted_data, bins=np.unique(sorted_data).shape[0])
-        cdf = np.cumsum(count) / len(sorted_data)
-        plt.plot(bins_count[1:], cdf, label=config['legends'][idx], color=colors[idx],
-                 linestyle=linestyles[idx], linewidth=4)
-
-    fzsize = 22
-    ax.tick_params(axis='y', labelsize=fzsize)
-    ax.tick_params(axis='x', labelsize=fzsize)
-    ax.set_xlabel('Throughput (Mbps)', fontsize=fzsize)
-    ax.set_ylabel('CDF', fontsize=fzsize)
-    ax.legend(prop={'size': 20}, loc='lower right')
-    if direction == 'uplink':
-        plt.xlim(0, 150)
-        ax.set_xticks(range(0, 151, 25))
-        ax.set_xticklabels(list(map(lambda x: str(x), range(0, 151, 25))))
-    else:
-        plt.xlim(0, 600)
-        ax.set_xticks([0, 100, 200, 300, 400, 500, 600])
-        ax.set_xticklabels(['0', '100', '200', '300', '400', '500', '600'])
-    plt.ylim(0, 1.02)
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, config['filename']))
 
 
 def plot_cdf_tcp_tput_with_cubic_vs_bbr(
@@ -151,6 +97,7 @@ def plot_cdf_tcp_tput_with_cubic_vs_bbr(
     ax.tick_params(axis='x', labelsize=fzsize)
     ax.set_xlabel('Throughput (Mbps)', fontsize=fzsize)
     ax.set_ylabel('CDF', fontsize=fzsize)
+    ax.set_yticks(np.arange(0, 1.1, 0.25))
     ax.legend(prop={'size': 20}, loc='lower right')
     if direction == 'uplink':
         plt.xlim(0, 150)
@@ -283,7 +230,7 @@ def read_and_plot_starlink_throughput_data(output_dir: str, filter_by: str = Non
 def plot_cdf_tput_starlink_vs_cellular(direction: str = 'downlink'):
     tcp_tput_df = pd.DataFrame()
     udp_tput_df = pd.DataFrame()
-    for operator in ['att', 'verizon', 'starlink', 'tmobile']:
+    for operator in ['starlink', 'att', 'verizon']:
         sub_tcp_tput_df = get_data_frame_from_all_csv(operator, 'tcp', direction)
         sub_tcp_tput_df['operator'] = operator
         tcp_tput_df = pd.concat([tcp_tput_df, sub_tcp_tput_df], ignore_index=True)
@@ -296,7 +243,8 @@ def plot_cdf_tput_starlink_vs_cellular(direction: str = 'downlink'):
         tcp_tput_df,
         udp_tput_df,
         direction=direction,
-        output_dir=output_dir
+        output_dir=output_dir,
+        logger=logger,
     )
 
 
@@ -329,14 +277,14 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'uplink', output_dir)
-    print("--------------")
+    # read_and_plot_throughput_data('tcp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    # print("--------------")
 
     # By area
     # for area_type in ['urban', 'suburban', 'rural']:
@@ -360,7 +308,7 @@ def main():
 
     # Starlink vs Cellular
     # plot_cdf_tput_starlink_vs_cellular('downlink')
-    # plot_cdf_tput_starlink_vs_cellular('uplink')
+    plot_cdf_tput_starlink_vs_cellular('uplink')
 
     # Cubic vs BBR
     # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
