@@ -37,6 +37,7 @@ def plot_tcp_downlink_data(df: pd.DataFrame, output_dir='.'):
     # plot one CDF of throughput_cubic for all operators
     plot_cdf_of_throughput_with_all_operators(
         df,
+        all_operators=['starlink', 'att', 'verizon'],
         title='CDF of TCP Downlink Throughput (All Operators)',
         output_file_path=os.path.join(output_dir, f'cdf_tcp_downlink_all.png')
     )
@@ -175,6 +176,7 @@ def read_and_plot_throughput_data(
 
     plot_cdf_of_throughput_with_all_operators(
         combined_df,
+        all_operators=['starlink', 'att', 'verizon'],
         title=f'CDF of {protocol.upper()} {direction.capitalize()} Throughput (All Operators)',
         output_file_path=os.path.join(output_dir, f'cdf_{protocol}_{direction}_all.png')
     )
@@ -196,6 +198,7 @@ def read_and_plot_throughput_data_by_area(
 
     plot_cdf_of_throughput_with_all_operators(
         combined_df,
+        all_operators=['starlink', 'att', 'verizon'],
         data_stats=stats,
         title=f'CDF of {protocol.upper()} {direction.capitalize()} Throughput ({area_type.capitalize()} Area)',
         output_file_path=os.path.join(by_area_output_dir, f'cdf_{protocol}_{direction}_{area_type}.png')
@@ -326,14 +329,14 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    # read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('udp', 'uplink', output_dir)
-    # print("--------------")
+    read_and_plot_throughput_data('tcp', 'downlink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('udp', 'downlink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    print("--------------")
 
     # By area
     # for area_type in ['urban', 'suburban', 'rural']:
@@ -360,8 +363,8 @@ def main():
     # plot_cdf_tput_starlink_vs_cellular('uplink')
 
     # Cubic vs BBR
-    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
-    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
+    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
+    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
 
 
 if __name__ == '__main__':
