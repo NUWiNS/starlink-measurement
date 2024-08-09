@@ -36,10 +36,10 @@ def main():
     plot_boxplot_of_rtt(df=combined_df, output_dir=output_dir, yscale='linear')
     print("Plot is saved to: ", output_dir)
 
-    # print('Plotting CDF of RTT...')
-    # plot_all_cdf_for_rtt(df=combined_df, output_dir=output_dir, xscale='linear')
-    # plot_all_cdf_for_rtt(df=combined_df, output_dir=output_dir, xscale='log')
-    # print("Plot is saved to: ", output_dir)
+    print('Plotting CDF of RTT...')
+    plot_all_cdf_for_rtt(df=combined_df, output_dir=output_dir, xscale='linear')
+    plot_all_cdf_for_rtt(df=combined_df, output_dir=output_dir, xscale='log')
+    print("Plot is saved to: ", output_dir)
 
 
 if __name__ == '__main__':

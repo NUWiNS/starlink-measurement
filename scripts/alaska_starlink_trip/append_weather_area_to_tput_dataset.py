@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from scripts.logging_utils import create_logger
 from scripts.constants import DATASET_DIR
 
-tput_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
+tput_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_cubic')
 others_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/others')
 tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
 

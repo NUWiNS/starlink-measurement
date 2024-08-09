@@ -1,51 +1,20 @@
 import os
 import sys
-from datetime import datetime
+
+from scripts.maine_starlink_trip.labels import DatasetLabel
+from scripts.maine_starlink_trip.separate_dataset import read_dataset
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from scripts.ping_utils import parse_ping_result, find_ping_files_by_dir_list
 
-from scripts.ping_utils import find_ping_file, parse_ping_result
-from scripts.time_utils import format_datetime_as_iso_8601
-
-
-from scripts.constants import DATASET_DIR, OUTPUT_DIR
+from scripts.constants import DATASET_DIR
 
 from typing import Tuple, List
 
 import pandas as pd
-import pytz
 
-
-def find_files(base_dir, prefix, suffix):
-    target_files = []
-
-    # Walk through the directory structure
-    for root, dirs, files in os.walk(base_dir):
-        for file in files:
-            if file.startswith(prefix) and file.endswith(suffix):
-                target_files.append(os.path.join(root, file))
-    return target_files
-
-
-def append_timezone(dt: datetime, timezone_str: str, is_dst: bool = True):
-    timezone = pytz.timezone(timezone_str)
-    dt_aware = timezone.localize(dt, is_dst=is_dst)  # is_dst=True for daylight saving time
-    return dt_aware
-
-
-def append_edt_timezone(dt: datetime, is_dst: bool = True):
-    return append_timezone(dt, "US/Eastern", is_dst)
-
-
-def parse_timestamp_of_ping(timestamp):
-    # Parse the timestamp in the format of "2024-05-27 15:00:00.000000"
-    return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
-
-
-def format_timestamp(dt_str: str):
-    dt = parse_timestamp_of_ping(dt_str)
-    dt_edt = append_edt_timezone(dt)
-    return format_datetime_as_iso_8601(dt_edt)
+output_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/ping')
 
 
 def save_to_csv(row_list: List[Tuple[str, str, str]], output_file):
@@ -69,13 +38,9 @@ def save_data_frame_to_csv(data_frame, output_dir='.'):
 
 def parse_ping_for_operator(operator: str):
     print(f'Processing {operator} phone\'s ping data...')
-    base_dir = os.path.join(DATASET_DIR, f"maine_starlink_trip/raw/{operator}")
-    if not os.path.exists(base_dir):
-        raise FileNotFoundError(f"Operator {operator} does not exist.")
+    dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
 
-    output_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/ping')
-
-    ping_files = find_ping_file(base_dir)
+    ping_files = find_ping_files_by_dir_list(dir_list)
     excluded_files = []
     total_df = pd.DataFrame()
 
@@ -84,7 +49,12 @@ def parse_ping_for_operator(operator: str):
         try:
             with open(file, 'r') as f:
                 content = f.read()
+                total_lines = len(content.splitlines())
                 extracted_data = parse_ping_result(content)
+                print('Processing:', file)
+                print(f'-- total lines: {total_lines}')
+                print(f'-- extracted lines: {len(extracted_data)}')
+
                 if not extracted_data:
                     excluded_files.append(file)
                     continue
@@ -97,6 +67,7 @@ def parse_ping_for_operator(operator: str):
 
                 total_df = pd.concat([total_df, df], ignore_index=True)
         except Exception as e:
+            excluded_files.append(file)
             print(f"Error reading {file}: {e}")
 
     print('Total files:', len(ping_files))
@@ -110,6 +81,9 @@ def parse_ping_for_operator(operator: str):
 
 
 def main():
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
     operators = ['att', 'verizon', 'starlink']
     for operator in operators:
         parse_ping_for_operator(operator)

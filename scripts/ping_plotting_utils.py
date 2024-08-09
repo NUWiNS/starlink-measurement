@@ -50,7 +50,11 @@ def plot_cdf_of_rtt_with_all_operators(
 
     all_operators = ['starlink', 'att', 'verizon', 'tmobile']
     df['operator'] = pd.Categorical(df['operator'], categories=all_operators, ordered=True)
-    operators = df['operator'].unique()
+    # get unique operators with the order of categorical data
+    operators = filter(lambda x: x in df['operator'].unique(), df['operator'].cat.categories)
+    # filter unique operators
+
+    # operators = df['operator'].unique()
     color_map = {
         'starlink': 'black',
         'att': 'b',
@@ -64,17 +68,17 @@ def plot_cdf_of_rtt_with_all_operators(
         color = color_map[operator]
         cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
 
-        stats = get_statistics(operator_data)
-        label = f'{operator}\n' + format_statistics(stats, unit='ms')
+        # stats = get_statistics(operator_data)
+        # label = f'{operator}\n' + format_statistics(stats, unit='ms')
 
         plt.plot(
             data_sorted,
             cdf,
             color=color,
-            label=label,
+            label=operator,
             linestyle='-',
         )
-
+    plt.yticks(np.arange(0, 1.1, 0.25))
     plt.xscale(xscale)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -89,6 +93,8 @@ def plot_cdf_of_rtt_with_all_operators(
 
 def plot_boxplot_of_rtt(df: pd.DataFrame, output_dir='.', yscale='linear'):
     fig, ax = plt.subplots(figsize=(10, 6))
+    all_operators = filter(lambda x: x in df['operator'].unique(), ['starlink', 'att', 'verizon', 'tmobile'])
+    df['operator'] = pd.Categorical(df['operator'], categories=all_operators, ordered=True)
     sns.boxplot(data=df, ax=ax, x='operator', y='rtt_ms', showfliers=False)
     ax.set_xlabel('Operator')
     ax.set_ylabel('RTT (ms)')
