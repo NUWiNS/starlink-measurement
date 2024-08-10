@@ -49,6 +49,11 @@ def label_two_traceroute_run(labels: List[str], _date: datetime):
         labels.append(DatasetLabel.TWO_TRACEROUTE_RUN.value)
     return labels
 
+def label_bbr_testing_traces(labels: List[str], _date: datetime):
+    if datetime(2024, 6, 21, 12, 30) < _date <= datetime(2024, 6, 21, 15, 37):
+        labels.append(DatasetLabel.BBR_TESTING_DATA.value)
+    return labels
+
 
 def label_test_data(labels: List[str], _date: datetime):
     if _date < datetime(2024, 6, 21, 9, 40):
@@ -62,6 +67,7 @@ def get_labels_from_path(path_str: str) -> List[str]:
     label_funcs = [
         label_udp_1440,
         label_small_memory_and_cubic,
+        label_bbr_testing_traces,
         label_two_traceroute_run,
         label_test_data,
     ]

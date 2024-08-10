@@ -17,12 +17,11 @@ from scripts.nuttcp_utils import parse_nuttcp_tcp_result, \
 
 base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw')
 merged_csv_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
+merged_csv_dir_for_cubic = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_cubic')
+merged_csv_dir_for_bbr = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_bbr')
 tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
 
 logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, 'parse_nuttcp_data_to_csv.log'))
-
-if not os.path.exists(merged_csv_dir):
-    os.mkdir(merged_csv_dir)
 
 
 def parse_nuttcp_content(content, protocol):
@@ -88,16 +87,20 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
     logger.info(f'Saved all extracted data to the CSV file: {output_csv_filename}')
 
 
-def get_merged_csv_filename(operator: str, protocol: str, direction: str):
-    return os.path.join(merged_csv_dir, f'{operator}_{protocol}_{direction}.csv')
+def get_merged_csv_filename(operator: str, protocol: str, direction: str, base_dir: str = merged_csv_dir):
+    return os.path.join(base_dir, f'{operator}_{protocol}_{direction}.csv')
 
 
-def process_nuttcp_data_for_operator(operator: str):
+def process_nuttcp_data_for_operator(
+        operator: str,
+        data_label: str = DatasetLabel.NORMAL.value,
+        output_dir: str = merged_csv_dir
+):
     """
     :param operator: att | verizon | starlink
     :return:
     """
-    dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
+    dir_list = read_dataset(operator, data_label)
 
     logger.info(f'Processing {operator.capitalize()} Phone\'s NUTTCP throughput data...')
 
@@ -107,7 +110,7 @@ def process_nuttcp_data_for_operator(operator: str):
         tcp_downlink_files,
         protocol='tcp',
         direction='downlink',
-        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink')
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink', base_dir=output_dir)
     )
 
     tcp_uplink_files = find_tcp_uplink_files_by_dir_list(dir_list)
@@ -116,7 +119,7 @@ def process_nuttcp_data_for_operator(operator: str):
         tcp_uplink_files,
         protocol='tcp',
         direction='uplink',
-        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink')
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink', base_dir=output_dir)
     )
 
     udp_uplink_files = find_udp_uplink_files_by_dir_list(dir_list)
@@ -125,11 +128,16 @@ def process_nuttcp_data_for_operator(operator: str):
         udp_uplink_files,
         protocol='udp',
         direction='uplink',
-        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'uplink')
+        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'uplink', base_dir=output_dir)
     )
 
 
 def main():
+    for dir_path in [merged_csv_dir, merged_csv_dir_for_cubic, merged_csv_dir_for_bbr]:
+        if not os.path.exists(dir_path):
+            os.mkdir(dir_path)
+
+    # Normal dataset
     process_nuttcp_data_for_operator('starlink')
     logger.info('----------------------------------')
     process_nuttcp_data_for_operator('att')
@@ -138,6 +146,31 @@ def main():
     logger.info('----------------------------------')
     process_nuttcp_data_for_operator('tmobile')
     logger.info('----------------------------------')
+
+    # Labeled dataset
+    process_nuttcp_data_for_operator('starlink', data_label=DatasetLabel.SMALL_MEMORY_AND_CUBIC.value,
+                                     output_dir=merged_csv_dir_for_cubic)
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('att', data_label=DatasetLabel.SMALL_MEMORY_AND_CUBIC.value,
+                                     output_dir=merged_csv_dir_for_cubic)
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('verizon', data_label=DatasetLabel.SMALL_MEMORY_AND_CUBIC.value,
+                                     output_dir=merged_csv_dir_for_cubic)
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('tmobile', data_label=DatasetLabel.SMALL_MEMORY_AND_CUBIC.value,
+                                     output_dir=merged_csv_dir_for_cubic)
+
+    process_nuttcp_data_for_operator('starlink', data_label=DatasetLabel.BBR_TESTING_DATA.value,
+                                     output_dir=merged_csv_dir_for_bbr)
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('att', data_label=DatasetLabel.BBR_TESTING_DATA.value,
+                                     output_dir=merged_csv_dir_for_bbr)
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('verizon', data_label=DatasetLabel.BBR_TESTING_DATA.value,
+                                     output_dir=merged_csv_dir_for_bbr)
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('tmobile', data_label=DatasetLabel.BBR_TESTING_DATA.value,
+                                     output_dir=merged_csv_dir_for_bbr)
 
 
 if __name__ == '__main__':

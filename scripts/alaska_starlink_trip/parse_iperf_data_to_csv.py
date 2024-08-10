@@ -17,6 +17,8 @@ from scripts.constants import DATASET_DIR
 
 base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw')
 merged_csv_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
+merged_csv_dir_for_cubic = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_cubic')
+merged_csv_dir_for_bbr = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_bbr')
 tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
 
 logger = create_logger('iperf_parsing', filename=os.path.join(tmp_data_path, 'parse_iperf_data_to_csv.log'))
@@ -65,16 +67,22 @@ def process_iperf_files(files: List[str], protocol: str, direction: str, output_
     logger.info(f'Saved all extracted data to the CSV file: {output_csv_filename}')
 
 
-def get_merged_csv_filename(operator: str, protocol: str, direction: str):
-    return os.path.join(merged_csv_dir, f'{operator}_{protocol}_{direction}.csv')
+def get_merged_csv_filename(operator: str, protocol: str, direction: str, base_dir=merged_csv_dir):
+    return os.path.join(base_dir, f'{operator}_{protocol}_{direction}.csv')
 
 
-def process_iperf_data_for_operator(operator: str):
+def process_iperf_data_for_operator(
+        operator: str,
+        data_label: str = DatasetLabel.NORMAL.value,
+        output_dir: str = merged_csv_dir
+):
     """
     :param operator: att | verizon | starlink
+    :param data_label: DatasetLabel
+    :param output_dir:
     :return:
     """
-    dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
+    dir_list = read_dataset(operator, label=data_label)
     udp_downlink_files = find_udp_downlink_files_by_dir_list(dir_list)
 
     logger.info(f'Processing {operator.capitalize()} Phone\'s iperf throughput data...')
@@ -83,14 +91,16 @@ def process_iperf_data_for_operator(operator: str):
         udp_downlink_files,
         protocol='udp',
         direction='downlink',
-        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'downlink')
+        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'downlink', base_dir=output_dir)
     )
 
 
 def main():
-    if not os.path.exists(merged_csv_dir):
-        os.mkdir(merged_csv_dir)
+    for dir in [base_dir, merged_csv_dir, merged_csv_dir_for_cubic, merged_csv_dir_for_bbr]:
+        if not os.path.exists(dir):
+            os.makedirs(dir)
 
+    # Normal data
     process_iperf_data_for_operator('att')
     logger.info('----------------------------------')
     process_iperf_data_for_operator('verizon')
@@ -98,6 +108,33 @@ def main():
     process_iperf_data_for_operator('starlink')
     logger.info('----------------------------------')
     process_iperf_data_for_operator('tmobile')
+    logger.info('----------------------------------')
+
+    # Labeled data
+    process_iperf_data_for_operator('att', data_label=DatasetLabel.SMALL_MEMORY_AND_CUBIC.value,
+                                    output_dir=merged_csv_dir_for_cubic)
+    logger.info('----------------------------------')
+    process_iperf_data_for_operator('verizon', data_label=DatasetLabel.SMALL_MEMORY_AND_CUBIC.value,
+                                    output_dir=merged_csv_dir_for_cubic)
+    logger.info('----------------------------------')
+    process_iperf_data_for_operator('starlink', data_label=DatasetLabel.SMALL_MEMORY_AND_CUBIC.value,
+                                    output_dir=merged_csv_dir_for_cubic)
+    logger.info('----------------------------------')
+    process_iperf_data_for_operator('tmobile', data_label=DatasetLabel.SMALL_MEMORY_AND_CUBIC.value,
+                                    output_dir=merged_csv_dir_for_cubic)
+    logger.info('----------------------------------')
+
+    process_iperf_data_for_operator('att', data_label=DatasetLabel.BBR_TESTING_DATA.value,
+                                    output_dir=merged_csv_dir_for_bbr)
+    logger.info('----------------------------------')
+    process_iperf_data_for_operator('verizon', data_label=DatasetLabel.BBR_TESTING_DATA.value,
+                                    output_dir=merged_csv_dir_for_bbr)
+    logger.info('----------------------------------')
+    process_iperf_data_for_operator('starlink', data_label=DatasetLabel.BBR_TESTING_DATA.value,
+                                    output_dir=merged_csv_dir_for_bbr)
+    logger.info('----------------------------------')
+    process_iperf_data_for_operator('tmobile', data_label=DatasetLabel.BBR_TESTING_DATA.value,
+                                    output_dir=merged_csv_dir_for_bbr)
     logger.info('----------------------------------')
 
 

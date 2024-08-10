@@ -17,6 +17,7 @@ from scripts.constants import DATASET_DIR, OUTPUT_DIR
 
 base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
 tput_cubic_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_cubic')
+tput_bbr_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_bbr')
 tmp_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
 output_dir = os.path.join(OUTPUT_DIR, 'alaska_starlink_trip/plots')
 
@@ -61,17 +62,17 @@ def plot_cdf_tcp_tput_with_cubic_vs_bbr(
 
     # Compare Urban performance only
     starlink_cubic = cubic_df[
-        cubic_df['operator'] == 'starlink' & cubic_df['area'] == 'urban'
+        (cubic_df['operator'] == 'starlink') & (cubic_df['area'] == 'urban')
     ]['throughput_mbps']
     cellular_cubic = cubic_df[
-        cubic_df['operator'] != 'starlink' & cubic_df['area'] == 'urban'
+        (cubic_df['operator'] != 'starlink') & (cubic_df['area'] == 'urban')
     ]['throughput_mbps']
 
     starlink_bbr = bbr_df[
-        bbr_df['operator'] == 'starlink' & bbr_df['area'] == 'urban'
+        (bbr_df['operator'] == 'starlink') & (bbr_df['area'] == 'urban')
     ]['throughput_mbps']
     cellular_bbr = bbr_df[
-        bbr_df['operator'] != 'starlink' & bbr_df['area'] == 'urban'
+        (bbr_df['operator'] != 'starlink') & (bbr_df['area'] == 'urban')
     ]['throughput_mbps']
 
     logger.info('Starlink CUBIC: %s', starlink_cubic.describe())
@@ -100,13 +101,13 @@ def plot_cdf_tcp_tput_with_cubic_vs_bbr(
     ax.set_yticks(np.arange(0, 1.1, 0.25))
     ax.legend(prop={'size': 20}, loc='lower right')
     if direction == 'uplink':
-        plt.xlim(0, 150)
-        ax.set_xticks(range(0, 151, 25))
-        ax.set_xticklabels(list(map(lambda x: str(x), range(0, 151, 25))))
+        max_tput = 100
+        plt.xlim(0, max_tput)
+        ax.set_xticks(range(0, max_tput + 1, 25))
     else:
-        plt.xlim(0, 400)
-        ax.set_xticks(range(0, 401, 50))
-        ax.set_xticklabels(list(map(lambda x: str(x), range(0, 401, 50))))
+        max_tput = 250
+        plt.xlim(0, max_tput)
+        ax.set_xticks(range(0, max_tput + 1, 50))
     plt.ylim(0, 1.02)
     plt.grid(True)
     plt.tight_layout()
@@ -251,12 +252,12 @@ def plot_cdf_tput_starlink_vs_cellular(direction: str = 'downlink'):
 def read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr(protocol: str, direction: str, output_dir: str):
     cubic_df = pd.DataFrame()
     bbr_df = pd.DataFrame()
-    for operator in ['att', 'verizon', 'starlink', 'tmobile']:
+    for operator in ['att', 'verizon', 'starlink']:
         sub_cubic_df = get_data_frame_from_all_csv(operator, protocol, direction, base_dir=tput_cubic_dir)
         sub_cubic_df['operator'] = operator
         cubic_df = pd.concat([cubic_df, sub_cubic_df], ignore_index=True)
 
-        sub_bbr_df = get_data_frame_from_all_csv(operator, protocol, direction)
+        sub_bbr_df = get_data_frame_from_all_csv(operator, protocol, direction, base_dir=tput_bbr_dir)
         sub_bbr_df['operator'] = operator
         bbr_df = pd.concat([bbr_df, sub_bbr_df], ignore_index=True)
 
@@ -308,11 +309,11 @@ def main():
 
     # Starlink vs Cellular
     # plot_cdf_tput_starlink_vs_cellular('downlink')
-    plot_cdf_tput_starlink_vs_cellular('uplink')
+    # plot_cdf_tput_starlink_vs_cellular('uplink')
 
     # Cubic vs BBR
-    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
-    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
+    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
+    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
 
 
 if __name__ == '__main__':
