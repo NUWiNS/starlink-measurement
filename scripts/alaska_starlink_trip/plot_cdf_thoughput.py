@@ -288,17 +288,17 @@ def main():
     # print("--------------")
 
     # By area
-    # for area_type in ['urban', 'suburban', 'rural']:
-    #     read_and_plot_throughput_data_by_area('tcp', 'downlink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('tcp', 'uplink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('udp', 'downlink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('udp', 'uplink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #
-    # # By weather
+    for area_type in ['urban', 'suburban', 'rural']:
+        read_and_plot_throughput_data_by_area('tcp', 'downlink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('tcp', 'uplink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('udp', 'downlink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('udp', 'uplink', output_dir, area_type=area_type)
+        print("--------------")
+
+    # By weather
     # read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
     # read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
     # read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
@@ -312,8 +312,8 @@ def main():
     # plot_cdf_tput_starlink_vs_cellular('uplink')
 
     # Cubic vs BBR
-    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
-    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
+    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
+    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
 
 
 if __name__ == '__main__':
