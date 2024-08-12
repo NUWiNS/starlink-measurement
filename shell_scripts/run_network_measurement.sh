@@ -287,8 +287,8 @@ while true; do
     echo "-----------------------------------"
 
     # FIXME: change to 120s
-    duration_s=3
-    timeout_s=5
+    duration_s=120
+    timeout_s=140
     interval_s=0.5
 
     start_ts_ms=$(get_timestamp_ms)
@@ -332,8 +332,8 @@ while true; do
     echo "-----------------------------------"
 
     # FIXME: change to 120s
-    duration_s=3
-    timeout_s=5
+    duration_s=120
+    timeout_s=140
     interval_s=0.5
     start_time=$(date '+%H%M%S%3N')
     start_ts_ms=$(get_timestamp_ms)
@@ -373,8 +373,8 @@ while true; do
     sleep 2
 
     echo "-----------------------------------"
-    duration_s=3
-    timeout_s=5
+    duration_s=30
+    timeout_s=50
 
     start_ts_ms=$(get_timestamp_ms)
     estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
@@ -403,7 +403,7 @@ while true; do
       sleep 5
 
       echo "-----------------------------------"
-      timeout_s=5
+      timeout_s=120
       start_ts_ms=$(get_timestamp_ms)
       estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
       report_start_time "Traceroute test" $start_ts_ms
@@ -426,7 +426,7 @@ while true; do
       sleep 5
 
       echo "-----------------------------------"
-      timeout_s=5
+      timeout_s=15
       start_ts_ms=$(get_timestamp_ms)
       report_start_time "Nslookup test" $start_ts_ms
 
