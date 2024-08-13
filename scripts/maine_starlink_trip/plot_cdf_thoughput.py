@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -142,12 +143,13 @@ def read_and_plot_throughput_data_by_weather(
         protocol: str,
         direction: str,
         output_dir: str,
+        all_weathers: List[str],
 ):
     print(f"Reading and plotting {protocol}_{direction} with all operator data...")
 
     all_df = pd.DataFrame()
     all_data_stats = {}
-    for weather in ['sunny', 'cloudy', 'rainy', 'snowy']:
+    for weather in all_weathers:
         weather_df, weather_data_stats = read_throughput_data('starlink', direction, protocol,
                                                               filter_by=('weather', weather))
         all_df = pd.concat([all_df, weather_df], ignore_index=True)
@@ -260,10 +262,11 @@ def main():
     #     read_and_plot_throughput_data_by_area('udp', 'uplink', output_dir, area_type=area_type)
     #     print("--------------")
 
-    # read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
-    # read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
-    # read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
-    # read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
+    all_weathers = ['sunny', 'cloudy', 'rainy', 'snowy']
+    read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir, all_weathers=all_weathers)
+    read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir, all_weathers=all_weathers)
+    read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir, all_weathers=all_weathers)
+    read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir, all_weathers=all_weathers)
     #
     # # read_and_plot_starlink_throughput_data(output_dir)
     # # print("--------------")

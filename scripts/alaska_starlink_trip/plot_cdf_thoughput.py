@@ -215,7 +215,9 @@ def read_and_plot_throughput_data_by_weather(
 
     all_df = pd.DataFrame()
     all_data_stats = {}
-    for weather in ['sunny', 'cloudy', 'rainy', 'snowy']:
+    # for weather in ['sunny', 'cloudy', 'rainy', 'snowy']:
+    # Ignore rainy because the number of samples is very low
+    for weather in ['sunny', 'cloudy', 'snowy']:
         weather_df, weather_data_stats = read_throughput_data('starlink', direction, protocol,
                                                               filter_by=('weather', weather))
         all_df = pd.concat([all_df, weather_df], ignore_index=True)
@@ -341,20 +343,20 @@ def main():
     # print("--------------")
 
     # By area
-    read_and_plot_throughput_data_by_area_2('tcp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data_by_area_2('tcp', 'uplink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data_by_area_2('udp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data_by_area_2('udp', 'uplink', output_dir)
-    print("--------------")
+    # read_and_plot_throughput_data_by_area_2('tcp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data_by_area_2('tcp', 'uplink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data_by_area_2('udp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data_by_area_2('udp', 'uplink', output_dir)
+    # print("--------------")
 
     # By weather
-    # read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
-    # read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
-    # read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
-    # read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
+    read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
+    read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
+    read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
+    read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
 
     # read_and_plot_starlink_throughput_data(output_dir)
     # print("--------------")
