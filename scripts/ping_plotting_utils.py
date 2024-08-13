@@ -44,7 +44,7 @@ def plot_cdf_of_rtt_with_all_operators(
         ylabel='CDF',
         title='CDF of RTT with all Operators',
         output_file_path=None,
-        xscale="linear"
+        xscale="linear",
 ):
     plt.figure(figsize=(10, 6))
 
@@ -82,6 +82,8 @@ def plot_cdf_of_rtt_with_all_operators(
     plt.xscale(xscale)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    # limit the x-axis to 0 to 1000 ms
+    plt.xlim(0, 600)
     plt.title(title)
     plt.legend()
     plt.grid(True)
@@ -99,6 +101,7 @@ def plot_boxplot_of_rtt(df: pd.DataFrame, output_dir='.', yscale='linear'):
     ax.set_xlabel('Operator')
     ax.set_ylabel('RTT (ms)')
     ax.set_title('Boxplot of RTT by operator')
+
     plt.grid(True)
     plt.yscale(yscale)
     if output_dir:
