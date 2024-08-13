@@ -86,6 +86,58 @@ def read_and_plot_throughput_data_by_area(
     print('Done!')
 
 
+def read_and_plot_throughput_data_by_area_2(
+        protocol: str,
+        direction: str,
+        output_dir: str,
+):
+    def merge_stats(stats1, stats2):
+        res = {}
+        for operator in stats1:
+            item1 = stats1[operator]
+            item2 = stats2[operator]
+            res[operator] = {
+                'is_filtered': item1['is_filtered'] or item2['is_filtered'],
+                'total_count': item1['total_count'],
+                'filtered_count': item1['filtered_count'] + item2['filtered_count'],
+            }
+        return res
+
+    print(f"Reading and plotting {protocol}_{direction} with all operator data...")
+    urban_df, urban_stats = read_all_throughput_data(direction, protocol, filter_by=('area', 'urban'))
+    suburban_df, suburban_stats = read_all_throughput_data(direction, protocol, filter_by=('area', 'suburban'))
+    rural_df, rural_stats = read_all_throughput_data(direction, protocol, filter_by=('area', 'rural'))
+
+    by_area_output_dir = os.path.join(output_dir, 'by_area')
+    if not os.path.exists(by_area_output_dir):
+        os.makedirs(by_area_output_dir, exist_ok=True)
+
+    # We merge suburban to rural because the number of samples in suburban is very low
+    # Rural and suburban
+    rural_suburban_df = pd.concat([rural_df, suburban_df], ignore_index=True)
+    rural_suburban_stats = merge_stats(rural_stats, suburban_stats)
+    area_type = 'rural'
+    plot_cdf_of_throughput_with_all_operators(
+        rural_suburban_df,
+        all_operators=['starlink', 'att', 'verizon'],
+        data_stats=rural_suburban_stats,
+        title=f'CDF of {protocol.upper()} {direction.capitalize()} Throughput ({area_type.capitalize()} Area)',
+        output_file_path=os.path.join(by_area_output_dir, f'cdf_{protocol}_{direction}_{area_type}.png')
+    )
+
+    # Urban
+    area_type = 'urban'
+    plot_cdf_of_throughput_with_all_operators(
+        urban_df,
+        all_operators=['starlink', 'att', 'verizon'],
+        data_stats=urban_stats,
+        title=f'CDF of {protocol.upper()} {direction.capitalize()} Throughput ({area_type.capitalize()} Area)',
+        output_file_path=os.path.join(by_area_output_dir, f'cdf_{protocol}_{direction}_{area_type}.png')
+    )
+
+    print('Done!')
+
+
 def read_and_plot_throughput_data_by_weather(
         protocol: str,
         direction: str,
@@ -207,7 +259,7 @@ def main():
     #     print("--------------")
     #     read_and_plot_throughput_data_by_area('udp', 'uplink', output_dir, area_type=area_type)
     #     print("--------------")
-    #
+
     # read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
     # read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
     # read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
