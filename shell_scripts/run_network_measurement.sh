@@ -274,9 +274,11 @@ report_end_time_and_duration() {
   echo "${test_name} finished at $(parse_timestamp $estimated_end_ts_ms), duration: $(convert_ms_to_sec $test_duration_ms) s"
 }
 
+ROOT_DIR="${HOME}/storage/shared/alaska_starlink_trip"
+
 while true; do
     # save the output to storage/shared folder for adb pull
-    data_folder=~/storage/shared/alaska_starlink_trip/$operator/$(date '+%Y%m%d')/
+    data_folder="${ROOT_DIR}/${operator}/$(date '+%Y%m%d')/"
     mkdir -p $data_folder
 
     start_dl_time=$(date '+%H%M%S%3N')
@@ -288,7 +290,9 @@ while true; do
 
     # FIXME: change to 120s
     duration_s=120
+#    duration_s=3
     timeout_s=140
+#    timeout_s=3
     interval_s=0.5
 
     start_ts_ms=$(get_timestamp_ms)
@@ -333,7 +337,9 @@ while true; do
 
     # FIXME: change to 120s
     duration_s=120
+#    duration_s=3
     timeout_s=140
+#    timeout_s=3
     interval_s=0.5
     start_time=$(date '+%H%M%S%3N')
     start_ts_ms=$(get_timestamp_ms)
@@ -374,7 +380,9 @@ while true; do
 
     echo "-----------------------------------"
     duration_s=30
+#    duration_s=3
     timeout_s=50
+#    timeout_s=3
 
     start_ts_ms=$(get_timestamp_ms)
     estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
@@ -399,11 +407,12 @@ while true; do
     # NOTE: Just a hack to make traceroute and nslookup run till the end of tcp + udp measurement
     if [ $thrpt_protocol == "udp" ]; then
       echo "-----------------------------------"
-      echo "Waiting for 5 seconds before starting traceroute test..."
-      sleep 5
+      echo "Waiting for 2 seconds before starting traceroute test..."
+      sleep 2
 
       echo "-----------------------------------"
-      timeout_s=120
+      timeout_s=15
+#      timeout_s=3
       start_ts_ms=$(get_timestamp_ms)
       estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
       report_start_time "Traceroute test" $start_ts_ms
@@ -422,11 +431,12 @@ while true; do
       echo "Saved traceroute test to $log_file_name"
 
       echo "-----------------------------------"
-      echo "Waiting for 5 seconds before starting nslookup test..."
-      sleep 5
+      echo "Waiting for 2 seconds before starting nslookup test..."
+      sleep 2
 
       echo "-----------------------------------"
       timeout_s=15
+#      timeout_s=3
       start_ts_ms=$(get_timestamp_ms)
       report_start_time "Nslookup test" $start_ts_ms
 
