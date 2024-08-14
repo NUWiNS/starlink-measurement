@@ -9,7 +9,7 @@ OPERATOR=2
 
 OPERATOR_NAME="att"
 
-ROOT_DIR="${HOME}/storage/shared/alaska_starlink_trip/${OPERATOR_NAME}/$(date +"%Y%m%d")"
+ROOT_DIR="${HOME}/storage/shared/hawaii_starlink_trip/${OPERATOR_NAME}/$(date +"%Y%m%d")"
 if [ ! -d $ROOT_DIR ]; then
     mkdir -p $ROOT_DIR
 fi

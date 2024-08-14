@@ -248,7 +248,7 @@ report_end_time_and_duration() {
   echo "${test_name} finished at $(parse_timestamp $estimated_end_ts_ms), duration: $(convert_ms_to_sec $test_duration_ms) s"
 }
 
-ROOT_DIR="${HOME}/storage/shared/alaska_starlink_trip"
+ROOT_DIR="${HOME}/storage/shared/hawaii_starlink_trip"
 
 while true; do
     # save the output to storage/shared folder for adb pull

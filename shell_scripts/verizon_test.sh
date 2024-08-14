@@ -8,7 +8,7 @@ SERVER=50.112.93.113 # Oregon aws server
 OPERATOR=1
 OPERATOR_NAME="verizon"
 
-ROOT_DIR="${HOME}/storage/shared/alaska_starlink_trip/${OPERATOR_NAME}/$(date +"%Y%m%d")"
+ROOT_DIR="${HOME}/storage/shared/hawaii_starlink_trip/${OPERATOR_NAME}/$(date +"%Y%m%d")"
 if [ ! -d $ROOT_DIR ]; then
     mkdir -p $ROOT_DIR
 fi
