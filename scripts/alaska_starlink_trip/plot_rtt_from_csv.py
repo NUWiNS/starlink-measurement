@@ -24,7 +24,8 @@ def main():
         os.makedirs(dataset_dir, exist_ok=True)
 
     combined_df = pd.DataFrame()
-    for operator in ['att', 'verizon', 'starlink', 'tmobile']:
+    # for operator in ['att', 'verizon', 'starlink', 'tmobile']:
+    for operator in ['att', 'verizon', 'starlink']:
         operator_df = get_data_frame_by_operator(operator)
         combined_df = pd.concat([combined_df, operator_df], ignore_index=True)
 
