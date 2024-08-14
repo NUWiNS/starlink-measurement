@@ -353,10 +353,10 @@ def main():
     # print("--------------")
 
     # By weather
-    read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
-    read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
-    read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
-    read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
+    # read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
+    # read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
+    # read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
+    # read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
 
     # read_and_plot_starlink_throughput_data(output_dir)
     # print("--------------")
@@ -366,8 +366,8 @@ def main():
     # plot_cdf_tput_starlink_vs_cellular('uplink')
 
     # Cubic vs BBR
-    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
-    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
+    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
+    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
 
 
 if __name__ == '__main__':
