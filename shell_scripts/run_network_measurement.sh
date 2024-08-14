@@ -19,7 +19,6 @@ done
 
 ip_address=""
 operator=""
-thrpt_protocol=""
 nuttcp_port=""
 iperf_port=""
 round=0
@@ -96,7 +95,7 @@ while true; do
             break
             ;;
         2)
-            operator="att"            
+            operator="att"
             nuttcp_port=5102
             iperf_port=5202
             break
@@ -121,32 +120,7 @@ while true; do
 done
 
 
-thrpt_choice=$4
-while true; do
-    if [ -z "$thrpt_choice" ]; then
-        echo "Please choose a protocol for throughput test:"
-        echo "t) TCP"
-        echo "u) UDP"
-        read -p "Enter your choice: " thrpt_choice
-    fi
-    case $thrpt_choice in
-        [tT])
-            thrpt_protocol="tcp"
-            break
-            ;;
-        [uU])
-            thrpt_protocol="udp"
-            break
-            ;;
-        *)
-            echo "Invalid choice, please enter 't' for TCP or 'u' for UDP"
-            thrpt_choice=""
-            ;;
-    esac
-done
-
-
-echo "Testing $operator with $thrpt_protocol, server $server_choice (ip: $ip_address, nuttcp_port: $nuttcp_port, iperf_port: $iperf_port)"
+echo "Testing $operator, server $server_choice (ip: $ip_address, nuttcp_port: $nuttcp_port, iperf_port: $iperf_port)"
 
 get_timestamp_ms() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -288,7 +262,9 @@ while true; do
     round=$((round+1))
     echo "-----------------------------------"
 
+    # TCP DL Test
     # FIXME: change to 120s
+    thrpt_protocol="tcp"
     duration_s=120
 #    duration_s=3
     timeout_s=140
@@ -303,18 +279,9 @@ while true; do
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_downlink_${start_time}.out"
     echo "Start time: $start_ts_ms" > $log_file_name
 
-    if [ $thrpt_protocol == "udp" ]; then
-        # udp downlink test
-        DL_UDP_RATE=500M
-        # Avoid TCP MSS limitation for cellular (1376 for verizon e.g.)
-        PACKET_SIZE=1300
-        echo "testing udp downlink with $ip_address:$iperf_port, rate $DL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $interval_s, duration $duration_s ..."
-        timeout $timeout_s iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -l $PACKET_SIZE -i $interval_s -t $duration_s | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    else
-        # tcp downlink test
-        echo "testing tcp downlink with $ip_address:$nuttcp_port, interval $interval_s, duration $duration_s ..."
-        timeout $timeout_s nuttcp -r -F -v -i $interval_s -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    fi
+    # tcp downlink test
+    echo "testing tcp downlink with $ip_address:$nuttcp_port, interval $interval_s, duration $duration_s ..."
+    timeout $timeout_s nuttcp -r -F -v -i $interval_s -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
 
     wait_util_end_time $estimated_end_ts_ms
     actual_end_ts_ms=$(get_timestamp_ms)
@@ -330,17 +297,19 @@ while true; do
     echo "-----------------------------------"
 
     # 2s to ensure 5G will not switch back to LTE
-    echo "Waiting for 2 seconds before starting uplink test..."
+    echo "Waiting for 2 seconds before starting tcp uplink test..."
     sleep 2
 
+    # TCP UL Test
     echo "-----------------------------------"
-
     # FIXME: change to 120s
+    thrpt_protocol="tcp"
     duration_s=120
 #    duration_s=3
     timeout_s=140
 #    timeout_s=3
     interval_s=0.5
+
     start_time=$(date '+%H%M%S%3N')
     start_ts_ms=$(get_timestamp_ms)
     estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
@@ -349,17 +318,9 @@ while true; do
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_uplink_${start_time}.out"
     echo "Start time: $start_ts_ms" > $log_file_name
 
-    if [ $thrpt_protocol == "udp" ]; then
-        # udp uplink test
-        UL_UDP_RATE=300M
-        PACKET_SIZE=1300
-        echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $interval_s, duration $duration_s ..."
-        timeout $timeout_s nuttcp -u -R $UL_UDP_RATE -v -i $interval_s -l $PACKET_SIZE -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    else
-        # tcp uplink test
-        echo "testing tcp uplink with $ip_address:$nuttcp_port, interval $interval_s, duration $duration_s ..."
-        timeout $timeout_s nuttcp -v -i $interval_s -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-    fi
+    # tcp uplink test
+    echo "testing tcp uplink with $ip_address:$nuttcp_port, interval $interval_s, duration $duration_s ..."
+    timeout $timeout_s nuttcp -v -i $interval_s -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
 
     wait_util_end_time $estimated_end_ts_ms
 
@@ -374,98 +335,177 @@ while true; do
 
     echo "-----------------------------------"
 
-    # NOTE: Just a hack to make ping run till the end of tcp measurement
-    if [ $thrpt_protocol == "tcp" ]; then
-      # 2s to ensure 5G will not switch back to LTE
-      echo "Waiting for 2 seconds before starting ping test..."
-      sleep 2
+    # 2s to ensure 5G will not switch back to LTE
+    echo "Waiting for 2 seconds before starting ping test..."
+    sleep 2
 
-      echo "-----------------------------------"
+    echo "-----------------------------------"
       duration_s=30
-  #    duration_s=3
+#    duration_s=3
       timeout_s=50
-  #    timeout_s=3
+#    timeout_s=3
 
-      start_ts_ms=$(get_timestamp_ms)
-      estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
-      report_start_time "Ping test" $start_ts_ms
+    start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
+    report_start_time "Ping test" $start_ts_ms
 
-      start_time=$(date '+%H%M%S%3N')
-      log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
-      echo "Start time: $start_ts_ms" > $log_file_name
+    start_time=$(date '+%H%M%S%3N')
+    log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
+    echo "Start time: $start_ts_ms" > $log_file_name
 
-      # FIXME: change to 30s
-      timeout $timeout_s ping -s 38 -i 0.2 -w $duration_s $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    # FIXME: change to 30s
+    timeout $timeout_s ping -s 38 -i 0.2 -w $duration_s $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
 
-      wait_util_end_time $estimated_end_ts_ms
-      actual_end_ts_ms=$(get_timestamp_ms)
-      echo "End time: $actual_end_ts_ms" >> $log_file_name
-      report_end_time_and_duration "Ping test" $start_ts_ms $actual_end_ts_ms
+    wait_util_end_time $estimated_end_ts_ms
+    actual_end_ts_ms=$(get_timestamp_ms)
+    echo "End time: $actual_end_ts_ms" >> $log_file_name
+    report_end_time_and_duration "Ping test" $start_ts_ms $actual_end_ts_ms
 
-      echo "Saved ping test to $log_file_name"
-      summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
-      echo "Ping summary: $summary"
-    fi
+    echo "Saved ping test to $log_file_name"
+    summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
+    echo "Ping summary: $summary"
 
-    # NOTE: Just a hack to make traceroute and nslookup run till the end of tcp + udp measurement
-    if [ $thrpt_protocol == "udp" ]; then
-      echo "-----------------------------------"
-      echo "Waiting for 2 seconds before starting traceroute test..."
-      sleep 2
+    echo "-----------------------------------"
 
-      echo "-----------------------------------"
+    # 2s to ensure 5G will not switch back to LTE
+    echo "Waiting for 2 seconds before starting udp downlink test..."
+    sleep 2
+
+    # UDP DL Test
+    echo "-----------------------------------"
+    # FIXME: change to 120s
+    thrpt_protocol="udp"
+    duration_s=120
+#    duration_s=3
+    timeout_s=140
+#    timeout_s=3
+    interval_s=0.5
+
+    start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
+    report_start_time "${thrpt_protocol} downlink test" $start_ts_ms
+
+    start_time=$(date '+%H%M%S%3N')
+    log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_downlink_${start_time}.out"
+    echo "Start time: $start_ts_ms" > $log_file_name
+
+    # udp downlink test
+    DL_UDP_RATE=500M
+    # Avoid TCP MSS limitation for cellular (1376 for verizon e.g.)
+    PACKET_SIZE=1300
+    echo "testing udp downlink with $ip_address:$iperf_port, rate $DL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $interval_s, duration $duration_s ..."
+    timeout $timeout_s iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -l $PACKET_SIZE -i $interval_s -t $duration_s | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+
+    wait_util_end_time $estimated_end_ts_ms
+    actual_end_ts_ms=$(get_timestamp_ms)
+    echo "End time: $actual_end_ts_ms" >> $log_file_name
+    report_end_time_and_duration "${thrpt_protocol} downlink test" $start_ts_ms $actual_end_ts_ms
+
+    echo "Saved downlink test to $log_file_name"
+    rate=$(grep -E 'nuttcp -r' $log_file_name)
+    echo "DL average throughput: $rate"
+    grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
+	    sed -E 's/\s*KB\/sec//'
+
+    echo "-----------------------------------"
+
+    # 2s to ensure 5G will not switch back to LTE
+    echo "Waiting for 2 seconds before starting udp uplink test..."
+    sleep 2
+
+    # UDP UL Test
+    echo "-----------------------------------"
+    # FIXME: change to 120s
+    thrpt_protocol="udp"
+    duration_s=120
+#    duration_s=3
+    timeout_s=140
+#    timeout_s=3
+    interval_s=0.5
+
+    start_time=$(date '+%H%M%S%3N')
+    start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
+    report_start_time "${thrpt_protocol} uplink test" $start_ts_ms
+
+    log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_uplink_${start_time}.out"
+    echo "Start time: $start_ts_ms" > $log_file_name
+
+    # udp uplink test
+    UL_UDP_RATE=300M
+    PACKET_SIZE=1300
+    echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $interval_s, duration $duration_s ..."
+    timeout $timeout_s nuttcp -u -R $UL_UDP_RATE -v -i $interval_s -l $PACKET_SIZE -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+
+    wait_util_end_time $estimated_end_ts_ms
+
+    actual_end_ts_ms=$(get_timestamp_ms)
+    echo "End time: $actual_end_ts_ms" >> $log_file_name
+    report_end_time_and_duration "${thrpt_protocol} uplink test" $start_ts_ms $actual_end_ts_ms
+
+    echo "Saved uplink test to $log_file_name"
+    rate=$(grep -E 'nuttcp -r' $log_file_name)
+    echo "UL average throughput: $rate"
+    grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
+
+    echo "-----------------------------------"
+    echo "Waiting for 2 seconds before starting traceroute test..."
+    sleep 2
+
+    echo "-----------------------------------"
       timeout_s=15
-#      timeout_s=3
-      start_ts_ms=$(get_timestamp_ms)
-      estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
-      report_start_time "Traceroute test" $start_ts_ms
+#    timeout_s=3
 
-      start_time=$(date '+%H%M%S%3N')
-      log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
-      echo "Start time: $start_ts_ms">$log_file_name
+    start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
+    report_start_time "Traceroute test" $start_ts_ms
 
-      # tracerout to the target server
-      timeout $timeout_s traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-      wait_util_end_time $estimated_end_ts_ms
-      actual_end_ts_ms=$(get_timestamp_ms)
-      echo "End time: $actual_end_ts_ms">>$log_file_name
-      report_end_time_and_duration "Traceroute test" $start_ts_ms $actual_end_ts_ms
+    start_time=$(date '+%H%M%S%3N')
+    log_file_name="$data_folder$start_dl_time/traceroute_${start_time}.out"
+    echo "Start time: $start_ts_ms">$log_file_name
 
-      echo "Saved traceroute test to $log_file_name"
+    # tracerout to the target server
+    timeout $timeout_s traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+    wait_util_end_time $estimated_end_ts_ms
+    actual_end_ts_ms=$(get_timestamp_ms)
+    echo "End time: $actual_end_ts_ms">>$log_file_name
+    report_end_time_and_duration "Traceroute test" $start_ts_ms $actual_end_ts_ms
 
-      echo "-----------------------------------"
-      echo "Waiting for 2 seconds before starting nslookup test..."
-      sleep 2
+    echo "Saved traceroute test to $log_file_name"
 
-      echo "-----------------------------------"
+    echo "-----------------------------------"
+    echo "Waiting for 2 seconds before starting nslookup test..."
+    sleep 2
+
+    echo "-----------------------------------"
       timeout_s=15
-#      timeout_s=3
-      start_ts_ms=$(get_timestamp_ms)
-      report_start_time "Nslookup test" $start_ts_ms
+#    timeout_s=3
 
-      start_time=$(date '+%H%M%S%3N')
-      log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
-      # Top 5 websites worldwide: https://www.semrush.com/website/top/
-      # Only keep facebook.com for now because starlink uses 8.8.8.8 as DNS server all the time
-      top5_websites="facebook.com"
-      for domain in $top5_websites; do
-          sub_start_ts_ms=$(get_timestamp_ms)
-          sub_estimated_end_ts_ms=$(calculate_timestamp_ms ${sub_start_ts_ms} $timeout_s)
-          echo "Start time: ${sub_start_ts_ms}" >> $log_file_name
+    start_ts_ms=$(get_timestamp_ms)
+    report_start_time "Nslookup test" $start_ts_ms
 
-          timeout $timeout_s nslookup $domain | grep -v '^$' >> $log_file_name
-          wait_util_end_time ${sub_estimated_end_ts_ms}
+    start_time=$(date '+%H%M%S%3N')
+    log_file_name="$data_folder$start_dl_time/nslookup_${start_time}.out"
+    # Top 5 websites worldwide: https://www.semrush.com/website/top/
+    # Only keep facebook.com for now because starlink uses 8.8.8.8 as DNS server all the time
+    top5_websites="facebook.com"
+    for domain in $top5_websites; do
+        sub_start_ts_ms=$(get_timestamp_ms)
+        sub_estimated_end_ts_ms=$(calculate_timestamp_ms ${sub_start_ts_ms} $timeout_s)
+        echo "Start time: ${sub_start_ts_ms}" >> $log_file_name
 
-          echo "End time: $(get_timestamp_ms)" >> $log_file_name
-          echo "" >> $log_file_name
-      done
-      report_end_time_and_duration "Nslookup test" $start_ts_ms $(get_timestamp_ms)
-      echo "Saved nslookup test to $log_file_name"
+        timeout $timeout_s nslookup $domain | grep -v '^$' >> $log_file_name
+        wait_util_end_time ${sub_estimated_end_ts_ms}
 
-      echo "-----------------------------------"
-      echo "All tests (${thrpt_protocol}) completed, cleaning up..."
-      echo "-----------------------------------"
-    fi
+        echo "End time: $(get_timestamp_ms)" >> $log_file_name
+        echo "" >> $log_file_name
+    done
+    report_end_time_and_duration "Nslookup test" $start_ts_ms $(get_timestamp_ms)
+    echo "Saved nslookup test to $log_file_name"
+
+    echo "-----------------------------------"
+    echo "All tests (${thrpt_protocol}) completed, cleaning up..."
+    echo "-----------------------------------"
 
     if [ $mode -eq 2 ]; then
         break;

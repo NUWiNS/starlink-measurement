@@ -14,13 +14,4 @@ if [ ! -d $ROOT_DIR ]; then
     mkdir -p $ROOT_DIR
 fi
 
-# tcp test
-bash run_network_measurement.sh $MODE $SERVER $OPERATOR t 2>&1 | tee -a $ROOT_DIR/measurement.log
-
-echo "-----------------------------------"
-echo "Sleep for 5s for next udp test..."
-sleep 5
-echo "-----------------------------------"
-
-# udp test
-bash run_network_measurement.sh $MODE $SERVER $OPERATOR u 2>&1 | tee -a $ROOT_DIR/measurement.log
+bash run_network_measurement.sh $MODE $SERVER $OPERATOR 2>&1 | tee -a $ROOT_DIR/measurement.log
