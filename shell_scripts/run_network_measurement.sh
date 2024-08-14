@@ -374,35 +374,38 @@ while true; do
 
     echo "-----------------------------------"
 
-    # 2s to ensure 5G will not switch back to LTE
-    echo "Waiting for 2 seconds before starting ping test..."
-    sleep 2
+    # NOTE: Just a hack to make ping run till the end of tcp measurement
+    if [ $thrpt_protocol == "tcp" ]; then
+      # 2s to ensure 5G will not switch back to LTE
+      echo "Waiting for 2 seconds before starting ping test..."
+      sleep 2
 
-    echo "-----------------------------------"
-    duration_s=30
-#    duration_s=3
-    timeout_s=50
-#    timeout_s=3
+      echo "-----------------------------------"
+      duration_s=30
+  #    duration_s=3
+      timeout_s=50
+  #    timeout_s=3
 
-    start_ts_ms=$(get_timestamp_ms)
-    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
-    report_start_time "Ping test" $start_ts_ms
+      start_ts_ms=$(get_timestamp_ms)
+      estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
+      report_start_time "Ping test" $start_ts_ms
 
-    start_time=$(date '+%H%M%S%3N')
-    log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
-    echo "Start time: $start_ts_ms" > $log_file_name
+      start_time=$(date '+%H%M%S%3N')
+      log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
+      echo "Start time: $start_ts_ms" > $log_file_name
 
-    # FIXME: change to 30s
-    timeout $timeout_s ping -s 38 -i 0.2 -w $duration_s $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+      # FIXME: change to 30s
+      timeout $timeout_s ping -s 38 -i 0.2 -w $duration_s $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
 
-    wait_util_end_time $estimated_end_ts_ms
-    actual_end_ts_ms=$(get_timestamp_ms)
-    echo "End time: $actual_end_ts_ms" >> $log_file_name
-    report_end_time_and_duration "Ping test" $start_ts_ms $actual_end_ts_ms
+      wait_util_end_time $estimated_end_ts_ms
+      actual_end_ts_ms=$(get_timestamp_ms)
+      echo "End time: $actual_end_ts_ms" >> $log_file_name
+      report_end_time_and_duration "Ping test" $start_ts_ms $actual_end_ts_ms
 
-    echo "Saved ping test to $log_file_name"
-    summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
-    echo "Ping summary: $summary"
+      echo "Saved ping test to $log_file_name"
+      summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
+      echo "Ping summary: $summary"
+    fi
 
     # NOTE: Just a hack to make traceroute and nslookup run till the end of tcp + udp measurement
     if [ $thrpt_protocol == "udp" ]; then
@@ -458,10 +461,11 @@ while true; do
       done
       report_end_time_and_duration "Nslookup test" $start_ts_ms $(get_timestamp_ms)
       echo "Saved nslookup test to $log_file_name"
-    fi
 
-    echo "-----------------------------------"
-    echo "All tests (${thrpt_protocol}) completed, cleaning up..."
+      echo "-----------------------------------"
+      echo "All tests (${thrpt_protocol}) completed, cleaning up..."
+      echo "-----------------------------------"
+    fi
 
     if [ $mode -eq 2 ]; then
         break;
