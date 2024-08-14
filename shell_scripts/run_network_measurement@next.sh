@@ -272,6 +272,7 @@ while true; do
     interval_s=0.5
 
     start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
     report_start_time "${thrpt_protocol} downlink test" $start_ts_ms
 
     start_time=$(date '+%H%M%S%3N')
@@ -282,6 +283,7 @@ while true; do
     echo "testing tcp downlink with $ip_address:$nuttcp_port, interval $interval_s, duration $duration_s ..."
     timeout $timeout_s nuttcp -r -F -v -i $interval_s -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
 
+    wait_util_end_time $estimated_end_ts_ms
     actual_end_ts_ms=$(get_timestamp_ms)
     echo "End time: $actual_end_ts_ms" >> $log_file_name
     report_end_time_and_duration "${thrpt_protocol} downlink test" $start_ts_ms $actual_end_ts_ms
@@ -308,16 +310,19 @@ while true; do
 #    timeout_s=3
     interval_s=0.5
 
+    start_time=$(date '+%H%M%S%3N')
     start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
     report_start_time "${thrpt_protocol} uplink test" $start_ts_ms
 
-    start_time=$(date '+%H%M%S%3N')
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_uplink_${start_time}.out"
     echo "Start time: $start_ts_ms" > $log_file_name
 
     # tcp uplink test
     echo "testing tcp uplink with $ip_address:$nuttcp_port, interval $interval_s, duration $duration_s ..."
     timeout $timeout_s nuttcp -v -i $interval_s -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+
+    wait_util_end_time $estimated_end_ts_ms
 
     actual_end_ts_ms=$(get_timestamp_ms)
     echo "End time: $actual_end_ts_ms" >> $log_file_name
@@ -335,21 +340,23 @@ while true; do
     sleep 2
 
     echo "-----------------------------------"
-    # FIXME: change to 30s
       duration_s=30
 #    duration_s=3
       timeout_s=50
 #    timeout_s=3
 
     start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
     report_start_time "Ping test" $start_ts_ms
 
     start_time=$(date '+%H%M%S%3N')
     log_file_name="$data_folder$start_dl_time/ping_${start_time}.out"
     echo "Start time: $start_ts_ms" > $log_file_name
 
+    # FIXME: change to 30s
     timeout $timeout_s ping -s 38 -i 0.2 -w $duration_s $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
 
+    wait_util_end_time $estimated_end_ts_ms
     actual_end_ts_ms=$(get_timestamp_ms)
     echo "End time: $actual_end_ts_ms" >> $log_file_name
     report_end_time_and_duration "Ping test" $start_ts_ms $actual_end_ts_ms
@@ -375,6 +382,7 @@ while true; do
     interval_s=0.5
 
     start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
     report_start_time "${thrpt_protocol} downlink test" $start_ts_ms
 
     start_time=$(date '+%H%M%S%3N')
@@ -388,6 +396,7 @@ while true; do
     echo "testing udp downlink with $ip_address:$iperf_port, rate $DL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $interval_s, duration $duration_s ..."
     timeout $timeout_s iperf3 -c $ip_address -p $iperf_port -R -u -b $DL_UDP_RATE -l $PACKET_SIZE -i $interval_s -t $duration_s | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
 
+    wait_util_end_time $estimated_end_ts_ms
     actual_end_ts_ms=$(get_timestamp_ms)
     echo "End time: $actual_end_ts_ms" >> $log_file_name
     report_end_time_and_duration "${thrpt_protocol} downlink test" $start_ts_ms $actual_end_ts_ms
@@ -414,10 +423,11 @@ while true; do
 #    timeout_s=3
     interval_s=0.5
 
+    start_time=$(date '+%H%M%S%3N')
     start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
     report_start_time "${thrpt_protocol} uplink test" $start_ts_ms
 
-    start_time=$(date '+%H%M%S%3N')
     log_file_name="${data_folder}${start_dl_time}/${thrpt_protocol}_uplink_${start_time}.out"
     echo "Start time: $start_ts_ms" > $log_file_name
 
@@ -426,6 +436,8 @@ while true; do
     PACKET_SIZE=1300
     echo "testing udp uplink with $ip_address:$iperf_port, rate $UL_UDP_RATE, packet size $PACKET_SIZE bytes, interval $interval_s, duration $duration_s ..."
     timeout $timeout_s nuttcp -u -R $UL_UDP_RATE -v -i $interval_s -l $PACKET_SIZE -T $duration_s -p $nuttcp_port $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
+
+    wait_util_end_time $estimated_end_ts_ms
 
     actual_end_ts_ms=$(get_timestamp_ms)
     echo "End time: $actual_end_ts_ms" >> $log_file_name
@@ -441,10 +453,11 @@ while true; do
     sleep 2
 
     echo "-----------------------------------"
-      timeout_s=120
+      timeout_s=15
 #    timeout_s=3
 
     start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
     report_start_time "Traceroute test" $start_ts_ms
 
     start_time=$(date '+%H%M%S%3N')
@@ -453,7 +466,7 @@ while true; do
 
     # tracerout to the target server
     timeout $timeout_s traceroute $ip_address | ts '[%Y-%m-%d %H:%M:%.S]'>>$log_file_name
-
+    wait_util_end_time $estimated_end_ts_ms
     actual_end_ts_ms=$(get_timestamp_ms)
     echo "End time: $actual_end_ts_ms">>$log_file_name
     report_end_time_and_duration "Traceroute test" $start_ts_ms $actual_end_ts_ms
@@ -465,7 +478,7 @@ while true; do
     sleep 2
 
     echo "-----------------------------------"
-    timeout_s=120
+      timeout_s=15
 #    timeout_s=3
 
     start_ts_ms=$(get_timestamp_ms)
@@ -478,9 +491,11 @@ while true; do
     top5_websites="facebook.com"
     for domain in $top5_websites; do
         sub_start_ts_ms=$(get_timestamp_ms)
+        sub_estimated_end_ts_ms=$(calculate_timestamp_ms ${sub_start_ts_ms} $timeout_s)
         echo "Start time: ${sub_start_ts_ms}" >> $log_file_name
 
         timeout $timeout_s nslookup $domain | grep -v '^$' >> $log_file_name
+        wait_util_end_time ${sub_estimated_end_ts_ms}
 
         echo "End time: $(get_timestamp_ms)" >> $log_file_name
         echo "" >> $log_file_name
