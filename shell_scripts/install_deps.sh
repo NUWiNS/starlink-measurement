@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Install dependencies
-dependencies="wget jq moreutils dnsutils traceroute"
+# wget - download files from the web
+# jq - json processor, used for parsing json data
+# moreutils - additional unix utilities
+# dnsutils - dns utilities, used for dns queries
+# traceroute - network diagnostic tool, used for tracing the route to a host
+# bc - basic calculator, used for arithmetic operations
+dependencies="wget jq moreutils dnsutils traceroute bc"
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     apt install $dependencies
