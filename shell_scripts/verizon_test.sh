@@ -6,14 +6,11 @@ MODE=2
 SERVER=50.112.93.113 # Oregon aws server
 # 1 for Verizon, 2 for ATT, 3 for Starlink
 OPERATOR=1
+OPERATOR_NAME="verizon"
 
-# tcp test
-bash run_network_measurement.sh $MODE $SERVER $OPERATOR t
+ROOT_DIR="${HOME}/storage/shared/hawaii_starlink_trip/${OPERATOR_NAME}/$(date +"%Y%m%d")"
+if [ ! -d $ROOT_DIR ]; then
+    mkdir -p $ROOT_DIR
+fi
 
-echo "-----------------------------------"
-echo "Sleep for 10s for next udp test..."
-sleep 10
-echo "-----------------------------------"
-
-# udp test
-bash run_network_measurement.sh $MODE $SERVER $OPERATOR u
+bash run_network_measurement.sh $MODE $SERVER $OPERATOR 2>&1 | tee -a $ROOT_DIR/measurement.log

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-data_folder=~/storage/shared/alaska_starlink_trip/dish_metrics/$(date '+%Y%m%d')/$(date '+%H%M%S%3N')
+data_folder=~/storage/shared/hawaii_starlink_trip/dish_metrics/$(date '+%Y%m%d')/$(date '+%H%M%S%3N')
 mkdir -p $data_folder
 
 handle_exit() {
