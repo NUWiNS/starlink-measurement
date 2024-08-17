@@ -431,10 +431,8 @@ while true; do
     echo "Saved downlink test to $log_file_name"
 
     if check_file_lines_gt $log_file_name 6; then
-      rate=$(grep -E 'nuttcp -r' $log_file_name)
-      echo "DL average throughput: $rate"
-      grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
-        sed -E 's/\s*KB\/sec//'
+      echo "UDP DL average tput: "
+      grep "receiver" "$log_file_name" | awk '{print $9, $10}'
     else
       echo "[CAUTION] EMPTY LOG! IS UDP DL BLOCKED?"
     fi
