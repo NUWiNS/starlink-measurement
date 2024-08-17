@@ -248,6 +248,27 @@ report_end_time_and_duration() {
   echo "${test_name} finished at $(parse_timestamp $estimated_end_ts_ms), duration: $(convert_ms_to_sec $test_duration_ms) s"
 }
 
+check_file_lines_gt() {
+  local filename="$1"
+  local min_lines="${2:-0}"  # Default to 0 if not provided
+
+  if [ ! -f "$filename" ]; then
+    echo "File not found: $filename" >&2
+    return 1
+  fi
+
+  # Count the number of lines in the file
+  local line_count
+  line_count=$(wc -l < "$filename")
+
+  # Check if the line count is less than the minimum
+  if (( line_count > min_lines )); then
+    return 0
+  else
+    return 1
+  fi
+}
+
 ROOT_DIR="${HOME}/storage/shared/hawaii_starlink_trip"
 
 while true; do
@@ -287,10 +308,15 @@ while true; do
     report_end_time_and_duration "${thrpt_protocol} downlink test" $start_ts_ms $actual_end_ts_ms
 
     echo "Saved downlink test to $log_file_name"
-    rate=$(grep -E 'nuttcp -r' $log_file_name)
-    echo "DL average throughput: $rate"
-    grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
-	    sed -E 's/\s*KB\/sec//'
+
+    if check_file_lines_gt $log_file_name 2; then
+      rate=$(grep -E 'nuttcp -r' $log_file_name)
+      echo "DL average throughput: $rate"
+      grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
+        sed -E 's/\s*KB\/sec//'
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
 
     echo "-----------------------------------"
 
@@ -324,9 +350,14 @@ while true; do
     report_end_time_and_duration "${thrpt_protocol} uplink test" $start_ts_ms $actual_end_ts_ms
 
     echo "Saved uplink test to $log_file_name"
-    rate=$(grep -E 'nuttcp -r' $log_file_name)
-    echo "UL average throughput: $rate"
-    grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
+
+    if check_file_lines_gt $log_file_name 2; then
+      rate=$(grep -E 'nuttcp -r' $log_file_name)
+      echo "UL average throughput: $rate"
+      grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
 
     echo "-----------------------------------"
 
@@ -355,8 +386,13 @@ while true; do
     report_end_time_and_duration "Ping test" $start_ts_ms $actual_end_ts_ms
 
     echo "Saved ping test to $log_file_name"
-    summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
-    echo "Ping summary: $summary"
+
+    if check_file_lines_gt $log_file_name 2; then
+      summary=$(grep -E "rtt" $log_file_name | grep -oP '(?<=rtt).*$')
+      echo "Ping summary: $summary"
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
 
     echo "-----------------------------------"
 
@@ -393,10 +429,15 @@ while true; do
     report_end_time_and_duration "${thrpt_protocol} downlink test" $start_ts_ms $actual_end_ts_ms
 
     echo "Saved downlink test to $log_file_name"
-    rate=$(grep -E 'nuttcp -r' $log_file_name)
-    echo "DL average throughput: $rate"
-    grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
-	    sed -E 's/\s*KB\/sec//'
+
+    if check_file_lines_gt $log_file_name 6; then
+      rate=$(grep -E 'nuttcp -r' $log_file_name)
+      echo "DL average throughput: $rate"
+      grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| \
+        sed -E 's/\s*KB\/sec//'
+    else
+      echo "[CAUTION] EMPTY LOG! IS UDP DL BLOCKED?"
+    fi
 
     echo "-----------------------------------"
 
@@ -432,9 +473,14 @@ while true; do
     report_end_time_and_duration "${thrpt_protocol} uplink test" $start_ts_ms $actual_end_ts_ms
 
     echo "Saved uplink test to $log_file_name"
-    rate=$(grep -E 'nuttcp -r' $log_file_name)
-    echo "UL average throughput: $rate"
-    grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
+
+    if check_file_lines_gt $log_file_name 2; then
+      rate=$(grep -E 'nuttcp -r' $log_file_name)
+      echo "UL average throughput: $rate"
+      grep 'nuttcp-r' $log_file_name | grep -o -P '([0-9]+(\.[0-9]+)?)\s*Mbps'| sed -E 's/\s*KB\/sec//'
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
 
     echo "-----------------------------------"
     echo "Waiting for 2 seconds before starting traceroute test..."
@@ -459,6 +505,10 @@ while true; do
     report_end_time_and_duration "Traceroute test" $start_ts_ms $actual_end_ts_ms
 
     echo "Saved traceroute test to $log_file_name"
+
+    if ! check_file_lines_gt $log_file_name 2; then
+      echo "[CAUTION] EMPTY LOG!"
+    fi
 
     echo "-----------------------------------"
     echo "Waiting for 2 seconds before starting nslookup test..."
@@ -487,6 +537,9 @@ while true; do
     done
     report_end_time_and_duration "Nslookup test" $start_ts_ms $(get_timestamp_ms)
     echo "Saved nslookup test to $log_file_name"
+    if ! check_file_lines_gt $log_file_name 2; then
+      echo "[CAUTION] EMPTY LOG!"
+    fi
 
     echo "-----------------------------------"
     echo "All tests (${thrpt_protocol}) completed, cleaning up..."
