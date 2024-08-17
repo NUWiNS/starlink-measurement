@@ -91,7 +91,7 @@ while true; do
         1)
             operator="verizon"
             nuttcp_port=5101
-            iperf_port=5001
+            iperf_port=5005
             break
             ;;
         2)
