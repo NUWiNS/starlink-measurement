@@ -13,3 +13,4 @@ datasets/maine_starlink_trip/raw/**/*.csv
 datasets/maine_starlink_trip/tmp
 datasets/alaska_starlink_trip/
 datasets/maine_starlink_trip/**/*
+datasets/hawaii_starlink_trip/
