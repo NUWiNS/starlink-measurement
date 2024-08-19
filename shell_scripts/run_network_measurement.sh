@@ -91,25 +91,25 @@ while true; do
         1)
             operator="verizon"
             nuttcp_port=5101
-            iperf_port=5005
+            iperf_port=5007
             break
             ;;
         2)
             operator="att"
             nuttcp_port=5102
-            iperf_port=5002
+            iperf_port=5008
             break
             ;;
         3)
             operator="starlink"
             nuttcp_port=5103
-            iperf_port=5003
+            iperf_port=5009
             break
             ;;
         4)
             operator="tmobile"
             nuttcp_port=5104
-            iperf_port=5004
+            iperf_port=5010
             break
             ;;
         *)
