@@ -23,10 +23,27 @@ def parse_traceroute_log(content):
     return hops
 
 
+def sanitize_probe_result(probe_result: str):
+    res = probe_result.replace('!N', '')
+    res = res.strip()
+    return res
+
+
 def separate_three_probes(line: str) -> List[str]:
-    separation_reg = re.compile(r'(.*?)\sms|\*')
-    matches = separation_reg.findall(line)
-    return list(map(lambda x: x.strip(), matches))
+    # remove all *
+    first_sep_list = re.findall(r'\*|\S+(?:\s+(?!\*)\S+)*', line)
+    res = []
+    for i in range(len(first_sep_list)):
+        ele = first_sep_list[i]
+        if ele == '':
+            res.append('')
+        else:
+            # split by ms
+            separation_reg = re.compile(r'(.*?)\sms|\*')
+            matches = separation_reg.findall(ele)
+            res.extend(list(map(sanitize_probe_result, matches)))
+    # get first 3 elements
+    return res[:3]
 
 
 def extract_host_info(probe_str: str) -> Dict:
@@ -80,6 +97,31 @@ def find_traceroute_files_by_dir_list(dir_list: List[str]):
 
 
 class Unittest(unittest.TestCase):
+    def test_separate_three_probes(self):
+        line = '192.168.1.1 (192.168.1.1)  2.875 ms  2.454 ms  2.127 ms'
+        expected = ['192.168.1.1 (192.168.1.1)  2.875', '2.454', '2.127']
+        self.assertEqual(expected, separate_three_probes(line))
+
+        line = 'undefined.hostname.localhost (206.224.65.146)  91.417 ms  91.123 ms  103.222 ms'
+        expected = ['undefined.hostname.localhost (206.224.65.146)  91.417', '91.123', '103.222']
+        self.assertEqual(expected, separate_three_probes(line))
+
+        line = '* * *'
+        expected = ['', '', '']
+        self.assertEqual(expected, separate_three_probes(line))
+
+        line = '108.166.240.39 (108.166.240.39)  86.353 ms * *'
+        expected = ['108.166.240.39 (108.166.240.39)  86.353', '', '']
+        self.assertEqual(expected, separate_three_probes(line))
+
+        line = '* ec2-50-112-93-113.us-west-2.compute.amazonaws.com (50.112.93.113)  95.990 ms *'
+        expected = ['', 'ec2-50-112-93-113.us-west-2.compute.amazonaws.com (50.112.93.113)  95.990', '']
+        self.assertEqual(expected, separate_three_probes(line))
+
+        # line = '* 172.16.252.156 (172.16.252.156)  128.874 ms  128.845 ms'
+        # expected = ['*', '', '']
+        # self.assertEqual(expected, separate_three_probes(line))
+
     def test_traceroute_parsing(self):
         # Sample traceroute log
         traceroute_log = """
@@ -137,6 +179,66 @@ class Unittest(unittest.TestCase):
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
 
+        line = "* 192.168.1.1 (192.168.1.1)  86.353 ms 87.353 ms "
+        expected = [
+            {
+                'hostname': None,
+                'ip': None,
+                'rtt_ms': None
+            },
+            {
+                'hostname': '192.168.1.1',
+                'ip': '192.168.1.1',
+                'rtt_ms': '86.353'
+            },
+            {
+                'hostname': '192.168.1.1',
+                'ip': '192.168.1.1',
+                'rtt_ms': '87.353'
+            },
+        ]
+        self.assertEqual(expected, parse_traceroute_line(line))
+
+        line = "192.168.1.1 (192.168.1.1) 86.353 ms * 192.168.1.2 (192.168.1.2) 87.353 ms"
+        expected = [
+            {
+                'hostname': '192.168.1.1',
+                'ip': '192.168.1.1',
+                'rtt_ms': '86.353'
+            },
+            {
+                'hostname': None,
+                'ip': None,
+                'rtt_ms': None
+            },
+            {
+                'hostname': '192.168.1.2',
+                'ip': '192.168.1.2',
+                'rtt_ms': '87.353'
+            },
+        ]
+        self.assertEqual(expected, parse_traceroute_line(line))
+
+        line = "192.168.1.1 (192.168.1.1) 86.353 ms 87.353 ms *"
+        expected = [
+            {
+                'hostname': '192.168.1.1',
+                'ip': '192.168.1.1',
+                'rtt_ms': '86.353'
+            },
+            {
+                'hostname': '192.168.1.1',
+                'ip': '192.168.1.1',
+                'rtt_ms': '87.353'
+            },
+            {
+                'hostname': None,
+                'ip': None,
+                'rtt_ms': None
+            },
+        ]
+        self.assertEqual(expected, parse_traceroute_line(line))
+
         line = "* * *"
         expected = [
             {
@@ -153,6 +255,65 @@ class Unittest(unittest.TestCase):
                 'hostname': None,
                 'ip': None,
                 'rtt_ms': None
+            },
+        ]
+        self.assertEqual(expected, parse_traceroute_line(line))
+        line = 'undefined.hostname.localhost (206.224.65.150)  170.340 ms undefined.hostname.localhost (206.224.65.146)  138.302 ms *'
+        expected = [
+            {
+                'hostname': 'undefined.hostname.localhost',
+                'ip': '206.224.65.150',
+                'rtt_ms': '170.340'
+            },
+            {
+                'hostname': 'undefined.hostname.localhost',
+                'ip': '206.224.65.146',
+                'rtt_ms': '138.302'
+            },
+            {
+                'hostname': None,
+                'ip': None,
+                'rtt_ms': None
+            },
+        ]
+        self.assertEqual(expected, parse_traceroute_line(line))
+
+        line = "108.166.240.39 (108.166.240.39)  86.353 ms * *"
+        expected = [
+            {
+                'hostname': '108.166.240.39',
+                'ip': '108.166.240.39',
+                'rtt_ms': '86.353'
+            },
+            {
+                'hostname': None,
+                'ip': None,
+                'rtt_ms': None
+            },
+            {
+                'hostname': None,
+                'ip': None,
+                'rtt_ms': None
+            },
+        ]
+        self.assertEqual(expected, parse_traceroute_line(line))
+
+        line = '* 172.16.252.156 (172.16.252.156)  128.874 ms  128.845 ms'
+        expected = [
+            {
+                'hostname': None,
+                'ip': None,
+                'rtt_ms': None
+            },
+            {
+                'hostname': '172.16.252.156',
+                'ip': '172.16.252.156',
+                'rtt_ms': '128.874',
+            },
+            {
+                'hostname': '172.16.252.156',
+                'ip': '172.16.252.156',
+                'rtt_ms': '128.845',
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -177,22 +338,23 @@ class Unittest(unittest.TestCase):
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
 
-        line = "108.166.240.39 (108.166.240.39)  86.353 ms * *"
+    def test_line_parsing_with_exceptions(self):
+        line = '192.168.1.1 (192.168.1.1)  22.141 ms !N  20.443 ms !N  19.786 ms !N'
         expected = [
             {
-                'hostname': '108.166.240.39',
-                'ip': '108.166.240.39',
-                'rtt_ms': '86.353'
+                'hostname': '192.168.1.1',
+                'ip': '192.168.1.1',
+                'rtt_ms': '22.141',
             },
             {
-                'hostname': None,
-                'ip': None,
-                'rtt_ms': None
+                'hostname': '192.168.1.1',
+                'ip': '192.168.1.1',
+                'rtt_ms': '20.443',
             },
             {
-                'hostname': None,
-                'ip': None,
-                'rtt_ms': None
+                'hostname': '192.168.1.1',
+                'ip': '192.168.1.1',
+                'rtt_ms': '19.786',
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
