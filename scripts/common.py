@@ -24,6 +24,7 @@ class TputBaseProcessor(ABC):
 
     class Status(enum.Enum):
         EMPTY = 'EMPTY'
+        EMPTY_BLOCKED = 'EMPTY_BLOCKED'
         NORMAL = 'NORMAL'
         TIMEOUT = 'TIMEOUT'
         INCOMPLETE = 'INCOMPLETE'
