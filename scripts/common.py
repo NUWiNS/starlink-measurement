@@ -87,13 +87,16 @@ class TputBaseProcessor(ABC):
     def check_validity(parsed_result: Dict):
         data_points = parsed_result['data_points']
 
-        if parsed_result['has_summary'] and len(data_points) > 1:
-            return TputBaseProcessor.Status.NORMAL
-
         if data_points is None or len(data_points) == 0:
             return TputBaseProcessor.Status.EMPTY
 
         data_len = len(data_points)
+        if all(map(lambda x: float(getattr(x, 'throughput_mbps')) == 0, data_points)) and data_len < 5:
+            return TputBaseProcessor.Status.EMPTY
+
+        if parsed_result['has_summary'] and data_len > 1:
+            return TputBaseProcessor.Status.NORMAL
+
         if data_len >= 240:
             return TputBaseProcessor.Status.TIMEOUT
         else:
@@ -139,30 +142,39 @@ class TputBaseProcessor(ABC):
 class Unittest(unittest.TestCase):
 
     def test_check_validity(self):
-        # --- has summary cases ---
+        # --- Normal cases: has summary and tput not all 0 ---
         input_data = {
-            'data_points': [0] * 240,
+            'data_points': [100] * 240,
             'has_summary': True,
-            'avg_tput_mbps': 10
+            'avg_tput_mbps': 100
         }
         self.assertEqual(TputBaseProcessor.Status.NORMAL,
                          TputBaseProcessor.check_validity(input_data))
 
         input_data = {
-            'data_points': [0] * 250,
+            'data_points': [100] * 250,
             'has_summary': True,
-            'avg_tput_mbps': 10
+            'avg_tput_mbps': 100
         }
         self.assertEqual(TputBaseProcessor.Status.NORMAL,
                          TputBaseProcessor.check_validity(input_data))
 
+        # --- Empty cases ---
         # if there is only one data point with 0 throughput, it should be considered as empty
         input_data = {
             'data_points': [0],
             'has_summary': True,
             'avg_tput_mbps': -1
         }
-        self.assertEqual(TputBaseProcessor.Status.INCOMPLETE, TputBaseProcessor.check_validity(input_data))
+        self.assertEqual(TputBaseProcessor.Status.EMPTY, TputBaseProcessor.check_validity(input_data))
+
+        # if there are less than 5 data points and all 0 tput, it should be considered as empty
+        input_data = {
+            'data_points': [0] * 4,
+            'has_summary': True,
+            'avg_tput_mbps': 0
+        }
+        self.assertEqual(TputBaseProcessor.Status.EMPTY, TputBaseProcessor.check_validity(input_data))
 
         # --- no summary cases ---
         input_data = {
@@ -179,18 +191,20 @@ class Unittest(unittest.TestCase):
         }
         self.assertEqual(TputBaseProcessor.Status.EMPTY, TputBaseProcessor.check_validity(input_data))
 
+        # --- Incomplete cases (no summary) ---
         input_data = {
-            'data_points': [0] * 239,
+            'data_points': [100] * 239,
             'has_summary': False,
-            'avg_tput_mbps': -1
+            'avg_tput_mbps': 100
         }
         self.assertEqual(TputBaseProcessor.Status.INCOMPLETE,
                          TputBaseProcessor.check_validity(input_data))
 
+        # --- Timeout cases ---
         input_data = {
-            'data_points': [0] * 250,
+            'data_points': [100] * 250,
             'has_summary': False,
-            'avg_tput_mbps': -1
+            'avg_tput_mbps': 100
         }
         self.assertEqual(TputBaseProcessor.Status.TIMEOUT,
                          TputBaseProcessor.check_validity(input_data))
