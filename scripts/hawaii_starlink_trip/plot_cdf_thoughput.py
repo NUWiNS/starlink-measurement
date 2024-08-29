@@ -199,9 +199,7 @@ def read_and_plot_throughput_data_by_weather(
 
     all_df = pd.DataFrame()
     all_data_stats = {}
-    # for weather in ['sunny', 'cloudy', 'rainy', 'snowy']:
-    # Ignore rainy because the number of samples is very low
-    for weather in ['sunny', 'cloudy', 'snowy']:
+    for weather in ['sunny', 'cloudy', 'rainy', 'snowy']:
         weather_df, weather_data_stats = read_throughput_data('starlink', direction, protocol,
                                                               filter_by=('weather', weather))
         all_df = pd.concat([all_df, weather_df], ignore_index=True)
