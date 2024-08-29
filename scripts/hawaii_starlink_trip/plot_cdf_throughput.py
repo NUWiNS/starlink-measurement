@@ -250,7 +250,7 @@ def read_all_throughput_data(direction: str, protocol: str, filter_by: (str, str
 
 
 def read_and_plot_starlink_throughput_data(output_dir: str, filter_by: str = None):
-    data_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/starlink')
+    data_dir = os.path.join(ROOT_DIR, 'starlink')
     sl_metric_df = pd.read_csv(os.path.join(data_dir, 'starlink_metric.csv'))
 
     # convert the throughput_cubic to Mbps

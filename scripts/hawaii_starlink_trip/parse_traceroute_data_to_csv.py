@@ -2,24 +2,22 @@ import os
 import sys
 
 from pandas.core.common import flatten
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR, TIMEZONE
 from scripts.time_utils import StartEndLogTimeProcessor, format_datetime_as_iso_8601
 from scripts.traceroute_utils import find_traceroute_files_by_dir_list, parse_traceroute_log
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-
 from typing import List, Dict
-from scripts.alaska_starlink_trip.labels import DatasetLabel
-from scripts.alaska_starlink_trip.separate_dataset import read_dataset
-from scripts.constants import DATASET_DIR
+from scripts.hawaii_starlink_trip.labels import DatasetLabel
+from scripts.hawaii_starlink_trip.separate_dataset import read_dataset
 from scripts.logging_utils import create_logger
 
 import pandas as pd
 
-base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw')
-merged_csv_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/traceroute')
-tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
-timezone_str = 'US/Alaska'
+base_dir = os.path.join(ROOT_DIR, 'raw')
+merged_csv_dir = os.path.join(ROOT_DIR, 'traceroute')
+tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
 
 logger = create_logger('traceroute_parsing', filename=os.path.join(tmp_data_path, 'parse_traceroute_data_to_csv.log'))
 
@@ -53,7 +51,7 @@ def main():
                 lines = f.readlines()
                 content = ''.join(lines)
                 start_end_time = StartEndLogTimeProcessor.get_start_end_time_from_log(content,
-                                                                                      timezone_str=timezone_str)[0]
+                                                                                      timezone_str=TIMEZONE)[0]
                 hops = parse_traceroute_log(content)
                 data_points = []
                 for hop in hops:

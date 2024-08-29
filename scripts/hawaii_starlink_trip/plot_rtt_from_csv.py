@@ -2,15 +2,16 @@
 import os
 import sys
 
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR
 from scripts.ping_plotting_utils import plot_boxplot_of_rtt, plot_cdf_of_rtt_with_all_operators, plot_all_cdf_for_rtt
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from scripts.constants import DATASET_DIR, OUTPUT_DIR
+from scripts.constants import OUTPUT_DIR
 import pandas as pd
 
-base_dir = os.path.join(DATASET_DIR, "alaska_starlink_trip/ping")
-output_dir = os.path.join(OUTPUT_DIR, "alaska_starlink_trip/plots")
+base_dir = os.path.join(ROOT_DIR, 'ping')
+output_dir = os.path.join(OUTPUT_DIR, "hawaii_starlink_trip/plots")
 
 
 def get_data_frame_by_operator(operator: str):
@@ -24,8 +25,7 @@ def main():
         os.makedirs(dataset_dir, exist_ok=True)
 
     combined_df = pd.DataFrame()
-    # for operator in ['att', 'verizon', 'starlink', 'tmobile']:
-    for operator in ['att', 'verizon', 'starlink']:
+    for operator in ['att', 'verizon', 'starlink', 'tmobile']:
         operator_df = get_data_frame_by_operator(operator)
         combined_df = pd.concat([combined_df, operator_df], ignore_index=True)
 

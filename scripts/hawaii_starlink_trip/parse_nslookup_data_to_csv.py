@@ -7,17 +7,16 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from typing import List, Dict
 from scripts.nslook_utils import find_nslookup_files_by_dir_list, split_multiple_nslookup_results, parse_nslookup_result
-from scripts.alaska_starlink_trip.labels import DatasetLabel
-from scripts.alaska_starlink_trip.separate_dataset import read_dataset
-from scripts.constants import DATASET_DIR
+from scripts.hawaii_starlink_trip.labels import DatasetLabel
+from scripts.hawaii_starlink_trip.separate_dataset import read_dataset
 from scripts.logging_utils import create_logger
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR, TIMEZONE
 
 import pandas as pd
 
-base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw')
-merged_csv_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/nslookup')
-tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
-timezone_str = 'US/Alaska'
+base_dir = os.path.join(ROOT_DIR, 'raw')
+merged_csv_dir = os.path.join(ROOT_DIR, 'nslookup')
+tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
 
 logger = create_logger('nslookup_parsing', filename=os.path.join(tmp_data_path, 'parse_nslookup_data_to_csv.log'))
 
@@ -51,7 +50,7 @@ def main():
                 lines = f.readlines()
                 content = ''.join(lines)
                 start_end_times = StartEndLogTimeProcessor.get_start_end_time_from_log(content,
-                                                                                       timezone_str=timezone_str)
+                                                                                       timezone_str=TIMEZONE)
                 parsed_results = [parse_nslookup_result(result) for result in
                                   (split_multiple_nslookup_results(content))]
 

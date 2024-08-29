@@ -4,15 +4,16 @@ import sys
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR
 from scripts.logging_utils import create_logger
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from scripts.constants import DATASET_DIR, OUTPUT_DIR
+from scripts.constants import OUTPUT_DIR
 
-base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
-tmp_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
-output_dir = os.path.join(OUTPUT_DIR, 'alaska_starlink_trip/plots')
+base_dir = os.path.join(ROOT_DIR, 'throughput')
+tmp_dir = os.path.join(ROOT_DIR, 'tmp')
+output_dir = os.path.join(OUTPUT_DIR, 'hawaii_starlink_trip/plots')
 
 logger = create_logger('plot_cdf_throughput', filename=os.path.join(tmp_dir, 'plot_cdf_throughput.log'))
 

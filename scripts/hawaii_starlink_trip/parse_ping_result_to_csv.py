@@ -1,20 +1,19 @@
 import os
 import sys
 
-from scripts.alaska_starlink_trip.labels import DatasetLabel
-from scripts.alaska_starlink_trip.separate_dataset import read_dataset
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR
+from scripts.hawaii_starlink_trip.labels import DatasetLabel
+from scripts.hawaii_starlink_trip.separate_dataset import read_dataset
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.ping_utils import parse_ping_result, find_ping_files_by_dir_list
 
-from scripts.constants import DATASET_DIR
-
 from typing import Tuple, List
 
 import pandas as pd
 
-output_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/ping')
+output_dir = os.path.join(ROOT_DIR, 'ping')
 
 
 def save_to_csv(row_list: List[Tuple[str, str, str]], output_file):
