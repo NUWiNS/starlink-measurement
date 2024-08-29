@@ -159,6 +159,8 @@ class IperfUdpBaseProcessor(TputBaseProcessor):
                 interval_sec=self.INTERVAL_SEC
             )
         elif self.status == self.Status.EMPTY:
+            # clear existing data points
+            self.data_points = []
             self.data_points = self.pad_tput_data_points(
                 raw_data=self.data_points,
                 create_default_value=self.create_default_value,
@@ -197,6 +199,16 @@ class Unittest(unittest.TestCase):
         line = '[2024-05-27 11:13:05.680006] [  5]   2.00-2.50   sec  0.00 Bytes  0.00 bits/sec  0.147 ms  0/0 (0%)'
         self.assertEqual({
             'time': '2024-05-27T11:13:05.680006',
+            'throughput_mbps': '0.00',
+            'pkt_drop': '0',
+            'pkt_total': '0',
+            'loss': '0'
+        }, extract_data_from_line(line)
+        )
+
+        line = '[2024-08-17 08:55:42.869473] [  5]   0.00-15639.08 sec  0.00 Bytes  0.00 bits/sec  0.000 ms  0/0 (0%)'
+        self.assertEqual({
+            'time': '2024-08-17T08:55:42.869473',
             'throughput_mbps': '0.00',
             'pkt_drop': '0',
             'pkt_total': '0',
