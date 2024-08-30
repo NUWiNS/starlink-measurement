@@ -333,37 +333,37 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    # read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('udp', 'uplink', output_dir)
-    # print("--------------")
+    read_and_plot_throughput_data('tcp', 'downlink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('udp', 'downlink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    print("--------------")
 
     # By area
-    # read_and_plot_throughput_data_by_area_2('tcp', 'downlink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data_by_area_2('tcp', 'uplink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data_by_area_2('udp', 'downlink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data_by_area_2('udp', 'uplink', output_dir)
-    # print("--------------")
+    read_and_plot_throughput_data_by_area_2('tcp', 'downlink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data_by_area_2('tcp', 'uplink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data_by_area_2('udp', 'downlink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data_by_area_2('udp', 'uplink', output_dir)
+    print("--------------")
 
     # By weather
-    # read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
-    # read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
-    # read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
-    # read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
+    read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
+    read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
+    read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
+    read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
 
     # read_and_plot_starlink_throughput_data(output_dir)
-    # print("--------------")
+    print("--------------")
 
     # Starlink vs Cellular
-    # plot_cdf_tput_starlink_vs_cellular('downlink')
-    # plot_cdf_tput_starlink_vs_cellular('uplink')
+    plot_cdf_tput_starlink_vs_cellular('downlink')
+    plot_cdf_tput_starlink_vs_cellular('uplink')
 
     # Cubic vs BBR
     read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)

@@ -5,6 +5,7 @@ from typing import List
 from scripts.alaska_starlink_trip.labels import DatasetLabel
 from scripts.alaska_starlink_trip.separate_dataset import read_dataset
 from scripts.logging_utils import create_logger
+from scripts.time_utils import now
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -21,7 +22,7 @@ merged_csv_dir_for_cubic = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throu
 merged_csv_dir_for_bbr = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_bbr')
 tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
 
-logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, 'parse_nuttcp_data_to_csv.log'))
+logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, f'parse_nuttcp_data_to_csv.{now()}.log'))
 
 
 def parse_nuttcp_content(content, protocol):

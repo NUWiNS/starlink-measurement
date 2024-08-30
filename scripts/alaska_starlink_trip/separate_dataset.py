@@ -10,7 +10,6 @@ from scripts.alaska_starlink_trip.labels import DatasetLabel
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.constants import DATASET_DIR
-import unittest
 from datetime import datetime
 
 raw_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw')
@@ -129,13 +128,16 @@ def separate_dataset(category: str):
 
 
 def read_dataset(category: str, label: str):
-    datasets = json.load(open(os.path.join(tmp_data_path, f'{category}_datasets.json')))
+    # read merged datasets
+    datasets = json.load(open(os.path.join(tmp_data_path, f'{category}_merged_datasets.json')))
     return datasets[label]
 
 
 def main():
     categories = ['att', 'verizon', 'starlink', 'tmobile', 'dish_metrics', 'dish_history']
     for category in categories:
+        # deal with merged folders
+        category += '_merged'
         create_label_mapping_for_raw_data(category)
         separate_dataset(category)
 

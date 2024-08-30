@@ -1,5 +1,8 @@
 import os
-from typing import Dict
+import re
+import unittest
+import datetime
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -56,3 +59,17 @@ def format_statistics(stats, unit: str = ''):
         # fixed to 2 decimal places
         percentage = f"{(filtered_count / total_count) * 100:.2f}%"
     return f"Median: {stats['median']:.2f} {unit}\nMin: {stats['min']:.2f} {unit}\nMax: {stats['max']:.2f} {unit}\nCount: {filtered_count}/{total_count} ({percentage})"
+
+
+def get_datetime_from_path(path_str: str) -> datetime:
+    """
+    :param path_str: such as '20240621/094108769/'
+    :return:
+    """
+    date_time_regex = re.compile(r'.*(\d{8})/(\d{9})/*')
+    match = date_time_regex.match(path_str)
+    if not match:
+        raise ValueError('Invalid path string')
+    date_str, time_str = match.groups()
+    date = datetime.datetime.strptime(date_str + time_str, '%Y%m%d%H%M%S%f')
+    return date

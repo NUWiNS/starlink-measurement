@@ -94,6 +94,8 @@ def process_iperf_data_for_operator(
         output_csv_filename=get_merged_csv_filename(operator, 'udp', 'downlink', base_dir=output_dir)
     )
 
+    # TODO: identify UDP DL blocked files
+    # How to find the corresponding TCP DL for UDP DL files in the separated folders?
 
 def main():
     for dir in [base_dir, merged_csv_dir, merged_csv_dir_for_cubic, merged_csv_dir_for_bbr]:
