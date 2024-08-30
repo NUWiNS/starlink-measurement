@@ -2,23 +2,42 @@ import os
 import sys
 from typing import List
 
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR, DatasetLabel, TIMEZONE
+from scripts.hawaii_starlink_trip.separate_dataset import read_dataset
 from scripts.logging_utils import create_logger
-from scripts.maine_starlink_trip.labels import DatasetLabel
-from scripts.maine_starlink_trip.separate_dataset import read_dataset
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 import pandas as pd
 
-from scripts.constants import DATASET_DIR
-from scripts.nuttcp_utils import find_tcp_downlink_files_by_dir_list, \
-    find_tcp_uplink_files_by_dir_list, find_udp_uplink_files_by_dir_list, NuttcpProcessorFactory, NuttcpDataAnalyst
+from scripts.nuttcp_utils import parse_nuttcp_tcp_result, \
+    parse_nuttcp_udp_result, find_tcp_downlink_files_by_dir_list, \
+    NuttcpDataAnalyst, NuttcpProcessorFactory, find_tcp_uplink_files_by_dir_list, find_udp_uplink_files_by_dir_list
 
-base_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/raw')
-merged_csv_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/throughput')
-tmp_data_path = os.path.join(DATASET_DIR, 'maine_starlink_trip/tmp')
+base_dir = os.path.join(ROOT_DIR, 'raw')
+merged_csv_dir = os.path.join(ROOT_DIR, 'throughput')
+tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
 
 logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, 'parse_nuttcp_data_to_csv.log'))
+
+
+def parse_nuttcp_content(content, protocol):
+    """
+    Parse nuttcp content and return the extracted data points
+    :param content:
+    :param protocol:
+    :return:
+    """
+    if protocol == 'tcp':
+        extracted_data = parse_nuttcp_tcp_result(content)
+    elif protocol == 'udp':
+        extracted_data = parse_nuttcp_udp_result(content)
+    else:
+        raise ValueError('Please specify protocol with eithers tcp or udp')
+
+    if not extracted_data:
+        return None
+    return extracted_data
 
 
 def process_nuttcp_files(files: List[str], protocol: str, direction: str, output_csv_filename: str):
@@ -40,7 +59,7 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
                     protocol=protocol,
                     direction=direction,
                     file_path=file,
-                    timezone_str='US/Eastern'
+                    timezone_str=TIMEZONE
                 )
                 processor.process()
                 data_points = processor.get_result()
@@ -65,59 +84,65 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
     logger.info(f'Saved all extracted data to the CSV file: {output_csv_filename}')
 
 
-def get_merged_csv_filename(operator: str, protocol: str, direction: str, base_dir=merged_csv_dir):
+def get_merged_csv_filename(operator: str, protocol: str, direction: str, base_dir: str = merged_csv_dir):
     return os.path.join(base_dir, f'{operator}_{protocol}_{direction}.csv')
 
 
-def process_nuttcp_data_for_operator(operator: str):
+def process_nuttcp_data_for_operator(
+        operator: str,
+        data_label: str = DatasetLabel.NORMAL.value,
+        output_dir: str = merged_csv_dir
+):
     """
     :param operator: att | verizon | starlink
     :return:
     """
-    dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
+    dir_list = read_dataset(operator, data_label)
+
+    logger.info(f'Processing {operator.capitalize()} Phone\'s NUTTCP throughput data...')
 
     tcp_downlink_files = find_tcp_downlink_files_by_dir_list(dir_list)
-    print(f'Processing {operator.capitalize()} Phone\'s NUTTCP throughput data...')
-    print(f'Found {len(tcp_downlink_files)} TCP downlink files, processing...')
+    logger.info(f'Found {len(tcp_downlink_files)} TCP downlink files, processing...')
     process_nuttcp_files(
         tcp_downlink_files,
         protocol='tcp',
         direction='downlink',
-        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink')
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'downlink', base_dir=output_dir)
     )
 
     tcp_uplink_files = find_tcp_uplink_files_by_dir_list(dir_list)
-    print(f'Found {len(tcp_uplink_files)} TCP uplink files, processing...')
+    logger.info(f'Found {len(tcp_uplink_files)} TCP uplink files, processing...')
     process_nuttcp_files(
         tcp_uplink_files,
         protocol='tcp',
         direction='uplink',
-        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink')
+        output_csv_filename=get_merged_csv_filename(operator, 'tcp', 'uplink', base_dir=output_dir)
     )
 
     udp_uplink_files = find_udp_uplink_files_by_dir_list(dir_list)
-    print(f'Found {len(udp_uplink_files)} UDP uplink files, processing...')
+    logger.info(f'Found {len(udp_uplink_files)} UDP uplink files, processing...')
     process_nuttcp_files(
         udp_uplink_files,
         protocol='udp',
         direction='uplink',
-        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'uplink')
+        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'uplink', base_dir=output_dir)
     )
-    print(
-        '--- NOTE: We skip the UDP uplink data on 20240527 because we used iperf3 and they are not the throughput from the receiver side')
 
 
 def main():
-    if not os.path.exists(merged_csv_dir):
-        os.mkdir(merged_csv_dir)
+    for dir_path in [merged_csv_dir]:
+        if not os.path.exists(dir_path):
+            os.mkdir(dir_path)
 
-    process_nuttcp_data_for_operator('att')
-    print('----------------------------------')
-    process_nuttcp_data_for_operator('verizon')
-    print('----------------------------------')
+    # Normal dataset
     process_nuttcp_data_for_operator('starlink')
-    print('----------------------------------')
-
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('att')
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('verizon')
+    logger.info('----------------------------------')
+    process_nuttcp_data_for_operator('tmobile')
+    logger.info('----------------------------------')
 
 if __name__ == '__main__':
     main()

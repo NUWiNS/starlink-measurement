@@ -5,7 +5,7 @@ import re
 import sys
 from typing import List
 
-from scripts.maine_starlink_trip.labels import DatasetLabel
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR, DatasetLabel
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -13,8 +13,8 @@ from scripts.constants import DATASET_DIR
 import unittest
 from datetime import datetime
 
-raw_data_path = os.path.join(DATASET_DIR, 'maine_starlink_trip/raw')
-tmp_data_path = os.path.join(DATASET_DIR, 'maine_starlink_trip/tmp')
+raw_data_path = os.path.join(ROOT_DIR, 'raw')
+tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
 
 
 def get_datetime_from_path(path_str: str) -> datetime:
@@ -31,36 +31,49 @@ def get_datetime_from_path(path_str: str) -> datetime:
     return date
 
 
-def label_exception(labels: List[str], _date: datetime):
-    # starlink did not reboot correctly
-    if datetime(2024, 5, 29, 15, 30) <= _date <= datetime(2024, 5, 29, 15, 59):
-        labels.append(DatasetLabel.EXCEPTION.value)
-    return labels
+def get_operator_from_path(path_str: str) -> str:
+    """
+    :param path_str: such as 'att/20240621/094108769/'
+    :return:
+    """
+    operator_regex = re.compile(r'.*/(\w+)/\d{8}/\d{9}/*')
+    match = operator_regex.match(path_str)
+    if not match:
+        raise ValueError('Invalid path string')
+    operator = match.groups()[0]
+    return operator
 
 
-def label_invalid_iperf_udp_uplink(labels: List[str], _date: datetime):
-    if _date < datetime(2024, 5, 28):
-        labels.append(DatasetLabel.INVALID_UDP_UL.value)
+def label_test_data(labels: List[str], _date: datetime, operator: str):
+    if _date < datetime(2024, 8, 16):
+        labels.append(DatasetLabel.TEST_DATA.value)
+
     return labels
 
 
 def get_labels_from_path(path_str: str) -> List[str]:
     datetime = get_datetime_from_path(path_str)
+    operator = get_operator_from_path(path_str)
     labels = []
     label_funcs = [
-        label_invalid_iperf_udp_uplink,
-        label_exception,
+        label_test_data,
     ]
     for label_func in label_funcs:
-        labels = label_func(labels, datetime)
+        labels = label_func(labels, datetime, operator)
     return labels
 
 
-def save_mapping_to_csv(mapping: dict, filename: str):
+def save_mapping(mapping: dict, filename: str):
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename))
     with open(filename, 'w') as f:
         json.dump(mapping, f, indent=4)
+
+
+def get_sub_dirs(pattern: str):
+    sub_dirs = glob.glob(pattern)
+    sub_dirs = [d for d in sub_dirs if os.path.isdir(d)]
+    return sub_dirs
 
 
 def create_label_mapping_for_raw_data(category: str):
@@ -69,12 +82,12 @@ def create_label_mapping_for_raw_data(category: str):
     :param category:  such as 'att', 'verizon', 'starlink' where it should have sub-dir with date and time
     :return:
     """
-    sub_dirs = glob.glob(os.path.join(raw_data_path, f"{category}/*/*"))
+    sub_dirs = get_sub_dirs(pattern=os.path.join(raw_data_path, f"{category}/*/*"))
     mapping = {}
     for sub_dir in sub_dirs:
         labels = get_labels_from_path(sub_dir)
         mapping[sub_dir] = labels
-    save_mapping_to_csv(mapping, os.path.join(tmp_data_path, f'{category}_labels.json'))
+    save_mapping(mapping, filename=os.path.join(tmp_data_path, f'{category}_labels.json'))
     print(f'Saved label mapping for {category} to {tmp_data_path}')
 
 
@@ -85,13 +98,14 @@ def separate_dataset(category: str):
     :return:
     """
     session_labels = json.load(open(os.path.join(tmp_data_path, f'{category}_labels.json')))
-    sub_dirs = glob.glob(os.path.join(raw_data_path, f"{category}/*/*"))
+    sub_dirs = get_sub_dirs(pattern=os.path.join(raw_data_path, f"{category}/*/*"))
     datasets = {
         DatasetLabel.NORMAL.value: set(),
     }
     for sub_dir in sub_dirs:
         labels = session_labels[sub_dir]
         if not labels:
+            # Not labeled data is considered as normal data
             datasets[DatasetLabel.NORMAL.value].add(sub_dir)
         else:
             for label in labels:
@@ -104,21 +118,18 @@ def separate_dataset(category: str):
         datasets[label] = list(datasets[label])
         datasets[label].sort()
 
-    save_mapping_to_csv(datasets, os.path.join(tmp_data_path, f'{category}_datasets.json'))
+    save_mapping(datasets, os.path.join(tmp_data_path, f'{category}_datasets.json'))
     print(f'Separated dataset for {category} to {tmp_data_path}')
 
 
 def read_dataset(category: str, label: str):
-    # read the merged datasets
-    datasets = json.load(open(os.path.join(tmp_data_path, f'{category}_merged_datasets.json')))
+    datasets = json.load(open(os.path.join(tmp_data_path, f'{category}_datasets.json')))
     return datasets[label]
 
 
 def main():
-    categories = ['att', 'verizon', 'starlink', 'dish_metrics', 'dish_history']
+    categories = ['att', 'verizon', 'starlink', 'tmobile', 'dish_metrics', 'dish_history']
     for category in categories:
-        # deal with merged runs
-        category += '_merged'
         create_label_mapping_for_raw_data(category)
         separate_dataset(category)
 

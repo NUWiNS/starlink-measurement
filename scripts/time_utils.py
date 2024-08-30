@@ -7,6 +7,12 @@ import pytz
 from datetime import datetime
 
 
+def now(fmt='%Y%m%d%H%M%S'):
+    if fmt:
+        return datetime.now().strftime(fmt)
+    return datetime.now()
+
+
 def format_datetime_as_iso_8601(dt: datetime):
     """
     :param dt:
