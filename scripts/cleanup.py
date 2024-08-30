@@ -5,7 +5,7 @@ from scripts.constants import DATASET_DIR
 
 
 def main():
-    pattern = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw/**/tcp_uplink_*.csv')
+    pattern = os.path.join(DATASET_DIR, 'hawaii_starlink_trip/raw/**/*.csv')
     files = glob.glob(pattern, recursive=True)
     print(f"Found {len(files)} files")
     answer = input("Do you want to remove these files? (y/n): ")

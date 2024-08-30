@@ -26,7 +26,7 @@ tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
 logger = create_logger('iperf_parsing', filename=os.path.join(tmp_data_path, f'parse_iperf_data_to_csv.{now()}.log'))
 
 
-def process_iperf_files(files: List[str], protocol: str, direction: str, output_csv_filename: str):
+def process_iperf_files(files: List[str], protocol: str, direction: str):
     """
     Process iperf logs and save the extracted data to CSV files
     :param files:
@@ -88,7 +88,6 @@ def process_iperf_data_for_operator(
         udp_downlink_files,
         protocol='udp',
         direction='downlink',
-        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'downlink', base_dir=output_dir)
     )
 
     udp_blockage_helper = UdpBlockageHelper(logger=logger)
