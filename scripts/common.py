@@ -6,7 +6,11 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import List, Callable, Any, Dict
 
+import numpy
+import numpy as np
+
 from scripts.time_utils import StartEndLogTimeProcessor, format_datetime_as_iso_8601
+from scripts.utils import safe_get
 
 
 def extract_operator_from_filename(file_path):
@@ -16,6 +20,7 @@ def extract_operator_from_filename(file_path):
     """
     operator = file_path.split(os.sep)[-4]  # Adjust based on the exact structure of your file paths
     return operator
+
 
 class TputBaseProcessor(ABC):
     # Assume data is collected for 2min with 500ms interval
@@ -66,6 +71,11 @@ class TputBaseProcessor(ABC):
     def parse_measurement_content(self, content: str):
         data_points = self.parse_data_points(content)
         summary = self.parse_measurement_summary(content)
+        if not summary['avg_tput_mbps'] or summary['avg_tput_mbps'] == -1:
+            if isinstance(data_points, list) and len(data_points) > 0:
+                # calculate the average throughput
+                summary['avg_tput_mbps'] = np.mean(
+                    list(map(lambda x: float(getattr(x, 'throughput_mbps')), data_points)))
         return {
             'data_points': data_points,
             'has_summary': summary['has_summary'],
@@ -92,7 +102,11 @@ class TputBaseProcessor(ABC):
             return TputBaseProcessor.Status.EMPTY
 
         data_len = len(data_points)
-        if all(map(lambda x: float(getattr(x, 'throughput_mbps')) == 0, data_points)) and data_len < 5:
+        if all(map(lambda x: float(safe_get(x, 'throughput_mbps')) == 0, data_points)) and data_len < 5:
+            return TputBaseProcessor.Status.EMPTY
+
+        # consider extremely low throughput as empty, which helps udp blockage detection
+        if parsed_result['avg_tput_mbps'] < 0.1 and data_len < 20:
             return TputBaseProcessor.Status.EMPTY
 
         if parsed_result['has_summary'] and data_len > 1:
@@ -138,14 +152,14 @@ class TputBaseProcessor(ABC):
 
     def get_status(self) -> str:
         return self.status.value
-    
-    
+
+
 class Unittest(unittest.TestCase):
 
     def test_check_validity(self):
         # --- Normal cases: has summary and tput not all 0 ---
         input_data = {
-            'data_points': [100] * 240,
+            'data_points': [{'throughput_mbps': 100}] * 240,
             'has_summary': True,
             'avg_tput_mbps': 100
         }
@@ -153,7 +167,7 @@ class Unittest(unittest.TestCase):
                          TputBaseProcessor.check_validity(input_data))
 
         input_data = {
-            'data_points': [100] * 250,
+            'data_points': [{'throughput_mbps': 100}] * 250,
             'has_summary': True,
             'avg_tput_mbps': 100
         }
@@ -163,7 +177,7 @@ class Unittest(unittest.TestCase):
         # --- Empty cases ---
         # if there is only one data point with 0 throughput, it should be considered as empty
         input_data = {
-            'data_points': [0],
+            'data_points': [{'throughput_mbps': 0}],
             'has_summary': True,
             'avg_tput_mbps': -1
         }
@@ -171,9 +185,17 @@ class Unittest(unittest.TestCase):
 
         # if there are less than 5 data points and all 0 tput, it should be considered as empty
         input_data = {
-            'data_points': [0] * 4,
+            'data_points': [{'throughput_mbps': 0}] * 4,
             'has_summary': True,
             'avg_tput_mbps': 0
+        }
+        self.assertEqual(TputBaseProcessor.Status.EMPTY, TputBaseProcessor.check_validity(input_data))
+
+        # if the avg tput is less than 0.1 Mbps, it should be considered as empty
+        input_data = {
+            'data_points': [{'throughput_mbps': 0.09}] * 10,
+            'has_summary': True,
+            'avg_tput_mbps': 0.09
         }
         self.assertEqual(TputBaseProcessor.Status.EMPTY, TputBaseProcessor.check_validity(input_data))
 
@@ -194,7 +216,7 @@ class Unittest(unittest.TestCase):
 
         # --- Incomplete cases (no summary) ---
         input_data = {
-            'data_points': [100] * 239,
+            'data_points': [{'throughput_mbps': 100}] * 239,
             'has_summary': False,
             'avg_tput_mbps': 100
         }
@@ -203,7 +225,7 @@ class Unittest(unittest.TestCase):
 
         # --- Timeout cases ---
         input_data = {
-            'data_points': [100] * 250,
+            'data_points': [{'throughput_mbps': 100}] * 250,
             'has_summary': False,
             'avg_tput_mbps': 100
         }

@@ -19,19 +19,19 @@ def parsing():
     parse_weather_area_data_to_csv_main()
     append_weather_area_to_tput_dataset_main()
 
-    parse_ping_result_to_csv_main()
-    parse_traceroute_data_to_csv_main()
-    parse_nslookup_data_to_csv_main()
+    # parse_ping_result_to_csv_main()
+    # parse_traceroute_data_to_csv_main()
+    # parse_nslookup_data_to_csv_main()
 
 
 def plotting():
     plot_cdf_throughput_main()
-    plot_rtt_from_csv_main()
-    plot_traceroute_main()
+    # plot_rtt_from_csv_main()
+    # plot_traceroute_main()
 
 
 def main():
-    separate_dataset_main()
+    # separate_dataset_main()
 
     parsing()
     plotting()
