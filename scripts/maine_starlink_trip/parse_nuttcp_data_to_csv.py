@@ -65,8 +65,8 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
     logger.info(f'Saved all extracted data to the CSV file: {output_csv_filename}')
 
 
-def get_merged_csv_filename(operator: str, protocol: str, direction: str):
-    return os.path.join(merged_csv_dir, f'{operator}_{protocol}_{direction}.csv')
+def get_merged_csv_filename(operator: str, protocol: str, direction: str, base_dir=merged_csv_dir):
+    return os.path.join(base_dir, f'{operator}_{protocol}_{direction}.csv')
 
 
 def process_nuttcp_data_for_operator(operator: str):
@@ -108,6 +108,9 @@ def process_nuttcp_data_for_operator(operator: str):
 
 
 def main():
+    if not os.path.exists(merged_csv_dir):
+        os.mkdir(merged_csv_dir)
+
     process_nuttcp_data_for_operator('att')
     print('----------------------------------')
     process_nuttcp_data_for_operator('verizon')

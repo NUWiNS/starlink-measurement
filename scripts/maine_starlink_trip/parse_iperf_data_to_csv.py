@@ -5,13 +5,13 @@ from typing import List
 from scripts.logging_utils import create_logger
 from scripts.maine_starlink_trip.labels import DatasetLabel
 from scripts.maine_starlink_trip.separate_dataset import read_dataset
+from scripts.utilities.UdpBlockageHelper import UdpBlockageHelper
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.iperf_utils import parse_iperf_udp_result, find_udp_downlink_files_by_dir_list, IperfProcessorFactory, \
     IperfDataAnalyst
 from scripts.utils import find_files
-
 
 import pandas as pd
 
@@ -28,7 +28,7 @@ def find_udp_downlink_files(base_dir: str):
     return find_files(base_dir, prefix="udp_downlink", suffix=".out")
 
 
-def process_iperf_files(files: List[str], protocol: str, direction: str, output_csv_filename: str):
+def process_iperf_files(files: List[str], protocol: str, direction: str):
     """
     Process iperf logs and save the extracted data to CSV files
     :param files:
@@ -36,7 +36,6 @@ def process_iperf_files(files: List[str], protocol: str, direction: str, output_
     :return:
     """
     data_analyst = IperfDataAnalyst()
-    main_data_frame = pd.DataFrame()
     for file in files:
         try:
             with open(file, 'r') as f:
@@ -54,7 +53,6 @@ def process_iperf_files(files: List[str], protocol: str, direction: str, output_
                 data_analyst.add_processor(processor)
 
                 df = pd.DataFrame(data_points)
-                main_data_frame = pd.concat([main_data_frame, df], ignore_index=True)
                 # Save to the same directory with the same filename but with .csv extension
                 csv_file_path = file.replace('.out', f'.{status}.csv')
                 df.to_csv(csv_file_path, index=False)
@@ -67,12 +65,9 @@ def process_iperf_files(files: List[str], protocol: str, direction: str, output_
         logger.info(log)
     logger.info('-----------------------')
 
-    main_data_frame.to_csv(output_csv_filename, index=False)
-    logger.info(f'Saved all extracted data to the CSV file: {output_csv_filename}')
 
-
-def get_merged_csv_filename(operator: str, protocol: str, direction: str):
-    return os.path.join(merged_csv_dir, f'{operator}_{protocol}_{direction}.csv')
+def get_merged_csv_filename(operator: str, protocol: str, direction: str, base_dir=merged_csv_dir):
+    return os.path.join(base_dir, f'{operator}_{protocol}_{direction}.csv')
 
 
 def process_iperf_data_for_operator(operator: str):
@@ -89,8 +84,15 @@ def process_iperf_data_for_operator(operator: str):
         udp_downlink_files,
         protocol='udp',
         direction='downlink',
-        output_csv_filename=get_merged_csv_filename(operator, 'udp', 'downlink')
     )
+
+    udp_blockage_helper = UdpBlockageHelper(logger=logger)
+    udp_blockage_helper.label_udp_dl_blockage_files(dir_list)
+    udp_blockage_helper.merge_csv_files(dir_list,
+                                        filename=get_merged_csv_filename(
+                                            operator, 'udp', 'downlink',
+                                            base_dir=merged_csv_dir
+                                        ))
 
 
 def main():

@@ -243,24 +243,24 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    # read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    # print("--------------")
-    # read_and_plot_throughput_data('udp', 'uplink', output_dir)
-    # print("--------------")
+    read_and_plot_throughput_data('tcp', 'downlink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('udp', 'downlink', output_dir)
+    print("--------------")
+    read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    print("--------------")
 
-    # for area_type in ['urban', 'suburban', 'rural']:
-    #     read_and_plot_throughput_data_by_area('tcp', 'downlink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('tcp', 'uplink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('udp', 'downlink', output_dir, area_type=area_type)
-    #     print("--------------")
-    #     read_and_plot_throughput_data_by_area('udp', 'uplink', output_dir, area_type=area_type)
-    #     print("--------------")
+    for area_type in ['urban', 'suburban', 'rural']:
+        read_and_plot_throughput_data_by_area('tcp', 'downlink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('tcp', 'uplink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('udp', 'downlink', output_dir, area_type=area_type)
+        print("--------------")
+        read_and_plot_throughput_data_by_area('udp', 'uplink', output_dir, area_type=area_type)
+        print("--------------")
 
     all_weathers = ['sunny', 'cloudy', 'rainy', 'snowy']
     read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir, all_weathers=all_weathers)
@@ -271,8 +271,8 @@ def main():
     # # read_and_plot_starlink_throughput_data(output_dir)
     # # print("--------------")
     #
-    # plot_cdf_tput_starlink_vs_cellular('downlink')
-    # plot_cdf_tput_starlink_vs_cellular('uplink')
+    plot_cdf_tput_starlink_vs_cellular('downlink')
+    plot_cdf_tput_starlink_vs_cellular('uplink')
 
 
 if __name__ == '__main__':

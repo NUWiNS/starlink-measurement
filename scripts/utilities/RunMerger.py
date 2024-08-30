@@ -64,7 +64,7 @@ class RunMerger:
 
             udp_folder = udp_folders[idx2]
             udp_folder_time = get_datetime_from_path(udp_folder)
-            if abs(udp_folder_time - tcp_folder_time) < datetime.timedelta(minutes=15):
+            if datetime.timedelta(minutes=0) < udp_folder_time - tcp_folder_time < datetime.timedelta(minutes=9):
                 matched_folder_tuples.append((tcp_folder, udp_folder))
                 idx1 += 1
                 idx2 += 1
