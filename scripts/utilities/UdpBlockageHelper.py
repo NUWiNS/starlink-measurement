@@ -24,19 +24,19 @@ class UdpBlockageHelper:
             try:
                 tcp_dl_labeled_csv = find_files(run_dir, prefix='tcp_downlink', suffix='.csv')[0]
                 udp_dl_labeled_csv = find_files(run_dir, prefix='udp_downlink', suffix='.csv')[0]
-                udp_ul_labeled_csv = find_files(run_dir, prefix='udp_uplink', suffix='.csv')[0]
             except IndexError as e:
                 self.logger.error(f'fail to find labeled csv: {e}')
                 continue
             tcp_dl_status = self.get_validity_label_from_filename(tcp_dl_labeled_csv)
             udp_dl_status = self.get_validity_label_from_filename(udp_dl_labeled_csv)
-            udp_ul_status = self.get_validity_label_from_filename(udp_ul_labeled_csv)
             if udp_dl_status == TputBaseProcessor.Status.EMPTY.value and \
-                    udp_ul_status != TputBaseProcessor.Status.EMPTY.value and \
                     tcp_dl_status != TputBaseProcessor.Status.EMPTY.value:
                 # UDP DL is blocked
                 os.rename(udp_dl_labeled_csv, udp_dl_labeled_csv.replace(f'.{udp_dl_status}.csv',
                                                                          f'.{TputBaseProcessor.Status.EMPTY_BLOCKED.value}.csv'))
+                self.logger.info(f'Label the blocked UDP DL file in this run: {run_dir}')
+                count += 1
+            elif udp_dl_status == TputBaseProcessor.Status.EMPTY_BLOCKED.value:
                 self.logger.info(f'Label the blocked UDP DL file in this run: {run_dir}')
                 count += 1
         self.logger.info(f'-- Finish, labeled all UDP DL blockage files, count: {count}')
