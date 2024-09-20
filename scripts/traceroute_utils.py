@@ -2,6 +2,7 @@ import re
 import unittest
 from typing import Dict, List, Tuple
 
+from scripts.utilities.IpQuery import IpQuery
 from scripts.utils import find_files
 
 
@@ -94,6 +95,45 @@ def find_traceroute_files_by_dir_list(dir_list: List[str]):
     for dir in dir_list:
         traceroute_files.extend(find_traceroute_files(dir))
     return traceroute_files
+
+
+def batch_query_ip_info(ip_list: List[str]):
+    unique_ips = list(set(ip_list))
+    public_ips = IpQuery.filter_public_ips(unique_ips)
+    max_count = IpQuery.MAX_IP_PER_REQUEST
+    iteration_count = len(public_ips) // max_count + 1
+    results = []
+    for i in range(iteration_count):
+        query_ips = public_ips[i * max_count: (i + 1) * max_count]
+        try:
+            results.extend(IpQuery.batch_ip_lookup(query_ips))
+        except Exception as e:
+            print(f"Error querying IP info: {e} at iteration {i}/{iteration_count}")
+            continue
+    return results
+
+
+def save_ip_info_to_map(ip_info_list: List[Dict], output_filepath: str):
+    if not output_filepath:
+        raise ValueError('output_filepath is required')
+    json_map = {}
+    for item in ip_info_list:
+        ip = item['query']
+        json_map[ip] = item
+
+    # Check if the file exists
+    if os.path.exists(output_filepath):
+        # If the file exists, read its content
+        with open(output_filepath, 'r') as f:
+            content = f.read()
+            if content:
+                existing_data = json.loads(content)
+                json_map = {**existing_data, **json_map}
+
+    # Write the updated or new data
+    with open(output_filepath, 'w') as f:
+        json.dump(json_map, f, indent=4)
+    return json_map
 
 
 class Unittest(unittest.TestCase):

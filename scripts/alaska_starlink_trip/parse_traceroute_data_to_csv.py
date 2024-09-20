@@ -4,7 +4,8 @@ import sys
 from pandas.core.common import flatten
 
 from scripts.time_utils import StartEndLogTimeProcessor, format_datetime_as_iso_8601
-from scripts.traceroute_utils import find_traceroute_files_by_dir_list, parse_traceroute_log
+from scripts.traceroute_utils import find_traceroute_files_by_dir_list, parse_traceroute_log, save_ip_info_to_map, \
+    batch_query_ip_info
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -74,6 +75,14 @@ def main():
     merged_csv_filename = os.path.join(merged_csv_dir, 'starlink_traceroute.csv')
     main_data_frame.to_csv(merged_csv_filename, index=False)
     logger.info(f'Saved merged traceroute resolve data to {merged_csv_filename}')
+
+    # save ip info mapping
+    ip_list = main_data_frame['ip'].unique().tolist()
+    ip_info_map_filepath = os.path.join(merged_csv_dir, 'ip_info_map.json')
+    # ip_info_list = batch_query_ip_info(ip_list)
+    ip_info_list = json.loads(open(os.path.join(merged_csv_dir, 'ip_info.json')).read())
+    save_ip_info_to_map(ip_info_list, output_filepath=ip_info_map_filepath)
+    logger.info(f'Saved ip info map to {ip_info_map_filepath}')
 
     failed_file_count = len(failed_files)
     processed_file_count = total_file_count - failed_file_count
