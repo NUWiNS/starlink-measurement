@@ -60,9 +60,18 @@ class IpQuery:
         public_ips = []
         for ip in ip_list:
             try:
+                if not isinstance(ip, str):
+                    continue
+                # CGNAT reserved IP
+                if ip.startswith('100.64'):
+                    continue
                 ip_obj = ipaddress.ip_address(ip)
-                if not ip_obj.is_private:
-                    public_ips.append(ip)
+                if ip_obj.is_private:
+                    continue
+                if ip_obj.is_reserved:
+                    continue
+
+                public_ips.append(ip)
             except ValueError:
                 # If the IP address is invalid, we'll just skip it
                 print(f"Invalid IP address: {ip}")
@@ -92,12 +101,14 @@ class MyTestCase(unittest.TestCase):
             # private IPs
             "192.168.1.1",
             "172.16.250.24",
+            '100.64.0.1',
             # public IPs
             '99.83.118.220',
         ]
         public_ips = IpQuery.filter_public_ips(ip_addresses)
         self.assertEqual(1, len(public_ips))
         self.assertEqual('99.83.118.220', public_ips[0])
+
 
 if __name__ == '__main__':
     unittest.main()
