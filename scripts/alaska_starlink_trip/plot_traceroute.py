@@ -30,6 +30,9 @@ def main():
 
     for hop in range(1, 8):
         hop_df = df[df['hop_number'] == hop]
+        # exclude exceptional cases
+        hop_df = hop_df[hop_df['exception'].isna()]
+
         unique_ip = hop_df["ip"].unique()
         results = []
         for ip in unique_ip:
