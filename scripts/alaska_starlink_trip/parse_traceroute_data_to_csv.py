@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -36,7 +37,7 @@ def save_hop_info_to_csv(parsed_results: List[Dict], output_filename: str):
     return df
 
 
-def main():
+def process_raw_data():
     if not os.path.exists(merged_csv_dir):
         os.mkdir(merged_csv_dir)
 
@@ -76,20 +77,36 @@ def main():
     main_data_frame.to_csv(merged_csv_filename, index=False)
     logger.info(f'Saved merged traceroute resolve data to {merged_csv_filename}')
 
-    # save ip info mapping
-    ip_list = main_data_frame['ip'].unique().tolist()
-    ip_info_map_filepath = os.path.join(merged_csv_dir, 'ip_info_map.json')
-    # ip_info_list = batch_query_ip_info(ip_list)
-    ip_info_list = json.loads(open(os.path.join(merged_csv_dir, 'ip_info.json')).read())
-    save_ip_info_to_map(ip_info_list, output_filepath=ip_info_map_filepath)
-    logger.info(f'Saved ip info map to {ip_info_map_filepath}')
-
     failed_file_count = len(failed_files)
     processed_file_count = total_file_count - failed_file_count
     logger.info(
         f'Process summary: total: {total_file_count}, processed: ({processed_file_count}), failed ({failed_file_count})')
     if failed_files:
         logger.error(f'Failed files: {failed_files}')
+    return main_data_frame
+
+
+def save_ip_info_map(main_data_frame: pd.DataFrame):
+    ip_list = main_data_frame['ip'].unique().tolist()
+    ip_info_map_filepath = os.path.join(merged_csv_dir, 'ip_info_map.json')
+    ip_info_list = batch_query_ip_info(ip_list)
+    # ip_info_list = json.loads(open(os.path.join(merged_csv_dir, 'ip_info.json')).read())
+    save_ip_info_to_map(ip_info_list, output_filepath=ip_info_map_filepath)
+    logger.info(f'Saved ip info map to {ip_info_map_filepath}')
+
+
+def dissect_bent_pipe_latency():
+    # load processed traceroute data
+    tr_csv_path = os.path.join(merged_csv_dir, 'starlink_traceroute.csv')
+    tr_df = pd.read_csv(tr_csv_path)
+    ip_prefix_of_gs = '100.64*'
+    ip_prefix_of_pop = '206.224*'
+
+
+def main():
+    main_df = process_raw_data()
+    # save_ip_info_map(main_df)
+    # dissect_bent_pipe_latency()
 
 
 if __name__ == '__main__':

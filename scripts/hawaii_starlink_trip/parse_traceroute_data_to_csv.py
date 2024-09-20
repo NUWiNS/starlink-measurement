@@ -2,11 +2,13 @@ import os
 import sys
 
 from pandas.core.common import flatten
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR, TIMEZONE
 from scripts.time_utils import StartEndLogTimeProcessor, format_datetime_as_iso_8601
-from scripts.traceroute_utils import find_traceroute_files_by_dir_list, parse_traceroute_log
+from scripts.traceroute_utils import find_traceroute_files_by_dir_list, parse_traceroute_log, save_ip_info_to_map, \
+    batch_query_ip_info
 
 from typing import List, Dict
 from scripts.hawaii_starlink_trip.labels import DatasetLabel
@@ -33,7 +35,7 @@ def save_hop_info_to_csv(parsed_results: List[Dict], output_filename: str):
     return df
 
 
-def main():
+def process_raw_data():
     if not os.path.exists(merged_csv_dir):
         os.mkdir(merged_csv_dir)
 
@@ -79,6 +81,21 @@ def main():
         f'Process summary: total: {total_file_count}, processed: ({processed_file_count}), failed ({failed_file_count})')
     if failed_files:
         logger.error(f'Failed files: {failed_files}')
+    return main_data_frame
+
+
+def save_ip_info_map(main_data_frame: pd.DataFrame):
+    ip_list = main_data_frame['ip'].unique().tolist()
+    ip_info_map_filepath = os.path.join(merged_csv_dir, 'ip_info_map.json')
+    ip_info_list = batch_query_ip_info(ip_list)
+    # ip_info_list = json.loads(open(os.path.join(merged_csv_dir, 'ip_info.json')).read())
+    save_ip_info_to_map(ip_info_list, output_filepath=ip_info_map_filepath)
+    logger.info(f'Saved ip info map to {ip_info_map_filepath}')
+
+
+def main():
+    main_data_frame = process_raw_data()
+    save_ip_info_map(main_data_frame)
 
 
 if __name__ == '__main__':
