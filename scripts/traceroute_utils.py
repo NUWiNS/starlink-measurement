@@ -40,7 +40,7 @@ def separate_three_probes(line: str) -> List[str]:
             res.append('')
         else:
             # split by ms
-            separation_reg = re.compile(r'(.*?)\sms|\*')
+            separation_reg = re.compile(r'(.*?)\sms(?:\s+!\w)?|\*')
             matches = separation_reg.findall(ele)
             res.extend(list(map(sanitize_probe_result, matches)))
     # get first 3 elements
@@ -158,9 +158,14 @@ class Unittest(unittest.TestCase):
         expected = ['', 'ec2-50-112-93-113.us-west-2.compute.amazonaws.com (50.112.93.113)  95.990', '']
         self.assertEqual(expected, separate_three_probes(line))
 
-        # line = '* 172.16.252.156 (172.16.252.156)  128.874 ms  128.845 ms'
-        # expected = ['*', '', '']
-        # self.assertEqual(expected, separate_three_probes(line))
+        # should remove exceptional symbols
+        line = '10.188.60.105 (10.188.60.105)  1028.632 ms !H  1028.753 ms !H  1028.303 ms !H'
+        expected = [
+            '10.188.60.105 (10.188.60.105)  1028.632',
+            '1028.753',
+            '1028.303',
+        ]
+        self.assertEqual(expected, separate_three_probes(line))
 
     def test_traceroute_parsing(self):
         # Sample traceroute log
