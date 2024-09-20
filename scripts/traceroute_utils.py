@@ -1,9 +1,40 @@
+import json
+import os
 import re
 import unittest
 from typing import Dict, List, Tuple
 
 from scripts.utilities.IpQuery import IpQuery
 from scripts.utils import find_files
+
+traceroute_exceptions = {
+    "!H": "Host Unreachable",
+    "!N": "Network Unreachable",
+    "!X": "Communication Administratively Prohibited",
+    "!P": "Protocol Unreachable",
+    "!S": "Source Route Failed",
+    "!F": "Fragmentation Needed and Don't Fragment was Set",
+    "!V": "Host Precedence Violation",
+    "!C": "Precedence Cutoff in Effect",
+    "*": "Request Timed Out",
+    "!T": "Administratively Prohibited",
+    "!A": "Host Unreachable for Type of Service",
+    "!M": "Administratively Prohibited (Destination Host)",
+    "!Z": "Access Administratively Prohibited to Destination Network",
+    "!Q": "Source Quench",
+    "!U": "Destination Host Unknown",
+    "!I": "Source Host Isolated",
+    "!K": "Host Unreachable for Type of Service",
+    "!0": "Net Unreachable for Type of Service",
+    "!1": "Host Unreachable for Type of Service",
+    "!2": "Protocol Unreachable",
+    "!3": "Port Unreachable",
+    "!4": "Fragmentation Needed and Don't Fragment was Set",
+    "!5": "Source Route Failed",
+    "!6": "Destination Network Unknown",
+    "!7": "Destination Host Unknown",
+    "!<n>": "ICMP Unreachable Code <n>"
+}
 
 
 def parse_traceroute_log(content):
@@ -25,8 +56,7 @@ def parse_traceroute_log(content):
 
 
 def sanitize_probe_result(probe_result: str):
-    res = probe_result.replace('!N', '')
-    res = res.strip()
+    res = probe_result.strip()
     return res
 
 
@@ -47,11 +77,20 @@ def separate_three_probes(line: str) -> List[str]:
     return res[:3]
 
 
+def detect_probe_exception(line: str) -> str | None:
+    if '!' in line:
+        reg = r'!\w'
+        match = re.search(reg, line)
+        if match:
+            return match.group(0)
+    return None
+
+
 def extract_host_info(probe_str: str) -> Dict:
     res = {
         'hostname': None,
         'ip': None,
-        'rtt_ms': None
+        'rtt_ms': None,
     }
     if not probe_str or probe_str == '*':
         return res
@@ -70,7 +109,7 @@ def extract_host_info(probe_str: str) -> Dict:
 
 def parse_traceroute_line(line: str) -> List[Dict[str, str]]:
     three_probes = separate_three_probes(line)
-
+    exception_symbol = detect_probe_exception(line)
     results = []
     last_valid_probe_info = None
     for probe in three_probes:
@@ -79,6 +118,11 @@ def parse_traceroute_line(line: str) -> List[Dict[str, str]]:
             if last_valid_probe_info:
                 probe_info['hostname'] = last_valid_probe_info['hostname']
                 probe_info['ip'] = last_valid_probe_info['ip']
+
+        if exception_symbol:
+            probe_info['exception'] = exception_symbol
+        else:
+            probe_info['exception'] = None
         results.append(probe_info)
 
         if probe_info['hostname']:
@@ -209,17 +253,20 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
-                'rtt_ms': '2.875'
+                'rtt_ms': '2.875',
+                'exception': None,
             },
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
-                'rtt_ms': '2.454'
+                'rtt_ms': '2.454',
+                'exception': None,
             },
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
-                'rtt_ms': '2.127'
+                'rtt_ms': '2.127',
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -229,17 +276,20 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
-                'rtt_ms': '86.353'
+                'rtt_ms': '86.353',
+                'exception': None,
             },
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
-                'rtt_ms': '87.353'
+                'rtt_ms': '87.353',
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -249,17 +299,20 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
-                'rtt_ms': '86.353'
+                'rtt_ms': '86.353',
+                'exception': None,
             },
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
             {
                 'hostname': '192.168.1.2',
                 'ip': '192.168.1.2',
-                'rtt_ms': '87.353'
+                'rtt_ms': '87.353',
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -269,17 +322,20 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
-                'rtt_ms': '86.353'
+                'rtt_ms': '86.353',
+                'exception': None,
             },
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
-                'rtt_ms': '87.353'
+                'rtt_ms': '87.353',
+                'exception': None,
             },
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -289,17 +345,20 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -308,17 +367,20 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': 'undefined.hostname.localhost',
                 'ip': '206.224.65.150',
-                'rtt_ms': '170.340'
+                'rtt_ms': '170.340',
+                'exception': None,
             },
             {
                 'hostname': 'undefined.hostname.localhost',
                 'ip': '206.224.65.146',
-                'rtt_ms': '138.302'
+                'rtt_ms': '138.302',
+                'exception': None,
             },
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -328,17 +390,20 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': '108.166.240.39',
                 'ip': '108.166.240.39',
-                'rtt_ms': '86.353'
+                'rtt_ms': '86.353',
+                'exception': None,
             },
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -348,17 +413,20 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': None,
                 'ip': None,
-                'rtt_ms': None
+                'rtt_ms': None,
+                'exception': None,
             },
             {
                 'hostname': '172.16.252.156',
                 'ip': '172.16.252.156',
                 'rtt_ms': '128.874',
+                'exception': None,
             },
             {
                 'hostname': '172.16.252.156',
                 'ip': '172.16.252.156',
                 'rtt_ms': '128.845',
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
@@ -368,20 +436,30 @@ class Unittest(unittest.TestCase):
             {
                 'hostname': 'undefined.hostname.localhost',
                 'ip': '206.224.66.150',
-                'rtt_ms': '90.098'
+                'rtt_ms': '90.098',
+                'exception': None,
             },
             {
                 'hostname': 'undefined.hostname.localhost',
                 'ip': '206.224.66.149',
-                'rtt_ms': '89.829'
+                'rtt_ms': '89.829',
+                'exception': None,
             },
             {
                 'hostname': 'undefined.hostname.localhost',
                 'ip': '206.224.66.147',
-                'rtt_ms': '89.304'
+                'rtt_ms': '89.304',
+                'exception': None,
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
+
+    def test_detect_probe_exception(self):
+        line = '192.168.1.1 (192.168.1.1)  22.141 ms !N  20.443 ms !N  19.786 ms !N'
+        self.assertEqual('!N', detect_probe_exception(line))
+
+        line = '192.168.1.1 (192.168.1.1)  22.141 ms  20.443 ms  19.786 ms'
+        self.assertEqual(None, detect_probe_exception(line))
 
     def test_line_parsing_with_exceptions(self):
         line = '192.168.1.1 (192.168.1.1)  22.141 ms !N  20.443 ms !N  19.786 ms !N'
@@ -390,16 +468,19 @@ class Unittest(unittest.TestCase):
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
                 'rtt_ms': '22.141',
+                'exception': '!N'
             },
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
                 'rtt_ms': '20.443',
+                'exception': '!N'
             },
             {
                 'hostname': '192.168.1.1',
                 'ip': '192.168.1.1',
                 'rtt_ms': '19.786',
+                'exception': '!N'
             },
         ]
         self.assertEqual(expected, parse_traceroute_line(line))
