@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,16 +15,31 @@ OUTPUT_DIR = os.path.join(os.getcwd(), '../../outputs/overall')
 
 
 def get_rtt_diff_series_between_hops(df: pd.DataFrame, hop1: int, hop2: int):
+    """
+    Get the RTT difference series between two hops
+    :param df:
+    :param hop1:
+    :param hop2: -1 means the last hop
+    :return:
+    """
     if hop1 <= 0:
         raise ValueError('hop1 must be greater than 0')
-    if hop2 < hop1:
+    if hop2 != -1 and hop2 < hop1:
         raise ValueError('hop2 must be greater than hop1')
+
     _df = df[df['rtt_ms'].notna() & df['exception'].isna()]
-    hop_df = _df[(_df['hop_number'] == hop1) | (_df['hop_number'] == hop2)]
-    hop_df = hop_df.groupby(['start_time', 'hop_number']).agg({'rtt_ms': 'mean'}).reset_index()
-    result = hop_df.pivot(index='start_time', columns='hop_number', values='rtt_ms')
-    result['rtt_diff'] = result[hop2] - result[hop1]
-    return result['rtt_diff'].dropna().astype(float)
+    hop_df = _df.groupby(['start_time', 'hop_number']).agg({'rtt_ms': 'mean'}).reset_index()
+    result = []
+    for _, group in hop_df.groupby('start_time'):
+        if hop2 == -1:
+            hop2 = group['hop_number'].max()
+        hop1_rtt_values = group[group['hop_number'] == hop1]['rtt_ms'].values
+        hop2_rtt_values = group[group['hop_number'] == hop2]['rtt_ms'].values
+        if len(hop1_rtt_values) == 0 or len(hop2_rtt_values) == 0:
+            continue
+        rtt_diff = hop2_rtt_values[0] - hop1_rtt_values[0]
+        result.append(rtt_diff)
+    return pd.Series(result).dropna().astype(float)
 
 
 def get_largest_hop_number_of_given_ip_prefix(df: pd.DataFrame, ip_prefix: str):
@@ -37,13 +53,31 @@ def get_largest_hop_number_of_given_ip_prefix(df: pd.DataFrame, ip_prefix: str):
 # class UnitTest(unittest.TestCase):
 #     def test_get_largest_hop_number_of_given_ip_prefix(self):
 #         df = pd.DataFrame({
+#             'start_time': ['2021-08-01 00:00:00', '2021-08-01 00:00:00', '2021-08-01 00:00:00'],
 #             'ip': ['206.224.64.190', '206.224.64.185', '206.224.64.63'],
 #             'hop_number': [4, 5, 6],
+#             'exception': [None, None, None],
 #         })
 #         self.assertEqual(6, get_largest_hop_number_of_given_ip_prefix(df, '206.224'))
+#
+#     def test_get_rtt_diff_with_last_hop(self):
+#         df = pd.DataFrame({
+#             'start_time': ['2021-08-01 00:00:00', '2021-08-01 00:00:00', '2021-08-01 00:00:00'],
+#             'hop_number': [1, 2, 3],
+#             'rtt_ms': [3, 9, 13],
+#             'exception': [None, None, None],
+#         })
+#         rtt_diff_series = get_rtt_diff_series_between_hops(df, hop1=1, hop2=-1)
+#         self.assertEqual(10, rtt_diff_series[0])
 
 
-def get_datasource_of_bent_pipe_rtt_breakdown():
+def get_datasource_of_bent_pipe_rtt_breakdown() -> dict:
+    """
+    Get the datasource of bent-pipe rtt breakdown
+    - d2g: dishy to gs
+    - g2p: gs to pop
+    :return:
+    """
     # ALASKA
     ak_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'alaska_starlink_trip/traceroute/starlink_traceroute.csv'))
     ak_d2g = get_rtt_diff_series_between_hops(ak_tr_df, hop1=1, hop2=2)
@@ -75,35 +109,47 @@ def get_datasource_of_bent_pipe_rtt_breakdown():
     }
 
 
-def get_datasource_of_overall_rtt_breakdown():
+def get_datasource_of_overall_rtt_breakdown() -> dict:
+    """
+    Get the datasource of overall rtt breakdown
+    - d2g: dishy to gs
+    - g2p: gs to pop
+    - p2p: pop to endpoint
+    :return:
+    """
     # ALASKA
     ak_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'alaska_starlink_trip/traceroute/starlink_traceroute.csv'))
     ak_d2g = get_rtt_diff_series_between_hops(ak_tr_df, hop1=1, hop2=2)
     ak_g2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=2, hop2=3)
-    # ak_p2p = get_rtt_diff_between_hops(ak_tr_df, hop1=3, hop2='$')
+    ak_p2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=3, hop2=-1)
 
     # HAWAII
     hi_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'hawaii_starlink_trip/traceroute/starlink_traceroute.csv'))
     hi_d2g = get_rtt_diff_series_between_hops(hi_tr_df, hop1=1, hop2=2)
     hi_g2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=2, hop2=3)
+    hi_p2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=3, hop2=-1)
 
     # MAINE
     me_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'maine_starlink_trip/traceroute/starlink_traceroute.csv'))
     me_d2g = get_rtt_diff_series_between_hops(me_tr_df, hop1=1, hop2=2)
     me_g2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=2, hop2=3)
+    me_p2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=3, hop2=-1)
 
     return {
         'alaska': {
             'dishy_to_gs': ak_d2g,
-            'gs_to_pop': ak_g2p
+            'gs_to_pop': ak_g2p,
+            'pop_to_endpoint': ak_p2p
         },
         'hawaii': {
             'dishy_to_gs': hi_d2g,
-            'gs_to_pop': hi_g2p
+            'gs_to_pop': hi_g2p,
+            'pop_to_endpoint': hi_p2p
         },
         'maine': {
             'dishy_to_gs': me_d2g,
-            'gs_to_pop': me_g2p
+            'gs_to_pop': me_g2p,
+            'pop_to_endpoint': me_p2p
         },
     }
 
@@ -111,30 +157,55 @@ def get_datasource_of_overall_rtt_breakdown():
 config = {
     'alaska-dishy_to_gs': {
         'label': 'Dishy<->GS',
+        'color': 'g',
     },
     'alaska-gs_to_pop': {
         'label': 'GS<->PoP',
+        'color': 'b',
+    },
+    'alaska-pop_to_endpoint': {
+        'label': 'PoP<->Endpoint',
+        'color': 'purple',
     },
     'hawaii-dishy_to_gs': {
         'label': 'Dishy<->GS',
+        'color': 'g',
     },
     'hawaii-gs_to_pop': {
         'label': 'GS<->PoP',
+        'color': 'b',
+    },
+    'hawaii-pop_to_endpoint': {
+        'label': 'PoP<->Endpoint',
+        'color': 'purple',
     },
     'maine-dishy_to_gs': {
         'label': 'Dishy<->GS',
+        'color': 'g',
     },
     'maine-gs_to_pop': {
         'label': 'GS<->PoP',
+        'color': 'b',
+    },
+    'maine-pop_to_endpoint': {
+        'label': 'PoP<->Endpoint',
+        'color': 'purple',
     },
 }
 
 
-def plot_rtt_breakdown_swimlane_chart(datasource: dict, config: dict, output_path: str = 'swimlane.png'):
-    cmap20 = plt.cm.tab20
-    colors = [cmap20(0), cmap20(4), cmap20(8)]
+def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], config: dict,
+                                      output_path: str = 'swimlane.png'):
+    """
+    Plot the swimlane chart of RTT breakdown
+    :param datasource:
+    :param directions: can be ['pop_to_endpoint', 'gs_to_pop'] or ['pop_to_endpoint', 'gs_to_pop', 'dishy_to_gs']
+    :param config:
+    :param output_path:
+    :return:
+    """
     group_colors = ['#f0f0f0', '#e0e0e0']
-    fig, ax = plt.subplots(figsize=(5, 3))
+    fig, ax = plt.subplots(figsize=(5, 3.5))
 
     group_idx = 0
     idx = 0
@@ -142,21 +213,24 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, config: dict, output_pat
     ylabels = []
     group_positions = []
 
+    group_item_count = len(directions)
+
     for name, val in datasource.items():
         group_start = position
         # Add a background rectangle for the group
+        group_height = group_item_count * 1.38
         rect = Rectangle((-25, position - 0.5),
                          200,
-                         2.75,  # Height to cover two lanes plus spacing
+                         group_height,
                          facecolor=group_colors[group_idx % 2],
                          edgecolor='none',
                          zorder=0)  # Ensure it's drawn behind the boxplots
 
         ax.add_patch(rect)
 
-        for direction in ['pop_to_endpoint', 'gs_to_pop', 'dishy_to_gs']:
-            if direction not in val:
-                continue
+        # reverse the directions to make the chart more readable
+        reversed_directions = directions[::-1]
+        for direction in reversed_directions:
             series = val[direction]
             box = ax.boxplot(series,
                              positions=[position],
@@ -166,10 +240,10 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, config: dict, output_pat
                              zorder=3,
                              showfliers=False,
                              )  # Ensure boxplots are drawn on top
-            color = colors[idx % 2]
-            ylabels.append(config[f'{name}-{direction}']['label'])
+            conf = config[f'{name}-{direction}']
+            ylabels.append(conf['label'])
 
-            plt.setp(box['boxes'], facecolor=color)
+            plt.setp(box['boxes'], facecolor=conf['color'])
             plt.setp(box['medians'], color='black', linewidth=1.5)
 
             idx += 1
@@ -204,20 +278,25 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, config: dict, output_pat
 
 def plot_bent_pipe_rtt_breakdown():
     data = get_datasource_of_bent_pipe_rtt_breakdown()
-    plot_rtt_breakdown_swimlane_chart(data, config=config,
-                                      output_path=os.path.join(OUTPUT_DIR, 'bent_pipe_breakdown.png'))
+    plot_rtt_breakdown_swimlane_chart(data,
+                                      directions=['dishy_to_gs', 'gs_to_pop'],
+                                      config=config,
+                                      output_path=os.path.join(OUTPUT_DIR, 'bent_pipe_latency_breakdown.png'))
 
 
 def plot_overall_rtt_breakdown():
     data = get_datasource_of_overall_rtt_breakdown()
-    plot_rtt_breakdown_swimlane_chart(data, config=config,
-                                      output_path=os.path.join(OUTPUT_DIR, 'bent_pipe_breakdown.png'))
+    plot_rtt_breakdown_swimlane_chart(data,
+                                      directions=['dishy_to_gs', 'gs_to_pop', 'pop_to_endpoint'],
+                                      config=config,
+                                      output_path=os.path.join(OUTPUT_DIR, 'overall_latency_breakdown.png'))
 
 
 def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
     plot_bent_pipe_rtt_breakdown()
+    plot_overall_rtt_breakdown()
 
 
 if __name__ == '__main__':
