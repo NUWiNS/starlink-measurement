@@ -3,14 +3,7 @@ outputs/*
 storage/*
 maine_starlink_trip/*
 .idea/*
-datasets/dev/*
+datasets/*
 **/__pycache__/*
 **/storage/*
-datasets/maine_starlink_trip/xcal
-datasets/maine_starlink_trip/dish_history
-datasets/maine_starlink_trip/dish_metrics
-datasets/maine_starlink_trip/raw/**/*.csv
-datasets/maine_starlink_trip/tmp
-datasets/alaska_starlink_trip/
-datasets/maine_starlink_trip/**/*
-datasets/hawaii_starlink_trip/
+
