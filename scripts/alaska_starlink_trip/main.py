@@ -1,5 +1,9 @@
-from separate_dataset import main as separate_dataset_main
+import os
+import sys
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
+from separate_dataset import main as separate_dataset_main
 from parse_nuttcp_data_to_csv import main as parse_nuttcp_data_to_csv_main
 from parse_iperf_data_to_csv import main as parse_iperf_data_to_csv_main
 from parse_weather_area_data_to_csv import main as parse_weather_area_data_to_csv_main
@@ -19,20 +23,19 @@ def parsing():
     parse_weather_area_data_to_csv_main()
     append_weather_area_to_tput_dataset_main()
 
-    # parse_ping_result_to_csv_main()
-    # parse_traceroute_data_to_csv_main()
-    # parse_nslookup_data_to_csv_main()
+    parse_ping_result_to_csv_main()
+    parse_traceroute_data_to_csv_main()
+    parse_nslookup_data_to_csv_main()
 
 
 def plotting():
     plot_cdf_throughput_main()
-    # plot_rtt_from_csv_main()
-    # plot_traceroute_main()
+    plot_rtt_from_csv_main()
+    plot_traceroute_main()
 
 
 def main():
-    # separate_dataset_main()
-
+    separate_dataset_main()
     parsing()
     plotting()
 

@@ -108,8 +108,9 @@ def process_nuttcp_data_for_operator(operator: str):
 
 
 def main():
-    if not os.path.exists(merged_csv_dir):
-        os.mkdir(merged_csv_dir)
+    for dir in [base_dir, merged_csv_dir, tmp_data_path]:
+        if not os.path.exists(dir):
+            os.makedirs(dir, exist_ok=True)
 
     process_nuttcp_data_for_operator('att')
     print('----------------------------------')

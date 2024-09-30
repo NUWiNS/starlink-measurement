@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
 from separate_dataset import main as separate_dataset_main
 
 from parse_nuttcp_data_to_csv import main as parse_nuttcp_data_to_csv_main

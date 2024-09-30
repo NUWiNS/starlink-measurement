@@ -1,5 +1,9 @@
-from separate_dataset import main as separate_dataset_main
+import os
+import sys
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
+from separate_dataset import main as separate_dataset_main
 from parse_nuttcp_data_to_csv import main as parse_nuttcp_data_to_csv_main
 from parse_iperf_data_to_csv import main as parse_iperf_data_to_csv_main
 from parse_weather_area_data_to_csv import main as parse_weather_area_data_to_csv_main
@@ -31,8 +35,8 @@ def plotting():
 
 
 def main():
-    # separate_dataset_main()
-    # parsing()
+    separate_dataset_main()
+    parsing()
     plotting()
 
 

@@ -4,6 +4,7 @@ storage/*
 maine_starlink_trip/*
 .idea/*
 datasets/*
+!datasets/.gitkeep
 **/__pycache__/*
 **/storage/*
 
