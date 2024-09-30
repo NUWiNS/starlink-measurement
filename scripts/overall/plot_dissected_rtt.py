@@ -13,7 +13,7 @@ DATA_DIR = os.path.join(os.getcwd(), '../../datasets')
 OUTPUT_DIR = os.path.join(os.getcwd(), '../../outputs/overall')
 
 
-def get_rtt_diff_between_hops(df: pd.DataFrame, hop1: int, hop2: int):
+def get_rtt_diff_series_between_hops(df: pd.DataFrame, hop1: int, hop2: int):
     if hop1 <= 0:
         raise ValueError('hop1 must be greater than 0')
     if hop2 < hop1:
@@ -24,14 +24,6 @@ def get_rtt_diff_between_hops(df: pd.DataFrame, hop1: int, hop2: int):
     result = hop_df.pivot(index='start_time', columns='hop_number', values='rtt_ms')
     result['rtt_diff'] = result[hop2] - result[hop1]
     return result['rtt_diff'].dropna().astype(float)
-
-
-def get_dishy_to_gs_series(df: pd.DataFrame, dishy_hop: int, gs_hop: int):
-    return get_rtt_diff_between_hops(df, dishy_hop, gs_hop)
-
-
-def get_gs_to_pop_series(df: pd.DataFrame, gs_hop: int, pop_hop: int):
-    return get_rtt_diff_between_hops(df, gs_hop, pop_hop)
 
 
 def get_largest_hop_number_of_given_ip_prefix(df: pd.DataFrame, ip_prefix: str):
@@ -49,26 +41,56 @@ def get_largest_hop_number_of_given_ip_prefix(df: pd.DataFrame, ip_prefix: str):
 #             'hop_number': [4, 5, 6],
 #         })
 #         self.assertEqual(6, get_largest_hop_number_of_given_ip_prefix(df, '206.224'))
-#
 
-def get_datasource():
+
+def get_datasource_of_bent_pipe_rtt_breakdown():
     # ALASKA
     ak_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'alaska_starlink_trip/traceroute/starlink_traceroute.csv'))
-    ak_d2g = get_dishy_to_gs_series(ak_tr_df, dishy_hop=1, gs_hop=2)
-    ak_pop_hop = get_largest_hop_number_of_given_ip_prefix(ak_tr_df, '206.224')
-    ak_g2p = get_gs_to_pop_series(ak_tr_df, gs_hop=2, pop_hop=ak_pop_hop)
+    ak_d2g = get_rtt_diff_series_between_hops(ak_tr_df, hop1=1, hop2=2)
+    ak_g2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=2, hop2=3)
 
     # HAWAII
     hi_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'hawaii_starlink_trip/traceroute/starlink_traceroute.csv'))
-    hi_d2g = get_dishy_to_gs_series(hi_tr_df, dishy_hop=1, gs_hop=2)
-    hi_pop_hop = get_largest_hop_number_of_given_ip_prefix(hi_tr_df, '206.224')
-    hi_g2p = get_gs_to_pop_series(hi_tr_df, gs_hop=2, pop_hop=hi_pop_hop)
+    hi_d2g = get_rtt_diff_series_between_hops(hi_tr_df, hop1=1, hop2=2)
+    hi_g2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=2, hop2=3)
 
     # MAINE
     me_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'maine_starlink_trip/traceroute/starlink_traceroute.csv'))
-    me_d2g = get_dishy_to_gs_series(me_tr_df, dishy_hop=1, gs_hop=2)
-    me_pop_hop = get_largest_hop_number_of_given_ip_prefix(me_tr_df, '206.224')
-    me_g2p = get_gs_to_pop_series(me_tr_df, gs_hop=2, pop_hop=me_pop_hop)
+    me_d2g = get_rtt_diff_series_between_hops(me_tr_df, hop1=1, hop2=2)
+    me_g2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=2, hop2=3)
+
+    return {
+        'alaska': {
+            'dishy_to_gs': ak_d2g,
+            'gs_to_pop': ak_g2p
+        },
+        'hawaii': {
+            'dishy_to_gs': hi_d2g,
+            'gs_to_pop': hi_g2p
+        },
+        'maine': {
+            'dishy_to_gs': me_d2g,
+            'gs_to_pop': me_g2p
+        },
+    }
+
+
+def get_datasource_of_overall_rtt_breakdown():
+    # ALASKA
+    ak_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'alaska_starlink_trip/traceroute/starlink_traceroute.csv'))
+    ak_d2g = get_rtt_diff_series_between_hops(ak_tr_df, hop1=1, hop2=2)
+    ak_g2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=2, hop2=3)
+    # ak_p2p = get_rtt_diff_between_hops(ak_tr_df, hop1=3, hop2='$')
+
+    # HAWAII
+    hi_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'hawaii_starlink_trip/traceroute/starlink_traceroute.csv'))
+    hi_d2g = get_rtt_diff_series_between_hops(hi_tr_df, hop1=1, hop2=2)
+    hi_g2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=2, hop2=3)
+
+    # MAINE
+    me_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'maine_starlink_trip/traceroute/starlink_traceroute.csv'))
+    me_d2g = get_rtt_diff_series_between_hops(me_tr_df, hop1=1, hop2=2)
+    me_g2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=2, hop2=3)
 
     return {
         'alaska': {
@@ -108,10 +130,10 @@ config = {
 }
 
 
-def plot_swimlane_chart(datasource: dict, config: dict, output_path: str = 'swimlane.png'):
+def plot_rtt_breakdown_swimlane_chart(datasource: dict, config: dict, output_path: str = 'swimlane.png'):
     cmap20 = plt.cm.tab20
-    colors = [cmap20(0), cmap20(4)]
-    group_colors = ['#f0f0f0', '#e0e0e0', '#d0d0d0']  # Light gray colors for alternating groups
+    colors = [cmap20(0), cmap20(4), cmap20(8)]
+    group_colors = ['#f0f0f0', '#e0e0e0']
     fig, ax = plt.subplots(figsize=(5, 3))
 
     group_idx = 0
@@ -126,13 +148,15 @@ def plot_swimlane_chart(datasource: dict, config: dict, output_path: str = 'swim
         rect = Rectangle((-25, position - 0.5),
                          200,
                          2.75,  # Height to cover two lanes plus spacing
-                         facecolor=group_colors[group_idx % 3],
+                         facecolor=group_colors[group_idx % 2],
                          edgecolor='none',
                          zorder=0)  # Ensure it's drawn behind the boxplots
 
         ax.add_patch(rect)
 
-        for direction in ['gs_to_pop', 'dishy_to_gs']:
+        for direction in ['pop_to_endpoint', 'gs_to_pop', 'dishy_to_gs']:
+            if direction not in val:
+                continue
             series = val[direction]
             box = ax.boxplot(series,
                              positions=[position],
@@ -178,11 +202,22 @@ def plot_swimlane_chart(datasource: dict, config: dict, output_path: str = 'swim
     plt.savefig(output_path)
 
 
+def plot_bent_pipe_rtt_breakdown():
+    data = get_datasource_of_bent_pipe_rtt_breakdown()
+    plot_rtt_breakdown_swimlane_chart(data, config=config,
+                                      output_path=os.path.join(OUTPUT_DIR, 'bent_pipe_breakdown.png'))
+
+
+def plot_overall_rtt_breakdown():
+    data = get_datasource_of_overall_rtt_breakdown()
+    plot_rtt_breakdown_swimlane_chart(data, config=config,
+                                      output_path=os.path.join(OUTPUT_DIR, 'bent_pipe_breakdown.png'))
+
+
 def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
-    data = get_datasource()
-    plot_swimlane_chart(data, config=config, output_path=os.path.join(OUTPUT_DIR, 'bent_pipe_breakdown.png'))
+    plot_bent_pipe_rtt_breakdown()
 
 
 if __name__ == '__main__':
