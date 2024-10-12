@@ -153,7 +153,7 @@ def plot_cdf_of_throughput_with_all_operators(
     ax.grid(True)
     if output_file_path:
         plt.savefig(output_file_path)
-    plt.show()
+    # plt.show()
     plt.close(fig)
 
 

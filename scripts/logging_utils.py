@@ -2,7 +2,7 @@ import logging
 import os
 
 logging.basicConfig(
-    level=logging.DEBUG,  # Set the logging level
+    level=logging.INFO,  # Set the logging level
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # Format of log messages
     datefmt='%Y-%m-%d %H:%M:%S',  # Format of the timestamp
 )

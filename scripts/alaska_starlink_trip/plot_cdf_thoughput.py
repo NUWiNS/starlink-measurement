@@ -4,11 +4,10 @@ import sys
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
-from scripts.logging_utils import create_logger
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from scripts.alaska_starlink_trip.configs import ROOT_DIR
+from scripts.logging_utils import create_logger
 from scripts.cdf_tput_plotting_utils import get_data_frame_from_all_csv, plot_cdf_of_throughput_with_all_operators, \
     plot_cdf_of_throughput, plot_cdf_of_starlink_throughput_by_weather, \
     plot_cdf_tput_tcp_vs_udp_for_starlink_and_cellular
@@ -324,6 +323,38 @@ def read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr(protocol: str, direction: str, 
         output_dir=output_dir
     )
 
+def read_and_plot_xcal_tput_data(output_dir: str):
+    operators = ['att']
+
+    combined_df = pd.DataFrame(columns=['operator', 'throughput_mbps'])
+    stats = {}
+    for operator in operators:
+        df = pd.read_csv(os.path.join(ROOT_DIR, f'xcal/{operator}_smart_tput.csv'))
+        for protocol in ['tcp', 'udp']:
+            for direction in ['downlink', 'uplink']:
+                sub_df = df[(df['app_tput_protocol'] == protocol) & (df['app_tput_direction'] == direction)]
+                if direction == 'downlink':
+                    tput_mbps_df = sub_df['Smart Phone Smart Throughput Mobile Network DL Throughput [Mbps]']
+                elif direction == 'uplink':
+                    tput_mbps_df = sub_df['Smart Phone Smart Throughput Mobile Network UL Throughput [Mbps]']
+                else:
+                    raise ValueError(f'direction should be either downlink or uplink')
+                
+                new_df = pd.DataFrame({'operator': operator, 'throughput_mbps': tput_mbps_df})
+                combined_df = pd.concat([combined_df, new_df], ignore_index=True)
+
+                plot_cdf_of_throughput_with_all_operators(
+                    combined_df,
+                    all_operators=['att', 'verizon'],
+                    data_stats=stats,
+                    title=f'CDF of XCAL Smart Tput: {protocol.upper()} {direction.capitalize()}',
+                    output_file_path=os.path.join(output_dir, f'cdf_xcal_smart_tput_{protocol}_{direction}.png')
+                )
+                print('Done!')
+
+
+    
+
 
 def main():
     if not os.path.exists(base_dir):
@@ -333,41 +364,44 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    read_and_plot_throughput_data('tcp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('tcp', 'uplink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data('udp', 'uplink', output_dir)
-    print("--------------")
+    # read_and_plot_throughput_data('tcp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('tcp', 'uplink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data('udp', 'uplink', output_dir)
+    # print("--------------")
 
-    # By area
-    read_and_plot_throughput_data_by_area_2('tcp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data_by_area_2('tcp', 'uplink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data_by_area_2('udp', 'downlink', output_dir)
-    print("--------------")
-    read_and_plot_throughput_data_by_area_2('udp', 'uplink', output_dir)
-    print("--------------")
+    # # By area
+    # read_and_plot_throughput_data_by_area_2('tcp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data_by_area_2('tcp', 'uplink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data_by_area_2('udp', 'downlink', output_dir)
+    # print("--------------")
+    # read_and_plot_throughput_data_by_area_2('udp', 'uplink', output_dir)
+    # print("--------------")
 
-    # By weather
-    read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
-    read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
-    read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
-    read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
+    # # By weather
+    # read_and_plot_throughput_data_by_weather('tcp', 'downlink', output_dir)
+    # read_and_plot_throughput_data_by_weather('tcp', 'uplink', output_dir)
+    # read_and_plot_throughput_data_by_weather('udp', 'downlink', output_dir)
+    # read_and_plot_throughput_data_by_weather('udp', 'uplink', output_dir)
 
-    # read_and_plot_starlink_throughput_data(output_dir)
-    print("--------------")
+    # # read_and_plot_starlink_throughput_data(output_dir)
+    # print("--------------")
 
-    # Starlink vs Cellular
-    plot_cdf_tput_starlink_vs_cellular('downlink')
-    plot_cdf_tput_starlink_vs_cellular('uplink')
+    # # Starlink vs Cellular
+    # plot_cdf_tput_starlink_vs_cellular('downlink')
+    # plot_cdf_tput_starlink_vs_cellular('uplink')
 
-    # Cubic vs BBR
-    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
-    read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
+    # # Cubic vs BBR
+    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'downlink', output_dir)
+    # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
+
+    # XCAL
+    read_and_plot_xcal_tput_data(output_dir)
 
 
 if __name__ == '__main__':
