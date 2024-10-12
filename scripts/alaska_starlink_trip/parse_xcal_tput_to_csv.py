@@ -1,69 +1,84 @@
-# Filter out the rows where the timestamp are in the range of each tput measurement
-
-
-import glob
 from os import path
-import re
+import os
+import sys
 import pandas as pd
-from scripts.alaska_starlink_trip.configs import ROOT_DIR
-from scripts.constants import DATASET_DIR, OUTPUT_DIR
+
+sys.path.append(path.join(path.dirname(__file__), '../..'))
+
+from scripts.alaska_starlink_trip.labels import DatasetLabel
+from scripts.alaska_starlink_trip.separate_dataset import read_dataset
+from scripts.alaska_starlink_trip.configs import ROOT_DIR, TIMEZONE
+from scripts.constants import DATASET_DIR
+from scripts.utilities.xcal_processing_utils import collect_periods_of_tput_measurements, filter_xcal_logs, read_daily_xcal_data, tag_xcal_logs_with_essential_info
 
 
-def collect_periods_of_tput_measurements(base_dir: str, protocol: str, direction: str) -> list[tuple[str, str]]:
-    # find all the files starting with {protocol}_{direction}*.out
-    pattern = f'{protocol}_{direction}*.out'
-    files = glob.glob(path.join(base_dir, pattern))
+XCAL_TIME_STAMP = 'TIME_STAMP'
+XCAL_LOCAL_DATETIME = 'LOCAL_DATETIME'
+XCAL_EVENT_TECHNOLOGY = 'Event Technology'
+XCAL_EVENT_TECHNOLOGY_BAND = 'Event Technology(Band)'
+XCAL_SMART_TPUT_DL = 'Smart Phone Smart Throughput Mobile Network DL Throughput [Mbps]'
+XCAL_SMART_TPUT_UL = 'Smart Phone Smart Throughput Mobile Network UL Throughput [Mbps]'
 
-    def extract_period_from_file(file: str) -> tuple[str, str]:
-        with open(file, 'r') as f:
-            lines = f.readlines()
-            start_time_row = lines[0].strip()
-            end_time_row = lines[-1].strip() 
-            # use regex to extract the timestamp
-            start_time = re.search(r'Start time: (\d+)', start_time_row).group(1)
-            end_time = re.search(r'End time: (\d+)', end_time_row).group(1)
-            if start_time and end_time:
-                return (start_time, end_time)
-            else:
-                raise ValueError(f'Failed to extract start and end time from {file}')
-    periods = []
-    # read each file and extract the first and last line as the start and end timestamp
-    # e.g., Start time: 1718727965324\n * End time: 1718727984122
-    for file in files:
-        period = extract_period_from_file(file)
-        periods.append(period)
-
-    return periods
-
-def read_daily_xcal_data(base_dir: str, date: str, location: str, operator: str) -> pd.DataFrame:
-    pass
-
-def filter_xcal_logs(df_xcal_logs: pd.DataFrame, periods: list[tuple[str, str]]) -> pd.DataFrame:
-    pass
 
 def main():
     # deal with one location and one operator per time
-    operator = 'starlink'
+    operator = 'att'
     location = 'alaska'
-    dates = ['20240618']
 
     xcal_log_dir = path.join(DATASET_DIR, 'xcal')
-    measurement_log_dir = path.join(ROOT_DIR, f'raw/{operator}_merged')
     output_dir = path.join(ROOT_DIR, f'xcal')
 
-    periods_of_tcp_dl = collect_periods_of_tput_measurements(base_dir=measurement_log_dir, protocol='tcp', direction='downlink')
-    periods_of_tcp_ul = collect_periods_of_tput_measurements(base_dir=measurement_log_dir, protocol='tcp', direction='uplink')
-    periods_of_udp_dl = collect_periods_of_tput_measurements(base_dir=measurement_log_dir, protocol='udp', direction='downlink')
-    periods_of_udp_ul = collect_periods_of_tput_measurements(base_dir=measurement_log_dir, protocol='udp', direction='uplink')
+    if not path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
+
+    all_tput_periods = []
+    all_dates = set()
+    for dir in dir_list:
+        # dir is like /path/to/20240621/153752852
+        date = dir.split('/')[-2]
+        all_dates.add(date)
+
+        try:
+          periods_of_tcp_dl = collect_periods_of_tput_measurements(base_dir=dir, protocol='tcp', direction='downlink')
+          periods_of_tcp_ul = collect_periods_of_tput_measurements(base_dir=dir, protocol='tcp', direction='uplink')
+          periods_of_udp_dl = collect_periods_of_tput_measurements(base_dir=dir, protocol='udp', direction='downlink')
+          periods_of_udp_ul = collect_periods_of_tput_measurements(base_dir=dir, protocol='udp', direction='uplink')
+          all_tput_periods.extend(periods_of_tcp_dl + periods_of_tcp_ul + periods_of_udp_dl + periods_of_udp_ul)
+        except Exception as e:
+            raise Exception(f"Failed to collect periods of tput measurements: {str(e)}")
+    print("Successfully collected periods of tput measurements.")
 
     df_xcal_all_logs = pd.DataFrame()
-    for date in dates:
-        df_xcal_daily_data = read_daily_xcal_data(base_dir=xcal_log_dir, date=date, location=location, operator=operator)
-        df_xcal_all_logs = pd.concat([df_xcal_all_logs, df_xcal_daily_data])
+    for date in all_dates:
+        try:
+            df_xcal_daily_data = read_daily_xcal_data(base_dir=xcal_log_dir, date=date, location=location, operator=operator)
+            df_xcal_all_logs = pd.concat([df_xcal_all_logs, df_xcal_daily_data])
+            print(f"Successfully read and concatenated xcal data for date: {date}")
+        except Exception as e:
+            print(f"Failed to read or concatenate xcal data for date {date}: {str(e)}")
 
-    all_tput_periods = periods_of_tcp_dl + periods_of_tcp_ul + periods_of_udp_dl + periods_of_udp_ul
-    df_xcal_tput_logs = filter_xcal_logs(df_xcal_all_logs, periods=all_tput_periods)
-    df_xcal_tput_logs.to_csv(path.join(output_dir, f'{operator}_smart_tput.csv'), index=False)
+    try:
+        df_xcal_tput_logs = filter_xcal_logs(df_xcal_all_logs, periods=all_tput_periods)
+        print("Successfully filtered xcal logs.")
+
+        # drop rows with empty dl and ul tput columns
+        df_xcal_tput_logs = df_xcal_tput_logs[df_xcal_tput_logs[XCAL_SMART_TPUT_DL].notna() & df_xcal_tput_logs[XCAL_SMART_TPUT_UL].notna()]
+
+        df_xcal_tput_logs = tag_xcal_logs_with_essential_info(df_xcal_tput_logs, periods=all_tput_periods, timezone=TIMEZONE)
+        
+        # sort by LOCAL_DATETIME
+        df_xcal_tput_logs = df_xcal_tput_logs.sort_values(by='utc_dt')
+        # fill empty columns with the nearest non-null value
+        for col in [XCAL_EVENT_TECHNOLOGY, XCAL_EVENT_TECHNOLOGY_BAND]:
+            df_xcal_tput_logs[col] = df_xcal_tput_logs[col].ffill()
+        
+        output_file = path.join(output_dir, f'{operator}_smart_tput.csv')
+        df_xcal_tput_logs.to_csv(output_file, index=False)
+        print(f"Successfully saved filtered xcal logs to {output_file}")
+    except Exception as e:
+        print(f"Failed to filter xcal logs: {str(e)}")
 
 
 if __name__ == "__main__":
