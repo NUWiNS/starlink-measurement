@@ -2,12 +2,13 @@ import os
 import sys
 from typing import List
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
 from scripts.alaska_starlink_trip.labels import DatasetLabel
 from scripts.alaska_starlink_trip.separate_dataset import read_dataset
-from scripts.logging_utils import create_logger
+from scripts.logging_utils import PrintLogger, create_logger
 from scripts.time_utils import now
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 import pandas as pd
 
@@ -21,9 +22,10 @@ merged_csv_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
 merged_csv_dir_for_cubic = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_cubic')
 merged_csv_dir_for_bbr = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_bbr')
 tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
+accounting_dir = os.path.join('./accounting')
 
 logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, f'parse_nuttcp_data_to_csv.{now()}.log'))
-
+accounting_logger = create_logger('metrics', filename=os.path.join(accounting_dir, f'nuttcp_accounting.{now()}.log'))
 
 def parse_nuttcp_content(content, protocol):
     """
@@ -63,7 +65,8 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
                     protocol=protocol,
                     direction=direction,
                     file_path=file,
-                    timezone_str='US/Alaska'
+                    timezone_str='US/Alaska',
+                    logger=accounting_logger
                 )
                 processor.process()
                 data_points = processor.get_result()
@@ -102,7 +105,7 @@ def process_nuttcp_data_for_operator(
     :return:
     """
     dir_list = read_dataset(operator, data_label)
-
+    
     logger.info(f'Processing {operator.capitalize()} Phone\'s NUTTCP throughput data...')
 
     tcp_downlink_files = find_tcp_downlink_files_by_dir_list(dir_list)

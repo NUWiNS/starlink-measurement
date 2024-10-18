@@ -1,4 +1,5 @@
 import enum
+from logging import Logger
 import os
 import unittest
 from abc import ABC, abstractmethod
@@ -11,7 +12,7 @@ import numpy as np
 
 from scripts.time_utils import StartEndLogTimeProcessor, format_datetime_as_iso_8601
 from scripts.utils import safe_get
-
+from scripts.logging_utils import SilentLogger
 
 def extract_operator_from_filename(file_path):
     """
@@ -20,6 +21,8 @@ def extract_operator_from_filename(file_path):
     """
     operator = file_path.split(os.sep)[-4]  # Adjust based on the exact structure of your file paths
     return operator
+
+
 
 
 class TputBaseProcessor(ABC):
@@ -41,6 +44,7 @@ class TputBaseProcessor(ABC):
             direction: str,
             file_path: str = None,
             timezone_str: str = None,
+            logger: Logger = None,
     ):
         self.content = content
         self.protocol = protocol
@@ -51,8 +55,10 @@ class TputBaseProcessor(ABC):
         self.timezone_str = timezone_str
         self.start_time = None
         self.end_time = None
+        self.logger = logger or SilentLogger()
 
     def process(self):
+        self.logger.info(f'[start processing] {self.file_path}')
         start_end_time_list = StartEndLogTimeProcessor.get_start_end_time_from_log(
             self.content,
             timezone_str=self.timezone_str
@@ -62,11 +68,23 @@ class TputBaseProcessor(ABC):
             # should only be one pair of start and end time
             self.start_time, self.end_time = start_end_time_list[0]
 
+        estimated_data_points = self.estimate_data_points(self.start_time, self.end_time)
+        self.logger.info(f'-- [estimating data points] {estimated_data_points} (start_time: {self.start_time}, end_time: {self.end_time})')
+
         extracted_result = self.parse_measurement_content(self.content)
         self.status = self.check_validity(extracted_result)
+        self.logger.info(f'-- [check validity] It is a {self.status} result')
 
         self.data_points = extracted_result['data_points']
+        self.logger.info(f'-- [extracted data points] {len(self.data_points)}, diff from estiamte: {len(self.data_points) - estimated_data_points}, diff from expected: {len(self.data_points) - self.EXPECTED_NUM_OF_DATA_POINTS}')
+        
+        self.logger.info(f'-- [start postprocessing]')
         self.postprocess_data_points()
+        self.logger.info(f'-- [end postprocessing]')
+        self.logger.info(f'[end processing] {self.file_path}\n\n')
+
+    def estimate_data_points(self, start_time: datetime, end_time: datetime):
+        return int((end_time - start_time).total_seconds() / self.INTERVAL_SEC)
 
     def parse_measurement_content(self, content: str):
         data_points = self.parse_data_points(content)

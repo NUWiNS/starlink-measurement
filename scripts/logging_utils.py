@@ -41,3 +41,47 @@ def create_logger(
     logger.addHandler(file_handler)
 
     return logger
+
+class SilentLogger(logging.Logger):
+    def __init__(self, name = 'silent'):
+        super().__init__(name)
+
+    def log(self, message):
+        pass
+
+    def info(self, message):
+        pass
+
+    def error(self, message):
+        pass
+
+    def debug(self, message):
+        pass
+
+    def warning(self, message):
+        pass
+
+    def critical(self, message):
+        pass
+
+class PrintLogger(logging.Logger):
+    def __init__(self, name = 'print'):
+        super().__init__(name)
+
+    def log(self, message):
+        print(message)
+
+    def info(self, message):
+        print(message)
+
+    def error(self, message):
+        print(message)
+
+    def debug(self, message):
+        print(message)
+
+    def warning(self, message):
+        print(message)
+
+    def critical(self, message):
+        print(message)

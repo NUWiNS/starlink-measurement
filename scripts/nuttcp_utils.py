@@ -1,3 +1,4 @@
+from logging import Logger
 import unittest
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
@@ -95,7 +96,9 @@ class NuttcpBaseProcessor(TputBaseProcessor):
 
     @overrides
     def postprocess_data_points(self):
+        self.logger.info(f'-- [start auto_complete_data_points] before: {len(self.data_points)}')
         self.auto_complete_data_points()
+        self.logger.info(f'-- [end auto_complete_data_points] after: {len(self.data_points)}')
 
     @overrides
     def parse_measurement_summary(self, content: str):
@@ -156,8 +159,13 @@ class NuttcpTcpUplinkProcessor(NuttcpTcpBaseProcessor):
     @overrides
     def postprocess_data_points(self):
         # recalculate timestamp for data points
+        self.logger.info(f'-- [start recalculating timestamps]')
         self.recalculate_timestamps_of_receiver_for_data_points()
+        self.logger.info(f'-- [end recalculating timestamps]')
+
+        self.logger.info(f'-- [start auto-completing data points] before: {len(self.data_points)}')
         self.auto_complete_data_points()
+        self.logger.info(f'-- [end auto-completing data points] after: {len(self.data_points)}')
 
     def recalculate_timestamps_of_receiver_for_data_points(self):
         """
@@ -202,16 +210,22 @@ class NuttcpUdpUplinkProcessor(NuttcpUdpBaseProcessor):
 
 class NuttcpProcessorFactory:
     @staticmethod
-    def create(content: str, protocol: str, direction: str, file_path: str,
-               timezone_str: str) -> NuttcpBaseProcessor:
+    def create(
+        content: str, 
+        protocol: str, 
+        direction: str, 
+        file_path: str,
+        timezone_str: str,
+        logger: Logger = None
+    ) -> NuttcpBaseProcessor:
         if protocol == 'tcp':
             if direction == 'downlink':
-                return NuttcpTcpDownlinkProcessor(content, protocol, direction, file_path, timezone_str)
+                return NuttcpTcpDownlinkProcessor(content, protocol, direction, file_path, timezone_str, logger)
             elif direction == 'uplink':
-                return NuttcpTcpUplinkProcessor(content, protocol, direction, file_path, timezone_str)
+                return NuttcpTcpUplinkProcessor(content, protocol, direction, file_path, timezone_str, logger)
         if protocol == 'udp':
             if direction == 'uplink':
-                return NuttcpUdpUplinkProcessor(content, protocol, direction, file_path, timezone_str)
+                return NuttcpUdpUplinkProcessor(content, protocol, direction, file_path, timezone_str, logger)
         raise ValueError('Unsupported protocol')
 
 

@@ -7,3 +7,4 @@ datasets/*
 **/__pycache__/*
 **/storage/*
 **/outputs/*
+**/accounting/*
