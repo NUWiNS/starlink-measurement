@@ -1,7 +1,7 @@
 import os
 import sys
 import logging
-
+import json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
@@ -16,12 +16,45 @@ import pandas as pd
 CURR_DIR = os.path.dirname(__file__)
 ALASKA_TPUT_DIR = os.path.join(ALASKA_ROOT_DIR, 'throughput')
 HAWAII_TPUT_DIR = os.path.join(HAWAII_ROOT_DIR, 'throughput')
-OUTPUT_DIR = os.path.join(CURR_DIR, 'plots')
+OUTPUT_DIR = os.path.join(CURR_DIR, 'outputs')
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def save_plot_statistics(data, title, output_filename):
+    logger.info(f"Saving statistics for {title}")
+    protocols = ['tcp', 'udp']
+    locations = ['alaska', 'hawaii']
+    stats = {}
+
+    for protocol in protocols:
+        for location in locations:
+            subset = data[(data['protocol'] == protocol.lower()) & (data['location'] == location)]
+            key = f"{location.capitalize()} {protocol.upper()}"
+            stats[key] = {
+                'count': len(subset),
+                'percentiles': {
+                    '0': subset['throughput_mbps'].min(),
+                    '25': subset['throughput_mbps'].quantile(0.25),
+                    '50': subset['throughput_mbps'].median(),
+                    '75': subset['throughput_mbps'].quantile(0.75),
+                    '100': subset['throughput_mbps'].max()
+                },
+                'min': subset['throughput_mbps'].min(),
+                'max': subset['throughput_mbps'].max(),
+                'median': subset['throughput_mbps'].median(),
+                'mean': subset['throughput_mbps'].mean(),
+                'std': subset['throughput_mbps'].std(),
+                'zero_tput': {
+                    'count': len(subset[subset['throughput_mbps'] == 0]),
+                    'percentage': (len(subset[subset['throughput_mbps'] == 0]) / len(subset)) * 100
+                },
+            }
+
+    with open(output_filename, 'w') as f:
+        json.dump(stats, f, indent=4)
+    logger.info(f"Statistics saved as {output_filename}")
 
 def create_cdf_plot(data, title, output_filename):
     logger.info(f"Creating CDF plot for {title}")
@@ -59,6 +92,43 @@ def create_cdf_plot(data, title, output_filename):
     logger.info(f"Plot saved as {output_filename}")
     plt.close()
 
+    # Save statistics
+    stats_filename = os.path.splitext(output_filename)[0] + '_stats.json'
+    save_plot_statistics(data, title, stats_filename)
+
+def save_comparison_stats(data, output_filename):
+    logger.info("Saving comparison statistics")
+    protocols = ['tcp', 'udp']
+    locations = ['alaska', 'hawaii']
+    directions = ['downlink', 'uplink']
+    stats = {}
+
+    for direction in directions:
+        stats[direction] = {}
+        for protocol in protocols:
+            stats[direction][protocol] = {}
+            for metric in ['max', 'mean', 'median']:
+                hi_value = data[(data['protocol'] == protocol) & (data['location'] == 'hawaii') & (data['direction'] == direction)]['throughput_mbps'].agg(metric)
+                al_value = data[(data['protocol'] == protocol) & (data['location'] == 'alaska') & (data['direction'] == direction)]['throughput_mbps'].agg(metric)
+                stats[direction][protocol][metric] = f"HI {hi_value:.2f}Mbps vs AL {al_value:.2f}Mbps"
+            
+            # Calculate zero throughput distribution
+            hi_zero_tput = (data[(data['protocol'] == protocol) & (data['location'] == 'hawaii') & (data['direction'] == direction)]['throughput_mbps'] == 0).mean() * 100
+            al_zero_tput = (data[(data['protocol'] == protocol) & (data['location'] == 'alaska') & (data['direction'] == direction)]['throughput_mbps'] == 0).mean() * 100
+            stats[direction][protocol]['zero_tput'] = f"HI {hi_zero_tput:.2f}% vs AL {al_zero_tput:.2f}%"
+
+    with open(output_filename, 'w') as f:
+        f.write("Comparison Statistics:\n\n")
+        for direction in directions:
+            f.write(f"{direction.capitalize()}:\n")
+            for metric in ['max', 'mean', 'median', 'zero_tput']:
+                f.write(f"- {metric.capitalize()}:\n")
+                for protocol in protocols:
+                    f.write(f"  - {protocol.upper()}: {stats[direction][protocol][metric]}\n")
+            f.write("\n")
+
+    logger.info(f"Comparison statistics saved as {output_filename}")
+
 def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
@@ -93,8 +163,10 @@ def main():
                     title='Uplink Throughput', 
                     output_filename=os.path.join(OUTPUT_DIR, 'starlink_ul_tput_cdf_al_vs_hi.png'))
 
-    logger.info("Plotting completed")
-    
+    logger.info("Saving comparison statistics")
+    save_comparison_stats(combined_data, os.path.join(OUTPUT_DIR, 'comparison_stats.txt'))
+
+    logger.info("Plotting and statistics generation completed")
 
 if __name__ == '__main__':
     main()

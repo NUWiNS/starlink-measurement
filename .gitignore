@@ -1,4 +1,3 @@
-outputs/*
 .DS_Store
 storage/*
 maine_starlink_trip/*
@@ -7,4 +6,4 @@ datasets/*
 !datasets/.gitkeep
 **/__pycache__/*
 **/storage/*
-**/plots/*
+**/outputs/*
