@@ -17,15 +17,16 @@ from scripts.nuttcp_utils import parse_nuttcp_tcp_result, \
     parse_nuttcp_udp_result, find_tcp_downlink_files_by_dir_list, \
     NuttcpDataAnalyst, NuttcpProcessorFactory, find_tcp_uplink_files_by_dir_list, find_udp_uplink_files_by_dir_list
 
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw')
 merged_csv_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
 merged_csv_dir_for_cubic = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_cubic')
 merged_csv_dir_for_bbr = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_bbr')
 tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
-accounting_dir = os.path.join('./accounting')
+validation_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/validation')
 
 logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, f'parse_nuttcp_data_to_csv.{now()}.log'))
-accounting_logger = create_logger('metrics', filename=os.path.join(accounting_dir, f'nuttcp_accounting.{now()}.log'))
+accounting_logger = create_logger('validation', filename=os.path.join(validation_dir, f'nuttcp_data_validation.log'), filemode='w')
 
 def parse_nuttcp_content(content, protocol):
     """
@@ -137,7 +138,7 @@ def process_nuttcp_data_for_operator(
 
 
 def main():
-    for dir_path in [merged_csv_dir, merged_csv_dir_for_cubic, merged_csv_dir_for_bbr]:
+    for dir_path in [merged_csv_dir, merged_csv_dir_for_cubic, merged_csv_dir_for_bbr, validation_dir]:
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
 

@@ -163,9 +163,9 @@ class NuttcpTcpUplinkProcessor(NuttcpTcpBaseProcessor):
         self.recalculate_timestamps_of_receiver_for_data_points()
         self.logger.info(f'-- [end recalculating timestamps]')
 
-        self.logger.info(f'-- [start auto-completing data points] before: {len(self.data_points)}')
+        self.logger.info(f'-- [start auto_complete_data_points] before: {len(self.data_points)}')
         self.auto_complete_data_points()
-        self.logger.info(f'-- [end auto-completing data points] after: {len(self.data_points)}')
+        self.logger.info(f'-- [end auto_complete_data_points] after: {len(self.data_points)}')
 
     def recalculate_timestamps_of_receiver_for_data_points(self):
         """

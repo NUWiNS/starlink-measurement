@@ -17,9 +17,10 @@ def reset_logger(name):
 
 
 def create_logger(
-        name: str, filename: str,
-        formatter: logging.Formatter = None,
-        filemode: str = None
+        name: str, 
+        filename: str,
+        formatter: logging.Formatter | None = None,
+        filemode: str = 'a'
 ) -> logging.Logger:
     logger = logging.getLogger(name)
 
@@ -29,10 +30,8 @@ def create_logger(
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename))
 
-    file_handler = logging.FileHandler(filename)
+    file_handler = logging.FileHandler(filename, mode=filemode)
     file_handler.setLevel(logging.INFO)
-    if filemode is not None:
-        file_handler.mode = filemode
     if formatter is None:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S')

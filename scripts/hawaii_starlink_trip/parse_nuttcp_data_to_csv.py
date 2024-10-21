@@ -1,15 +1,14 @@
 import os
 import sys
 from typing import List
+import pandas as pd
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR, DatasetLabel, TIMEZONE
 from scripts.hawaii_starlink_trip.separate_dataset import read_dataset
 from scripts.logging_utils import create_logger
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-
-import pandas as pd
-
+from scripts.time_utils import now
 from scripts.nuttcp_utils import parse_nuttcp_tcp_result, \
     parse_nuttcp_udp_result, find_tcp_downlink_files_by_dir_list, \
     NuttcpDataAnalyst, NuttcpProcessorFactory, find_tcp_uplink_files_by_dir_list, find_udp_uplink_files_by_dir_list
@@ -17,8 +16,10 @@ from scripts.nuttcp_utils import parse_nuttcp_tcp_result, \
 base_dir = os.path.join(ROOT_DIR, 'raw')
 merged_csv_dir = os.path.join(ROOT_DIR, 'throughput')
 tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
+validation_dir = os.path.join(ROOT_DIR, 'validation')
 
-logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, 'parse_nuttcp_data_to_csv.log'))
+logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, f'parse_nuttcp_data_to_csv.{now()}.log'))
+accounting_logger = create_logger('validation', filename=os.path.join(validation_dir, f'nuttcp_data_validation.log'), filemode='w')
 
 
 def parse_nuttcp_content(content, protocol):
@@ -59,7 +60,8 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
                     protocol=protocol,
                     direction=direction,
                     file_path=file,
-                    timezone_str=TIMEZONE
+                    timezone_str=TIMEZONE,
+                    logger=accounting_logger,
                 )
                 processor.process()
                 data_points = processor.get_result()

@@ -2,11 +2,13 @@ import os
 import sys
 from typing import List
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
+from scripts.maine_starlink_trip.configs import ROOT_DIR
 from scripts.logging_utils import create_logger
 from scripts.maine_starlink_trip.labels import DatasetLabel
 from scripts.maine_starlink_trip.separate_dataset import read_dataset
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+from scripts.time_utils import now
 
 import pandas as pd
 
@@ -14,11 +16,13 @@ from scripts.constants import DATASET_DIR
 from scripts.nuttcp_utils import find_tcp_downlink_files_by_dir_list, \
     find_tcp_uplink_files_by_dir_list, find_udp_uplink_files_by_dir_list, NuttcpProcessorFactory, NuttcpDataAnalyst
 
-base_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/raw')
-merged_csv_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/throughput')
-tmp_data_path = os.path.join(DATASET_DIR, 'maine_starlink_trip/tmp')
+base_dir = os.path.join(ROOT_DIR, 'raw')
+merged_csv_dir = os.path.join(ROOT_DIR, 'throughput')
+tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
+validation_dir = os.path.join(ROOT_DIR, 'validation')
 
-logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, 'parse_nuttcp_data_to_csv.log'))
+logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, f'parse_nuttcp_data_to_csv.{now()}.log'))
+validation_logger = create_logger('validation', filename=os.path.join(validation_dir, f'nuttcp_data_validation.log'), filemode='w')
 
 
 def process_nuttcp_files(files: List[str], protocol: str, direction: str, output_csv_filename: str):
@@ -40,7 +44,8 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
                     protocol=protocol,
                     direction=direction,
                     file_path=file,
-                    timezone_str='US/Eastern'
+                    timezone_str='US/Eastern',
+                    logger=validation_logger
                 )
                 processor.process()
                 data_points = processor.get_result()
