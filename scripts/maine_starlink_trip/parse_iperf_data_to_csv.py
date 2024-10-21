@@ -2,12 +2,13 @@ import os
 import sys
 from typing import List
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
 from scripts.logging_utils import create_logger
+from scripts.maine_starlink_trip.configs import ROOT_DIR
 from scripts.maine_starlink_trip.labels import DatasetLabel
 from scripts.maine_starlink_trip.separate_dataset import read_dataset
 from scripts.utilities.UdpBlockageHelper import UdpBlockageHelper
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from scripts.iperf_utils import parse_iperf_udp_result, find_udp_downlink_files_by_dir_list, IperfProcessorFactory, \
     IperfDataAnalyst
@@ -15,14 +16,13 @@ from scripts.utils import find_files
 
 import pandas as pd
 
-from scripts.constants import DATASET_DIR
-
-base_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/')
-merged_csv_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/throughput')
-tmp_data_path = os.path.join(DATASET_DIR, 'maine_starlink_trip/tmp')
+base_dir = os.path.join(ROOT_DIR, 'raw')
+merged_csv_dir = os.path.join(ROOT_DIR, 'throughput')
+tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
+validation_dir = os.path.join(ROOT_DIR, 'validation')
 
 logger = create_logger('iperf_parsing', filename=os.path.join(tmp_data_path, 'parse_iperf_data_to_csv.log'))
-
+validation_logger = create_logger('validation', filename=os.path.join(validation_dir, f'iperf_data_validation.log'), filemode='w')
 
 def find_udp_downlink_files(base_dir: str):
     return find_files(base_dir, prefix="udp_downlink", suffix=".out")
@@ -45,7 +45,8 @@ def process_iperf_files(files: List[str], protocol: str, direction: str):
                     protocol=protocol,
                     direction=direction,
                     file_path=file,
-                    timezone_str='US/Eastern'
+                    timezone_str='US/Eastern',
+                    logger=validation_logger,
                 )
                 processor.process()
                 data_points = processor.get_result()

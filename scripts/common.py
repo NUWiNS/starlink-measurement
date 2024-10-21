@@ -59,6 +59,7 @@ class TputBaseProcessor(ABC):
 
     def process(self):
         self.logger.info(f'[start processing] {self.file_path}')
+
         start_end_time_list = StartEndLogTimeProcessor.get_start_end_time_from_log(
             self.content,
             timezone_str=self.timezone_str
@@ -68,7 +69,12 @@ class TputBaseProcessor(ABC):
             # should only be one pair of start and end time
             self.start_time, self.end_time = start_end_time_list[0]
 
-        estimated_data_points = self.estimate_data_points(self.start_time, self.end_time)
+        try:
+            estimated_data_points = self.estimate_data_points(self.start_time, self.end_time)
+        except Exception as e:
+            self.logger.error(f'Failed to estimate data points for file: {self.file_path}, check if start and end time are correctly extracted')
+            raise e
+            
         self.logger.info(f'-- [estimating data points] {estimated_data_points} (start_time: {self.start_time}, end_time: {self.end_time})')
 
         extracted_result = self.parse_measurement_content(self.content)

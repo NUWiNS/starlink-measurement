@@ -2,28 +2,29 @@ import os
 import sys
 from typing import List
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
 from scripts.alaska_starlink_trip.labels import DatasetLabel
 from scripts.alaska_starlink_trip.separate_dataset import read_dataset
 from scripts.logging_utils import create_logger
 from scripts.time_utils import now
 from scripts.utilities.UdpBlockageHelper import UdpBlockageHelper
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-
 from scripts.iperf_utils import parse_iperf_udp_result, find_udp_downlink_files, find_udp_downlink_files_by_dir_list, \
     IperfDataAnalyst, IperfProcessorFactory
 
 import pandas as pd
+from scripts.alaska_starlink_trip.configs import ROOT_DIR
 
-from scripts.constants import DATASET_DIR
-
-base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw')
-merged_csv_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
-merged_csv_dir_for_cubic = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_cubic')
-merged_csv_dir_for_bbr = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_bbr')
-tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
+base_dir = os.path.join(ROOT_DIR, 'raw')
+merged_csv_dir = os.path.join(ROOT_DIR, 'throughput')
+merged_csv_dir_for_cubic = os.path.join(ROOT_DIR, 'throughput_cubic')
+merged_csv_dir_for_bbr = os.path.join(ROOT_DIR, 'throughput_bbr')
+tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
+validation_dir = os.path.join(ROOT_DIR, 'validation')
 
 logger = create_logger('iperf_parsing', filename=os.path.join(tmp_data_path, f'parse_iperf_data_to_csv.{now()}.log'))
+validation_logger = create_logger('validation', filename=os.path.join(validation_dir, f'iperf_data_validation.log'), filemode='w')
 
 
 def process_iperf_files(files: List[str], protocol: str, direction: str):
@@ -43,7 +44,8 @@ def process_iperf_files(files: List[str], protocol: str, direction: str):
                     protocol=protocol,
                     direction=direction,
                     file_path=file,
-                    timezone_str='US/Alaska'
+                    timezone_str='US/Alaska',
+                    logger=validation_logger
                 )
                 processor.process()
                 data_points = processor.get_result()

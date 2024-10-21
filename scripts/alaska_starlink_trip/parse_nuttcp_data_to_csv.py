@@ -26,7 +26,7 @@ tmp_data_path = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
 validation_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/validation')
 
 logger = create_logger('nuttcp_parsing', filename=os.path.join(tmp_data_path, f'parse_nuttcp_data_to_csv.{now()}.log'))
-accounting_logger = create_logger('validation', filename=os.path.join(validation_dir, f'nuttcp_data_validation.log'), filemode='w')
+validation_logger = create_logger('validation', filename=os.path.join(validation_dir, f'nuttcp_data_validation.log'), filemode='w')
 
 def parse_nuttcp_content(content, protocol):
     """
@@ -67,7 +67,7 @@ def process_nuttcp_files(files: List[str], protocol: str, direction: str, output
                     direction=direction,
                     file_path=file,
                     timezone_str='US/Alaska',
-                    logger=accounting_logger
+                    logger=validation_logger
                 )
                 processor.process()
                 data_points = processor.get_result()

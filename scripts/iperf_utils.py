@@ -1,3 +1,4 @@
+import logging
 import re
 import unittest
 from abc import abstractmethod
@@ -127,8 +128,10 @@ class IperfUdpBaseProcessor(TputBaseProcessor):
 
     @overrides
     def postprocess_data_points(self):
+        self.logger.info(f'-- [start auto_complete_data_points] before: {len(self.data_points)}')
         self.auto_complete_data_points()
-
+        self.logger.info(f'-- [end auto_complete_data_points] after: {len(self.data_points)}')
+    
     @overrides
     def parse_measurement_summary(self, content: str):
         return extract_iperf_receiver_summary(content)
@@ -180,8 +183,14 @@ class IperfDataAnalyst(NuttcpDataAnalyst):
 
 class IperfProcessorFactory:
     @staticmethod
-    def create(content: str, protocol: str, direction: str, file_path: str,
-               timezone_str: str) -> IperfUdpBaseProcessor:
+    def create(
+            content: str,
+            protocol: str,
+            direction: str,
+            file_path: str,
+            timezone_str: str,
+            logger: logging.Logger
+    ) -> IperfUdpBaseProcessor:
         if protocol == 'udp':
             if direction == 'downlink':
                 return IperfUdpDownlinkProcessor(
@@ -189,7 +198,8 @@ class IperfProcessorFactory:
                     protocol=protocol,
                     direction=direction,
                     file_path=file_path,
-                    timezone_str=timezone_str
+                    timezone_str=timezone_str,
+                    logger=logger
                 )
         raise NotImplementedError('No processor found for the given protocol and direction.')
 
