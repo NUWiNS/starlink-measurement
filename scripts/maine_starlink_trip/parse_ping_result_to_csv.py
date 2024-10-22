@@ -1,21 +1,20 @@
 import os
 import sys
 
-from scripts.maine_starlink_trip.labels import DatasetLabel
-from scripts.maine_starlink_trip.separate_dataset import read_dataset
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from scripts.ping_utils import parse_ping_result, find_ping_files_by_dir_list
-
-from scripts.constants import DATASET_DIR
+from scripts.logging_utils import create_logger
+from scripts.maine_starlink_trip.configs import ROOT_DIR
+from scripts.maine_starlink_trip.labels import DatasetLabel
+from scripts.maine_starlink_trip.separate_dataset import read_dataset
+from scripts.ping_utils import extract_ping_data, find_ping_files_by_dir_list
 
 from typing import Tuple, List
-
 import pandas as pd
 
-output_dir = os.path.join(DATASET_DIR, 'maine_starlink_trip/ping')
-
+output_dir = os.path.join(ROOT_DIR, 'ping')
+validation_dir = os.path.join(ROOT_DIR, 'validation')
+validation_logger = create_logger('validation', filename=os.path.join(validation_dir, f'ping_data_validation.log'), filemode='w')
 
 def save_to_csv(row_list: List[Tuple[str, str, str]], output_file):
     header = ['time', 'rtt_ms', 'operator']
@@ -47,25 +46,18 @@ def parse_ping_for_operator(operator: str):
     # Example to read and print the content of the found files
     for file in ping_files:
         try:
-            with open(file, 'r') as f:
-                content = f.read()
-                total_lines = len(content.splitlines())
-                extracted_data = parse_ping_result(content)
-                print('Processing:', file)
-                print(f'-- total lines: {total_lines}')
-                print(f'-- extracted lines: {len(extracted_data)}')
+            extracted_data = extract_ping_data(file, logger=validation_logger)
+            if not extracted_data:
+                excluded_files.append(file)
+                continue
 
-                if not extracted_data:
-                    excluded_files.append(file)
-                    continue
+            df = pd.DataFrame(extracted_data, columns=['time', 'rtt_ms'])
 
-                df = pd.DataFrame(extracted_data, columns=['time', 'rtt_ms'])
+            csv_file_path = file.replace('.out', '.csv')
+            df.to_csv(csv_file_path, index=False)
+            # print(f"Extracted data is saved to {csv_file_path}")
 
-                csv_file_path = file.replace('.out', '.csv')
-                df.to_csv(csv_file_path, index=False)
-                # print(f"Extracted data is saved to {csv_file_path}")
-
-                total_df = pd.concat([total_df, df], ignore_index=True)
+            total_df = pd.concat([total_df, df], ignore_index=True)
         except Exception as e:
             excluded_files.append(file)
             print(f"Error reading {file}: {e}")

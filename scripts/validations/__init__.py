@@ -1,1 +1,2 @@
-from .validate_data_points import validate_tput_data_points
+from .validate_data_points import validate_tput_data_points, validate_ping_data_points
+from .utils import estimate_data_points

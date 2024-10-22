@@ -1,3 +1,4 @@
+import logging
 import unittest
 from datetime import datetime
 from typing import Tuple, List
@@ -5,12 +6,14 @@ from typing import Tuple, List
 import pandas as pd
 import pytz
 
+from scripts.time_utils import StartEndLogTimeProcessor
 from scripts.utils import find_files
 
 import os
 import re
 
 from scripts.common import extract_operator_from_filename
+from scripts.validations.utils import estimate_data_points
 
 
 def find_ping_file(base_dir):
@@ -75,6 +78,30 @@ def parse_ping_result(content: str):
 
     return extracted_data
 
+def extract_ping_data(file_path: str, logger: logging.Logger | None = None):
+    INTERVAL_SEC = 0.2
+    DURATION_SEC = 30
+    EXPECTED_NUM_OF_DATA_POINTS = int(DURATION_SEC / INTERVAL_SEC)
+
+    logger.info(f'[start processing] {file_path}')
+    with open(file_path, 'r') as f:
+        content = f.read()
+        total_lines = len(content.splitlines())
+        extracted_data = parse_ping_result(content)
+        logger.info(f'-- total lines: {total_lines}')
+        logger.info(f'-- extracted lines: {len(extracted_data)}')
+
+        start_end_time_list = StartEndLogTimeProcessor.get_start_end_time_from_log(content)
+        if start_end_time_list:
+            # should only be one pair of start and end time
+            start_time, end_time = start_end_time_list[0]
+            estimated_data_points = estimate_data_points(start_time, end_time, interval_sec=INTERVAL_SEC)
+            logger.info(f'-- [estimating data points] {estimated_data_points} (start_time: {start_time}, end_time: {end_time})')
+
+            num_data_points = len(extracted_data)
+            logger.info(f'-- [extracted data points] {num_data_points}, diff from estiamte: {num_data_points - estimated_data_points}, diff from expected: {num_data_points - EXPECTED_NUM_OF_DATA_POINTS}')
+    logger.info(f'[end processing] {file_path}\n\n')
+    return extracted_data
 
 def save_to_csv(row_list: List[Tuple[str, str, str]], output_file):
     header = ['time', 'rtt_ms', 'operator']

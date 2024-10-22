@@ -1,8 +1,8 @@
+import os
 import re
 import logging
 
 import pandas as pd
-
 from scripts.logging_utils import PrintLogger
 from scripts.nuttcp_utils import NuttcpBaseProcessor
 
@@ -71,5 +71,57 @@ def validate_tput_data_points(log_file_path, logger: logging.Logger = None):
     logger.info(f"Total estimated data points: {df['estimated'].sum()}")
     logger.info(f"Total extracted data points: {df['extracted'].sum()}")
     logger.info(f"Total final data points after auto-completion: {df['final'].sum()}")
+
+    return df
+
+def validate_ping_data_points(log_file_path, logger: logging.Logger | None = None):
+    INTERVAL_SEC = 0.2
+    DURATION_SEC = 30
+    EXPECTED_NUM_OF_DATA_POINTS = int(DURATION_SEC / INTERVAL_SEC)
+
+    if logger is None:
+        logger = PrintLogger()
+
+    with open(log_file_path, 'r') as file:
+        log_content = file.read()
+
+    # Split the log content into groups
+    groups = log_content.split('\n\n')
+
+    # Regular expressions to extract the required information
+    filepath_pattern = r'\[start processing\] (.*)'
+    estimated_pattern = r'\[estimating data points\] (\d+)'
+    extracted_pattern = r'\[extracted data points\] (\d+)'
+
+    results = []
+
+    logger.info(f'[start processing] {len(groups)} groups')
+    for group in groups:
+        if not group.strip():  # Skip empty groups
+            continue
+
+        filepath_match = re.search(filepath_pattern, group)
+        estimated_match = re.search(estimated_pattern, group)
+        extracted_match = re.search(extracted_pattern, group)
+
+        if filepath_match and estimated_match and extracted_match:
+            group_data = {
+                'file_path': filepath_match.group(1),
+                'estimated': int(estimated_match.group(1)),
+                'extracted': int(extracted_match.group(1)),
+            }
+            results.append(group_data)
+        else:
+            logger.error(f'Invalid log format in group: {group}')
+
+    df = pd.DataFrame(results)
+
+    logger.info(f'[end processing] {len(groups)} groups\n\n')
+
+    logger.info('--- [summary] ---')
+    logger.info(f"Files processed: {df['file_path'].count()}")
+    logger.info(f"Total expected data points: {df['file_path'].count() * EXPECTED_NUM_OF_DATA_POINTS}")
+    logger.info(f"Total estimated data points: {df['estimated'].sum()}")
+    logger.info(f"Total extracted data points: {df['extracted'].sum()}")
 
     return df
