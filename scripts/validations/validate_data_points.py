@@ -6,7 +6,7 @@ import pandas as pd
 from scripts.logging_utils import PrintLogger
 from scripts.nuttcp_utils import NuttcpBaseProcessor
 
-def validate_data_points(log_file_path, logger: logging.Logger = None):
+def validate_tput_data_points(log_file_path, logger: logging.Logger = None):
     """
     Validate data points for the processing scripts of the dataset
     Examine the differences among:

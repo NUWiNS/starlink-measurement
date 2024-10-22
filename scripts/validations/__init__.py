@@ -1,1 +1,1 @@
-from .validate_data_points import validate_data_points
+from .validate_data_points import validate_tput_data_points

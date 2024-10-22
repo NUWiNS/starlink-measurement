@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 import pandas as pd
-from scripts.validations.validate_data_points import validate_data_points
+from scripts.validations.validate_data_points import validate_tput_data_points
 
 class TestValidateDataPoints(unittest.TestCase):
 
@@ -34,7 +34,7 @@ class TestValidateDataPoints(unittest.TestCase):
         mock_file.return_value.__enter__.return_value.read.return_value = self.sample_log
         mock_logger = MagicMock()
 
-        result = validate_data_points('dummy_path.log', logger=mock_logger)
+        result = validate_tput_data_points('dummy_path.log', logger=mock_logger)
         # Check if the result is a DataFrame
         self.assertIsInstance(result, pd.DataFrame)
 
