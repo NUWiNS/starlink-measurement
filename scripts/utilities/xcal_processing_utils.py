@@ -13,17 +13,21 @@ def extract_period_from_file(file: str) -> tuple[datetime, datetime, str]:
         protocol, direction, _ = path.basename(file).split('_')
 
         lines = f.readlines()
-        start_time_row = lines[0].strip()
-        end_time_row = lines[-1].strip() 
-        # use regex to extract the timestamp
-        start_match = re.search(r'Start time: (\d+)', start_time_row)
-        end_match = re.search(r'End time: (\d+)', end_time_row)
+        start_match, end_match = extract_start_end_timestamps(lines)
         if start_match and end_match:
             start_time = pd.to_datetime(pd.to_numeric(start_match.group(1)), unit='ms', utc=True)
             end_time = pd.to_datetime(pd.to_numeric(end_match.group(1)), unit='ms', utc=True)
             return (start_time, end_time, f'{protocol}_{direction}')
         else:
             raise ValueError(f'Failed to extract start and end time from {file}')
+
+def extract_start_end_timestamps(lines):
+    start_time_row = lines[0].strip()
+    end_time_row = lines[-1].strip() 
+        # use regex to extract the timestamp
+    start_match = re.search(r'Start time: (\d+)', start_time_row)
+    end_match = re.search(r'End time: (\d+)', end_time_row)
+    return start_match,end_match
 
 
 def collect_periods_of_tput_measurements(base_dir: str, protocol: str, direction: str) -> list[tuple[datetime, datetime, str]]:

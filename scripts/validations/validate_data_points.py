@@ -5,6 +5,7 @@ import logging
 import pandas as pd
 from scripts.logging_utils import PrintLogger
 from scripts.nuttcp_utils import NuttcpBaseProcessor
+import plotly.figure_factory as ff
 
 def validate_tput_data_points(log_file_path, logger: logging.Logger = None):
     """
@@ -125,3 +126,44 @@ def validate_ping_data_points(log_file_path, logger: logging.Logger | None = Non
     logger.info(f"Total extracted data points: {df['extracted'].sum()}")
 
     return df
+
+
+def validate_extracted_periods_of_tput_measurements(csv_file_path: str, output_file_path: str, timezone_str: str = 'UTC'):
+    # Read the CSV file
+    df = pd.read_csv(csv_file_path, parse_dates=['start_time', 'end_time'])
+    
+    # Convert timestamps to the specified timezone
+    df['start_time'] = df['start_time'].dt.tz_convert(timezone_str)
+    df['end_time'] = df['end_time'].dt.tz_convert(timezone_str)
+    
+    # Create a color map for different protocol directions
+    color_map = {
+        'tcp_downlink': 'rgb(0, 255, 0)',
+        'tcp_uplink': 'rgb(0, 0, 255)',
+        'udp_downlink': 'rgb(255, 0, 0)',
+        'udp_uplink': 'rgb(255, 165, 0)'
+    }
+    
+    # Prepare data for the Gantt chart
+    df_plot = []
+    for _, row in df.iterrows():
+        df_plot.append(dict(Task=row['protocol_direction'], 
+                            Start=row['start_time'], 
+                            Finish=row['end_time'],
+                            Resource=row['protocol_direction']))
+    
+    # Create the Gantt chart
+    fig = ff.create_gantt(df_plot, colors=color_map, index_col='Resource', 
+                          show_colorbar=True, group_tasks=True)
+    
+    # Update the layout
+    fig.update_layout(
+        title=f'Throughput Measurement Periods ({timezone_str})',
+        xaxis_title='Time',
+        yaxis_title='Protocol Direction',
+        height=600,
+        width=1200
+    )
+    
+    # Save the plot as an HTML file
+    fig.write_html(output_file_path)
