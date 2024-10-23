@@ -48,3 +48,10 @@ class DatasetHelper:
         df['protocol'] = protocol
         df['direction'] = direction
         return df
+
+    def get_ping_data(self, operator: str) -> pd.DataFrame:
+        csv_filename = f'{operator}_ping.csv'
+        file_path = os.path.join(self.base_dir, csv_filename)
+        df = pd.read_csv(file_path)
+        df['operator'] = operator
+        return df
