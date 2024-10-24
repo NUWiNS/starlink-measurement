@@ -8,6 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 from scripts.math_utils import get_cdf
 from scripts.alaska_starlink_trip.configs import ROOT_DIR as ALASKA_ROOT_DIR
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR as HAWAII_ROOT_DIR
+from scripts.maine_starlink_trip.configs import ROOT_DIR as MAINE_ROOT_DIR
 from scripts.utilities.DatasetHelper import DatasetHelper
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,6 +17,7 @@ import pandas as pd
 CURR_DIR = os.path.dirname(__file__)
 ALASKA_TPUT_DIR = os.path.join(ALASKA_ROOT_DIR, 'throughput')
 HAWAII_TPUT_DIR = os.path.join(HAWAII_ROOT_DIR, 'throughput')
+MAINE_TPUT_DIR = os.path.join(MAINE_ROOT_DIR, 'throughput')
 OUTPUT_DIR = os.path.join(CURR_DIR, 'outputs')
 
 # Set up logging
@@ -59,9 +61,9 @@ def save_plot_statistics(data, title, output_filename):
 def create_cdf_plot(data, title, output_filename):
     logger.info(f"Creating CDF plot for {title}")
     protocols = ['tcp', 'udp']
-    locations = ['alaska', 'hawaii']
-    colors = ['#1f77b4', '#ff7f0e']  # Blue for Alaska, Orange for Hawaii
-    linestyles = ['-', '--']  # Solid for TCP, dashed for UDP
+    locations = ['alaska', 'hawaii', 'maine']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    linestyles = ['-', '--', '-.']
 
     plt.figure(figsize=(5, 4))
     ax = plt.gca()
@@ -129,21 +131,21 @@ def save_comparison_stats(data, output_filename):
 
     logger.info(f"Comparison statistics saved as {output_filename}")
 
-def plot_overall_tput_comparison(df: pd.DataFrame):
+def plot_overall_tput_comparison(df: pd.DataFrame, base_dir: str):
     logger.info("Starting Starlink Alaska vs Hawaii throughput comparison")
 
     logger.info("Creating downlink throughput plot")
     create_cdf_plot(df[df['direction'] == 'downlink'], 
                     title='Downlink Throughput', 
-                    output_filename=os.path.join(OUTPUT_DIR, 'starlink_dl_tput_cdf_al_vs_hi.png'))
+                    output_filename=os.path.join(base_dir, 'starlink_dl_tput_cdf_al_vs_hi.png'))
 
     logger.info("Creating uplink throughput plot")
     create_cdf_plot(df[df['direction'] == 'uplink'], 
                     title='Uplink Throughput', 
-                    output_filename=os.path.join(OUTPUT_DIR, 'starlink_ul_tput_cdf_al_vs_hi.png'))
+                    output_filename=os.path.join(base_dir, 'starlink_ul_tput_cdf_al_vs_hi.png'))
 
     logger.info("Saving comparison statistics")
-    save_comparison_stats(df, os.path.join(OUTPUT_DIR, 'comparison_stats.txt'))
+    save_comparison_stats(df, os.path.join(base_dir, 'comparison_stats.txt'))
 
     logger.info("Plotting and statistics generation completed")
 
@@ -151,6 +153,7 @@ def get_tput_data_for_alaska_and_hawaii():
     logger.info("Initializing DatasetHelpers")
     al_dataset_helper = DatasetHelper(ALASKA_TPUT_DIR)
     hawaii_dataset_helper = DatasetHelper(HAWAII_TPUT_DIR)
+    maine_dataset_helper = DatasetHelper(MAINE_TPUT_DIR)
 
     logger.info("Fetching throughput data for Alaska")
     alaska_tput_data = al_dataset_helper.get_tput_data(operator='starlink')
@@ -160,10 +163,16 @@ def get_tput_data_for_alaska_and_hawaii():
     hawaii_tput_data = hawaii_dataset_helper.get_tput_data(operator='starlink')
     logger.info(f"Hawaii data shape: {hawaii_tput_data.shape}")
 
+    logger.info("Fetching throughput data for Maine")
+    maine_tput_data = maine_dataset_helper.get_tput_data(operator='starlink')
+    logger.info(f"Maine data shape: {maine_tput_data.shape}")
+
     logger.info("Combining Alaska and Hawaii data")
     alaska_tput_data['location'] = 'alaska'
     hawaii_tput_data['location'] = 'hawaii'
-    combined_data = pd.concat([alaska_tput_data, hawaii_tput_data])
+    maine_tput_data['location'] = 'maine'
+
+    combined_data = pd.concat([alaska_tput_data, hawaii_tput_data, maine_tput_data])
     logger.info(f"Combined data shape: {combined_data.shape}")
     return combined_data
 
@@ -262,6 +271,8 @@ def main():
         os.makedirs(OUTPUT_DIR)
 
     df = get_tput_data_for_alaska_and_hawaii()
+
+    plot_overall_tput_comparison(df, base_dir=OUTPUT_DIR)
 
     tput_by_weather_comparison_fig = os.path.join(OUTPUT_DIR, 'starlink_tput_by_weather_comparison_al_vs_hi.png')
     plot_tput_comparison_by_weather(df, output_file_path=tput_by_weather_comparison_fig)
