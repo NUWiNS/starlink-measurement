@@ -9,7 +9,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 logger = create_logger('client', filename=os.path.join(CURRENT_DIR, 'outputs', 'app_rtt_client.log'))
 
-def start_client(host='54.197.223.49', port=65432, message="Hello, Server"):
+def start_client(host='10.0.0.184', port=65432, message="Hello, Server"):
     """
     Connects to the server, receives 2 MB of data, sends a message, and waits for ACK.
     """
@@ -40,12 +40,11 @@ def start_client(host='54.197.223.49', port=65432, message="Hello, Server"):
         logger.info(f"Round-trip time: {time_difference:.2f} milliseconds")
 
 if __name__ == "__main__":
-    # Run the client 10 times
-    host = '127.0.0.1'
+    host = '10.0.0.184'  # This is the IP address of your MacBook on the local network
     port = 65432
     message = "Hello, Server"
     for _ in range(1):
         try:
             start_client(host=host, port=port, message=message)
         except Exception as e:
-            logger.error(f"Error: {e}")
+            logger.error(f"Error (server is {host}:{port}): {e}")

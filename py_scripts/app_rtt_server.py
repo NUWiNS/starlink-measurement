@@ -1,4 +1,3 @@
-
 import os
 import socket
 
@@ -8,7 +7,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 logger = create_logger('server', filename=os.path.join(CURRENT_DIR, 'outputs', 'app_rtt_server.log'))
         
-def start_server(host='172.31.12.129', port=65432, byte_size=2 * 1024 * 1024):
+def start_server(host='0.0.0.0', port=65432, byte_size=2 * 1024 * 1024):
     """
     Starts the server that sends `byte_size` amount of data to the client
     before sending an ACK.
@@ -42,10 +41,10 @@ def start_server(host='172.31.12.129', port=65432, byte_size=2 * 1024 * 1024):
                 logger.info("Sent: ACK")
 
 if __name__ == "__main__":
-    host='127.0.0.1'
-    port=65432
-    byte_size=2 * 1024 * 1024
+    host = '0.0.0.0'  # This allows connections from any IP address
+    port = 65432
+    byte_size = 2 * 1024 * 1024
     try:
         start_server(host=host, port=port, byte_size=byte_size)
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Error (server is {host}:{port}): {e}")
