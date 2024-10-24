@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def save_plot_statistics(data, title, output_filename):
     logger.info(f"Saving statistics for {title}")
     protocols = ['tcp', 'udp']
-    locations = ['alaska', 'hawaii']
+    locations = ['alaska', 'hawaii', 'maine']
     stats = {}
 
     for protocol in protocols:
@@ -101,7 +101,7 @@ def create_cdf_plot(data, title, output_filename):
 def save_comparison_stats(data, output_filename):
     logger.info("Saving comparison statistics")
     protocols = ['tcp', 'udp']
-    locations = ['alaska', 'hawaii']
+    locations = ['alaska', 'hawaii', 'maine']
     directions = ['downlink', 'uplink']
     stats = {}
 
@@ -109,15 +109,18 @@ def save_comparison_stats(data, output_filename):
         stats[direction] = {}
         for protocol in protocols:
             stats[direction][protocol] = {}
+            filtered_data = data[(data['protocol'] == protocol) & (data['direction'] == direction)]
             for metric in ['max', 'mean', 'median']:
-                hi_value = data[(data['protocol'] == protocol) & (data['location'] == 'hawaii') & (data['direction'] == direction)]['throughput_mbps'].agg(metric)
-                al_value = data[(data['protocol'] == protocol) & (data['location'] == 'alaska') & (data['direction'] == direction)]['throughput_mbps'].agg(metric)
-                stats[direction][protocol][metric] = f"HI {hi_value:.2f}Mbps vs AL {al_value:.2f}Mbps"
+                hi_value = filtered_data[filtered_data['location'] == 'hawaii']['throughput_mbps'].agg(metric)
+                al_value = filtered_data[filtered_data['location'] == 'alaska']['throughput_mbps'].agg(metric)
+                maine_value = filtered_data[filtered_data['location'] == 'maine']['throughput_mbps'].agg(metric)
+                stats[direction][protocol][metric] = f"HI {hi_value:.2f}Mbps vs AL {al_value:.2f}Mbps vs ME {maine_value:.2f}Mbps"
             
             # Calculate zero throughput distribution
-            hi_zero_tput = (data[(data['protocol'] == protocol) & (data['location'] == 'hawaii') & (data['direction'] == direction)]['throughput_mbps'] == 0).mean() * 100
-            al_zero_tput = (data[(data['protocol'] == protocol) & (data['location'] == 'alaska') & (data['direction'] == direction)]['throughput_mbps'] == 0).mean() * 100
-            stats[direction][protocol]['zero_tput'] = f"HI {hi_zero_tput:.2f}% vs AL {al_zero_tput:.2f}%"
+            hi_zero_tput = (filtered_data[filtered_data['location'] == 'hawaii']['throughput_mbps'] == 0).mean() * 100
+            al_zero_tput = (filtered_data[filtered_data['location'] == 'alaska']['throughput_mbps'] == 0).mean() * 100
+            maine_zero_tput = (filtered_data[filtered_data['location'] == 'maine']['throughput_mbps'] == 0).mean() * 100
+            stats[direction][protocol]['zero_tput'] = f"HI {hi_zero_tput:.2f}% vs AL {al_zero_tput:.2f}% vs ME {maine_zero_tput:.2f}%"
 
     with open(output_filename, 'w') as f:
         f.write("Comparison Statistics:\n\n")
@@ -177,7 +180,7 @@ def get_tput_data_for_alaska_and_hawaii():
     return combined_data
 
 def plot_tput_comparison_by_weather(df: pd.DataFrame, output_file_path: str = None):
-    logger.info("Starting Starlink Alaska vs Hawaii throughput comparison by weather")
+    logger.info("Starting Starlink throughput comparison by weather")
 
     protocols = ['tcp', 'udp']
     directions = ['downlink', 'uplink']
@@ -191,10 +194,11 @@ def plot_tput_comparison_by_weather(df: pd.DataFrame, output_file_path: str = No
             
             color_map = {
                 'alaska': 'blue',
-                'hawaii': 'orange'
+                'hawaii': 'orange',
+                'maine': 'green',
             }
             
-            locations = ['alaska', 'hawaii']
+            locations = ['alaska', 'hawaii', 'maine']
             line_styles = {
                 'sunny': '-',
                 'cloudy': '--',
@@ -239,7 +243,7 @@ def plot_tput_comparison_by_weather(df: pd.DataFrame, output_file_path: str = No
 def save_tput_by_weather_comparison_stats(df: pd.DataFrame, output_file_path: str):
     stats = {}
     all_weather = ['sunny', 'cloudy', 'rainy', 'snowy']
-    locations = ['alaska', 'hawaii']
+    locations = ['alaska', 'hawaii', 'maine']
 
     for weather in all_weather:
         stats[weather] = {}
@@ -274,8 +278,8 @@ def main():
 
     plot_overall_tput_comparison(df, base_dir=OUTPUT_DIR)
 
-    tput_by_weather_comparison_fig = os.path.join(OUTPUT_DIR, 'starlink_tput_by_weather_comparison_al_vs_hi.png')
-    plot_tput_comparison_by_weather(df, output_file_path=tput_by_weather_comparison_fig)
+    # tput_by_weather_comparison_fig = os.path.join(OUTPUT_DIR, 'starlink_tput_by_weather_comparison_al_vs_hi.png')
+    # plot_tput_comparison_by_weather(df, output_file_path=tput_by_weather_comparison_fig)
 
 if __name__ == '__main__':
     main()
