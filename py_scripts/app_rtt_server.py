@@ -20,17 +20,12 @@ def handle_client(client_socket, client_address, byte_size):
             message = client_socket.recv(1024).decode()
             if not message:
                 break
-            logger.info(f"Received from {client_address}: {message}")
-
-            # Send `byte_size` amount of bytes to the client
-            data = b'A' * byte_size
-            client_socket.sendall(data)
-            logger.info(f"Sent {byte_size} bytes to {client_address}")
+            logger.info(f"Received {len(message)} bytes from {client_address}: {message}")
 
             # Send acknowledgment (ACK)
             ack_message = "ACK"
             client_socket.sendall(ack_message.encode())
-            logger.info(f"Sent ACK to {client_address}")
+            logger.info(f"Sent ACK ({len(ack_message)} bytes) to {client_address}")
     except Exception as e:
         logger.error(f"Error handling client {client_address}: {e}")
     finally:
