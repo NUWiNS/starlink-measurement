@@ -60,11 +60,20 @@ while true; do
         echo "Please choose a mode:"
         echo "1) Loop mode"
         echo "2) One-shot mode"
+        echo "3) One-shot mode for testing"
         read -p "Enter your choice (1-2): " mode
     fi
     case $mode in
         1) break;;
         2) break;;
+        3) 
+            if [ -f "$(dirname "$0")/test_env" ]; then
+                source "$(dirname "$0")/test_env"
+                echo "Loaded environment variables from test_env file"
+            else
+                echo "Warning: test_env file not found in the same directory"
+            fi
+            break;;
         *)
             echo "Invalid choice, please enter a number between 1 and 2"
             mode=""
@@ -531,7 +540,7 @@ while true; do
     echo "All tests completed, cleaning up..."
     __print_divider__
 
-    if [ $mode -eq 2 ]; then
+    if [ "$mode" -eq 2 ] || [ "$mode" -eq 3 ]; then
         break;
     else
         # loop mode
