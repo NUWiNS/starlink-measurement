@@ -6,7 +6,7 @@ from logging_utils import create_logger
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-logger = create_logger('server', filename=os.path.join(CURRENT_DIR, 'outputs', 'app_rtt_server.log'))
+logger = create_logger('server', filename=os.path.join(CURRENT_DIR, 'outputs', 'tcp_rtt_server.log'))
 
 def handle_client(client_socket, client_address):
     """
@@ -20,7 +20,7 @@ def handle_client(client_socket, client_address):
             message = client_socket.recv(1024).decode()
             if not message:
                 break
-            logger.info(f"Received {len(message)} bytes from {client_address}: {message}")
+            logger.info(f"Received {len(message)} bytes from {client_address}")
 
             # Send acknowledgment (ACK)
             ack_message = "ACK"

@@ -20,10 +20,13 @@ def send_ping(client_socket, message, logger):
     # logger.info(f"Round-trip time: {rtt:.2f} ms")
     return rtt
 
+def create_message(packet_size, char="A"):
+    return char * packet_size
+
 def start_client(
         host='10.0.0.184', 
         port=65432, 
-        message="PING",
+        packet_size=38,
         count=4,
         interval=1,
         logger: logging.Logger | None = None
@@ -35,6 +38,7 @@ def start_client(
         client_socket.connect((host, port))
         logger.info(f"Connected to {host}:{port}")
 
+        message = create_message(packet_size)
         msg_bytes = message.encode()
         msg_length = len(msg_bytes)
         total_bytes = msg_length + 28  # 28 bytes for IP header (20) and TCP header (8)
@@ -65,7 +69,7 @@ def start_client(
 def main():
     host = os.environ.get('SERVER_HOST', '127.0.0.1')
     port = int(os.environ.get('SERVER_PORT', 65432))
-    message = os.environ.get('CLIENT_MESSAGE', "Hello, Server")
+    packet_size = int(os.environ.get('PACKET_SIZE', 38))
     count = int(os.environ.get('TEST_COUNT', 3))
     interval_s = float(os.environ.get('PING_INTERVAL', 0.2))
 
@@ -76,11 +80,11 @@ def main():
     log_file_path = os.environ.get('LOG_FILE_PATH', None)
     if log_file_path is None:
         CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-        log_file_path = os.path.join(CURRENT_DIR, 'outputs', 'app_rtt_client.log')
+        log_file_path = os.path.join(CURRENT_DIR, 'outputs', 'tcp_rtt_client.log')
     logger = create_logger('client', filename=log_file_path)
     
     try:
-        start_client(host=host, port=port, message=message, count=count, interval=interval_s, logger=logger)
+        start_client(host=host, port=port, packet_size=packet_size, count=count, interval=interval_s, logger=logger)
     except Exception as e:
         logger.error(f"Error (server is {host}:{port}): {e}")
 
