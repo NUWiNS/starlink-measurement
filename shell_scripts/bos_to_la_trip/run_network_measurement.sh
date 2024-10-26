@@ -532,61 +532,60 @@ while true; do
 
     round=$((round+1))
 
-    # __print_divider__
+    __print_divider__
 
-    # # TCP DL Test
-    # start_tcp_dl_test $time_folder
+    # TCP DL Test
+    start_tcp_dl_test $time_folder
 
-    # __print_divider__
+    __print_divider__
 
-    # wait_for_gap
+    wait_for_gap
 
-    # __print_divider__
+    __print_divider__
 
-    # # 5G Booster
-    # start_5g_booster $time_folder
+    start_5g_booster $time_folder
 
-    # __print_divider__
+    __print_divider__
 
-    # wait_for_gap
+    wait_for_gap
 
-    # __print_divider__
+    __print_divider__
 
-    # # TCP UL Test
-    # start_tcp_ul_test $time_folder
+    # TCP UL Test
+    start_tcp_ul_test $time_folder
 
-    # __print_divider__
+    __print_divider__
 
-    # wait_for_gap
+    wait_for_gap
 
-    # __print_divider__
+    __print_divider__
 
-    # # 5G Booster
-    # start_5g_booster $time_folder
+    start_5g_booster $time_folder
 
-    # __print_divider__
+    __print_divider__
 
-    # wait_for_gap
+    wait_for_gap
 
-    # __print_divider__
+    __print_divider__
 
-    # # ICMP Ping Test
-    # start_icmp_ping_test $time_folder
+    # ICMP Ping Test
+    start_icmp_ping_test $time_folder
 
-    # __print_divider__
+    __print_divider__
 
-    # wait_for_gap
+    wait_for_gap
 
-    # __print_divider__
+    __print_divider__
 
-    # start_5g_booster $time_folder
+    start_5g_booster $time_folder
 
-    # __print_divider__
+    __print_divider__
 
-    # wait_for_gap
+    wait_for_gap
 
-    # __print_divider__
+    __print_divider__
 
+    # TCP Ping Test
     start_tcp_ping_test $time_folder
 
     __print_divider__
@@ -595,6 +594,7 @@ while true; do
 
     __print_divider__
 
+    # Traceroute Test
     start_traceroute_test $time_folder
 
     __print_divider__
