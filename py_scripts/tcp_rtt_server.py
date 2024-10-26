@@ -8,7 +8,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 logger = create_logger('server', filename=os.path.join(CURRENT_DIR, 'outputs', 'app_rtt_server.log'))
 
-def handle_client(client_socket, client_address, byte_size):
+def handle_client(client_socket, client_address):
     """
     Handle a single client connection.
     """
@@ -32,7 +32,7 @@ def handle_client(client_socket, client_address, byte_size):
         client_socket.close()
         logger.info(f"Connection closed with {client_address}")
 
-def start_server(host='0.0.0.0', port=65432, byte_size=2 * 1024 * 1024):
+def start_server(host='0.0.0.0', port=65432):
     """
     Starts the server that sends `byte_size` amount of data to the client
     before sending an ACK. Handles multiple clients concurrently.
@@ -51,15 +51,14 @@ def start_server(host='0.0.0.0', port=65432, byte_size=2 * 1024 * 1024):
             # Create a new thread to handle the client
             client_thread = threading.Thread(
                 target=handle_client,
-                args=(client_socket, client_address, byte_size)
+                args=(client_socket, client_address)
             )
             client_thread.start()
 
 if __name__ == "__main__":
     host = '0.0.0.0'
     port = int(os.environ.get('SERVER_PORT', 65432))
-    byte_size = int(os.environ.get('BYTE_SIZE', 2 * 1024 * 1024))
     try:
-        start_server(host=host, port=port, byte_size=byte_size)
+        start_server(host=host, port=port)
     except Exception as e:
         logger.error(f"Error (server is {host}:{port}): {e}")
