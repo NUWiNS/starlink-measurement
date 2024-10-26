@@ -432,7 +432,7 @@ start_icmp_ping_test() {
     estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
     report_start_time "ICMP Ping test" $start_ts_ms
 
-    log_file_name="${base_dir}/ping_$(get_time_ms).out"
+    log_file_name="${base_dir}/icmp_ping_$(get_time_ms).out"
     echo "Start time: $start_ts_ms" > $log_file_name
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -479,6 +479,45 @@ start_traceroute_test() {
     report_end_time_and_duration "Traceroute test" $start_ts_ms $actual_end_ts_ms
 }
 
+start_tcp_ping_test() {
+    local base_dir="$1"
+
+    timeout_s=$TCP_RTT_TEST_TIMEOUT
+
+    start_ts_ms=$(get_timestamp_ms)
+    estimated_end_ts_ms=$(calculate_timestamp_ms $start_ts_ms $timeout_s)
+    report_start_time "TCP Ping test" $start_ts_ms
+
+    log_file_name="${base_dir}/tcp_ping_$(get_time_ms).out"
+    echo "Start time: $start_ts_ms">$log_file_name
+
+    export SERVER_HOST=$ip_address
+    export PACKET_SIZE=$TCP_RTT_TEST_PACKET_SIZE
+    export PACKET_COUNT=$TCP_RTT_TEST_COUNT
+    export INTERVAL=$TCP_RTT_TEST_INTERVAL
+    export LOG_FILE_PATH=$log_file_name
+
+    TCP_RTT_SCRIPT_PATH="$(dirname "$0")/../../py_scripts/tcp_rtt_client.py"
+    # Detect Python version and use the appropriate command
+    if command -v python3 &>/dev/null; then
+        timeout $timeout_s python3 $TCP_RTT_SCRIPT_PATH
+    elif command -v python &>/dev/null; then
+        timeout $timeout_s python $TCP_RTT_SCRIPT_PATH
+    else
+        echo "Error: Neither python3 nor python is available on this system."
+    fi
+
+    wait_util_end_time $estimated_end_ts_ms
+    actual_end_ts_ms=$(get_timestamp_ms)
+    echo "End time: $actual_end_ts_ms">>$log_file_name
+
+    echo "Saved TCP Ping test to $log_file_name"
+    
+    summary=$(grep_file "$log_file_name" "rtt min/avg/max/mdev" "= ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+) ms")
+    echo "TCP Ping summary (min/avg/max/mdev) $summary"
+    report_end_time_and_duration "TCP Ping test" $start_ts_ms $actual_end_ts_ms
+}
+
 __print_divider__() {
     echo "-----------------------------------"
 }
@@ -493,10 +532,62 @@ while true; do
 
     round=$((round+1))
 
-    __print_divider__
+    # __print_divider__
 
-    # TCP DL Test
-    start_tcp_dl_test $time_folder
+    # # TCP DL Test
+    # start_tcp_dl_test $time_folder
+
+    # __print_divider__
+
+    # wait_for_gap
+
+    # __print_divider__
+
+    # # 5G Booster
+    # start_5g_booster $time_folder
+
+    # __print_divider__
+
+    # wait_for_gap
+
+    # __print_divider__
+
+    # # TCP UL Test
+    # start_tcp_ul_test $time_folder
+
+    # __print_divider__
+
+    # wait_for_gap
+
+    # __print_divider__
+
+    # # 5G Booster
+    # start_5g_booster $time_folder
+
+    # __print_divider__
+
+    # wait_for_gap
+
+    # __print_divider__
+
+    # # ICMP Ping Test
+    # start_icmp_ping_test $time_folder
+
+    # __print_divider__
+
+    # wait_for_gap
+
+    # __print_divider__
+
+    # start_5g_booster $time_folder
+
+    # __print_divider__
+
+    # wait_for_gap
+
+    # __print_divider__
+
+    start_tcp_ping_test $time_folder
 
     __print_divider__
 
@@ -504,40 +595,12 @@ while true; do
 
     __print_divider__
 
-    # 5G Booster
-    start_5g_booster $time_folder
-
-    __print_divider__
-
-    # TCP UL Test
-    start_tcp_ul_test $time_folder
-
-    __print_divider__
-
-    wait_for_gap
-
-    __print_divider__
-
-    # 5G Booster
-    start_5g_booster $time_folder
-
-    __print_divider__
-
-    # ICMP Ping Test
-    start_icmp_ping_test $time_folder
-
-    __print_divider__
-
-    wait_for_gap
-
-    __print_divider__
-
-    # TODO: add TCP RTT TEST
-    
     start_traceroute_test $time_folder
 
     __print_divider__
+
     echo "All tests completed, cleaning up..."
+
     __print_divider__
 
     if [ "$mode" -eq 2 ] || [ "$mode" -eq 3 ]; then

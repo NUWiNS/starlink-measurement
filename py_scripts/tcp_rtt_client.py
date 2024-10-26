@@ -27,7 +27,7 @@ def start_client(
         host='10.0.0.184', 
         port=65432, 
         packet_size=38,
-        count=4,
+        packet_count=4,
         interval=1,
         logger: logging.Logger | None = None
     ):
@@ -45,12 +45,12 @@ def start_client(
         logger.info(f"PING {host} {msg_length}({total_bytes}) bytes of data.")
 
         rtts = []
-        for i in range(count):
+        for i in range(packet_count):
             try:
                 rtt = send_ping(client_socket, message, logger)
                 rtts.append(rtt)
                 logger.info(f"{len(message)} bytes from {host}: time={rtt:.2f} ms")
-                if i < count - 1:
+                if i < packet_count - 1:
                     time.sleep(interval)
             except Exception as e:
                 logger.error(f"Error sending ping {i+1}: {e}")
@@ -62,29 +62,32 @@ def start_client(
             max_rtt = max(rtts)
             stddev_rtt = statistics.stdev(rtts) if len(rtts) > 1 else 0
 
-            logger.info(f"\n--- {host} ping statistics ---")
-            logger.info(f"{count} packets transmitted, {len(rtts)} received, {(count-len(rtts))/count*100:.1f}% packet loss")
+            logger.info(f"--- {host} ping statistics ---")
+            logger.info(f"{packet_count} packets transmitted, {len(rtts)} received, {(packet_count-len(rtts))/packet_count*100:.1f}% packet loss")
             logger.info(f"rtt min/avg/max/mdev = {min_rtt:.3f}/{avg_rtt:.3f}/{max_rtt:.3f}/{stddev_rtt:.3f} ms")
 
 def main():
     host = os.environ.get('SERVER_HOST', '127.0.0.1')
     port = int(os.environ.get('SERVER_PORT', 65432))
     packet_size = int(os.environ.get('PACKET_SIZE', 38))
-    count = int(os.environ.get('TEST_COUNT', 3))
-    interval_s = float(os.environ.get('PING_INTERVAL', 0.2))
+    packet_count = int(os.environ.get('PACKET_COUNT', 3))
+    interval_s = float(os.environ.get('INTERVAL', 0.2))
 
-    if count < 1:
-        logger.error("TEST_COUNT must be greater than 0")
+    if packet_count < 1:
+        logger.error("PACKET_COUNT must be greater than 0")
         exit(1)
 
     log_file_path = os.environ.get('LOG_FILE_PATH', None)
     if log_file_path is None:
         CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
         log_file_path = os.path.join(CURRENT_DIR, 'outputs', 'tcp_rtt_client.log')
+    if not os.path.isdir(os.path.dirname(log_file_path)):
+        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+
     logger = create_logger('client', filename=log_file_path)
     
     try:
-        start_client(host=host, port=port, packet_size=packet_size, count=count, interval=interval_s, logger=logger)
+        start_client(host=host, port=port, packet_size=packet_size, packet_count=packet_count, interval=interval_s, logger=logger)
     except Exception as e:
         logger.error(f"Error (server is {host}:{port}): {e}")
 

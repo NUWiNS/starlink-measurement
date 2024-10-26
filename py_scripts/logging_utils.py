@@ -20,9 +20,12 @@ def create_logger(
         name: str, 
         filename: str | None = None,
         formatter: logging.Formatter | None = None,
-        filemode: str = 'a'
+        filemode: str = 'a',
+        level: int = logging.INFO
 ) -> logging.Logger:
     logger = logging.getLogger(name)
+    # Set the logger's level to INFO
+    logger.setLevel(level)
 
     if logger.handlers:
         reset_logger(name)
@@ -30,18 +33,20 @@ def create_logger(
     if formatter is None:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                                       datefmt='%Y-%m-%dT%H:%M:%S%z')
+    
     if filename is not None:
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
         file_handler = logging.FileHandler(filename, mode=filemode)
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
     else:
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(logging.INFO)
-        stream_handler.setFormatter(formatter)
-        logger.addHandler(stream_handler)
+        # If no filename is provided, we'll use a NullHandler to suppress console output
+        logger.addHandler(logging.NullHandler())
+
+    # Disable propagation to prevent logging to console
+    logger.propagate = False
 
     return logger
 
