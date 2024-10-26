@@ -453,7 +453,7 @@ start_icmp_ping_test() {
         # Android format
         summary=$(grep_file "$log_file_name" "rtt min/avg/max/mdev" "= ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+) ms")
     fi
-    echo "Ping summary $summary"
+    echo "Ping summary (min/avg/max/mdev) $summary"
     report_end_time_and_duration "Ping test" $start_ts_ms $actual_end_ts_ms
 }
 
