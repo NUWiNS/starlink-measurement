@@ -33,7 +33,7 @@ get_datetime_with_iso_8601_local_timezone() {
     fi
 }
 
-bash ./command_guard.sh
+bash $(dirname "$0")/command_guard.sh
 guard_status=$?
 
 if [ $guard_status -ne 0 ]; then
