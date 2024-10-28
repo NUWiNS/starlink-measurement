@@ -128,20 +128,35 @@ ip_address=$3
 if [ -z "$ip_address" ]; then
     while true; do
         echo "Starting a network measurement, please choose a server"
-        echo "1) Virginia cloud server: 35.245.244.238"
-        echo "2) Localhost (for testing): 127.0.0.1"
-        read -p "Enter your choice (1-2): " server_choice
+        echo "1) Cloud East: 54.197.223.49"
+        echo "2) Boston Wavelength: 155.146.11.34" 
+        echo "3) Chicago Wavelength: 155.146.180.31"
+        echo "4) West Coast Cloud: 54.176.53.206"
+        echo "5) Localhost (for testing): 127.0.0.1"
+        read -p "Enter your choice (1-5): " server_choice
         case $server_choice in
             1)
-                ip_address=35.245.244.238
+                ip_address=54.197.223.49
                 break
                 ;;
             2)
+                ip_address=155.146.11.34
+                break
+                ;;
+            3)
+                ip_address=155.146.180.31
+                break
+                ;;
+            4)
+                ip_address=54.176.53.206
+                break
+                ;;
+            5)
                 ip_address=127.0.0.1
                 break
                 ;;
             *)
-                echo "Invalid choice, please enter a number between 1 and 2"
+                echo "Invalid choice, please enter a number between 1 and 5"
                 ip_address=""
                 ;;
         esac
