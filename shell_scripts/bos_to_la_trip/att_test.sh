@@ -11,8 +11,9 @@ file
 fi
 
 # 1 for loop, 2 for one-shot mode, 3 for one-shot mode for testing 
-MODE=2
-# 1 for Verizon, 2 for ATT, 3 for Starlink
+# Use first argument if provided
+MODE=${1:-2}
+# 1 for Verizon, 2 for ATT, 3 for Starlink, 4 for Tmobile
 OPERATOR=2
 OPERATOR_NAME="att"
 # Leave blank for default server
