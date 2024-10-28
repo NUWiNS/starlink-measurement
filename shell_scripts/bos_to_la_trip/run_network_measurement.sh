@@ -402,6 +402,8 @@ start_5g_booster() {
     echo "End time: $actual_end_ts_ms" >> $log_file_name
 
     echo "Saved TCP DL results to $log_file_name"
+    rate=$(grep_file "$log_file_name" "nuttcp-r" '([0-9]+(\.[0-9]+)?)\s*Mbps')
+    echo "DL AVG TPUT: $rate"
     report_end_time_and_duration "5G booster" $start_ts_ms $actual_end_ts_ms
 }
 
