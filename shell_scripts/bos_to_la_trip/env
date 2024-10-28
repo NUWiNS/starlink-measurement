@@ -1,9 +1,5 @@
-# Server IP address
-SERVER_IP=35.245.244.238
-
-
 # Root directory for saving test results
-ROOT_DIR="${HOME}/storage/shared/bos_la_trip"
+ROOT_DIR="${HOME}/storage/shared/bos_la_2024_trip"
 
 TEST_GAP_DURATION=2
 
