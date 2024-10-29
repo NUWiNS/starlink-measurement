@@ -20,13 +20,13 @@ def send_ping(client_socket, message, logger):
     # logger.info(f"Round-trip time: {rtt:.2f} ms")
     return rtt
 
-def create_message(packet_size, char="A"):
-    return char * packet_size
+def create_message(payload_size, char="A"):
+    return char * payload_size
 
 def start_client(
         host='10.0.0.184', 
         port=65432, 
-        packet_size=38,
+        payload_size=26,
         packet_count=4,
         interval=1,
         logger: logging.Logger | None = None
@@ -38,18 +38,19 @@ def start_client(
         client_socket.connect((host, port))
         logger.info(f"Connected to {host}:{port}")
 
-        message = create_message(packet_size)
+        message = create_message(payload_size)
         msg_bytes = message.encode()
         msg_length = len(msg_bytes)
-        total_bytes = msg_length + 28  # 28 bytes for IP header (20) and TCP header (8)
-        logger.info(f"PING {host} {msg_length}({total_bytes}) bytes of data.")
+        tcp_packet_size = msg_length + 20  # 20 bytes for TCP header
+        ip_packet_size = tcp_packet_size + 20  # 20 bytes for IP header
+        logger.info(f"PING {host} {msg_length}({ip_packet_size}) bytes of data.")
 
         rtts = []
         for i in range(packet_count):
             try:
                 rtt = send_ping(client_socket, message, logger)
                 rtts.append(rtt)
-                logger.info(f"{len(message)} bytes from {host}: time={rtt:.2f} ms")
+                logger.info(f"{tcp_packet_size} bytes from {host}: time={rtt:.2f} ms")
                 if i < packet_count - 1:
                     time.sleep(interval)
             except Exception as e:
@@ -62,14 +63,14 @@ def start_client(
             max_rtt = max(rtts)
             stddev_rtt = statistics.stdev(rtts) if len(rtts) > 1 else 0
 
-            logger.info(f"--- {host} ping statistics ---")
+            logger.info(f"\n--- {host} ping statistics ---")
             logger.info(f"{packet_count} packets transmitted, {len(rtts)} received, {(packet_count-len(rtts))/packet_count*100:.1f}% packet loss")
             logger.info(f"rtt min/avg/max/mdev = {min_rtt:.3f}/{avg_rtt:.3f}/{max_rtt:.3f}/{stddev_rtt:.3f} ms")
 
 def main():
     host = os.environ.get('SERVER_HOST', '127.0.0.1')
     port = int(os.environ.get('SERVER_PORT', 65432))
-    packet_size = int(os.environ.get('PACKET_SIZE', 38))
+    payload_size = int(os.environ.get('PAYLOAD_SIZE', 26))
     packet_count = int(os.environ.get('PACKET_COUNT', 3))
     interval_s = float(os.environ.get('INTERVAL', 0.2))
 
@@ -87,7 +88,7 @@ def main():
     logger = create_logger('client', filename=log_file_path)
     
     try:
-        start_client(host=host, port=port, packet_size=packet_size, packet_count=packet_count, interval=interval_s, logger=logger)
+        start_client(host=host, port=port, payload_size=payload_size, packet_count=packet_count, interval=interval_s, logger=logger)
     except Exception as e:
         logger.error(f"Error (server is {host}:{port}): {e}")
 

@@ -509,7 +509,7 @@ start_tcp_ping_test() {
     echo "Start time: $start_ts_ms">$log_file_name
 
     export SERVER_HOST=$ip_address
-    export PACKET_SIZE=$TCP_RTT_TEST_PACKET_SIZE
+    export PAYLOAD_SIZE=$TCP_RTT_TEST_PAYLOAD_SIZE
     export PACKET_COUNT=$TCP_RTT_TEST_COUNT
     export INTERVAL=$TCP_RTT_TEST_INTERVAL
     export LOG_FILE_PATH=$log_file_name
