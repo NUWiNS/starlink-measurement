@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Read env file from the same directory
-if [ -f "$(dirname "$0")/env" ]; then
-    source "$(dirname "$0")/env"
-    echo "Loaded environment variables from env file"
+if [ -f "$(dirname "$0")/prod.env" ]; then
+    source "$(dirname "$0")/prod.env"
+    echo "[measurement] Load environment variables from prod.env file"
 else
-    echo "Warning: env file not found in the same directory"
+    echo "[measurement] Warning: prod.env file not found in the same directory"
 fi
 
 # # Test the environment variables read from the env file
@@ -61,25 +61,34 @@ while true; do
         echo "1) Loop mode"
         echo "2) One-shot mode"
         echo "3) One-shot mode for testing"
-        read -p "Enter your choice (1-2): " mode
+        read -p "Enter your choice (1-3): " mode
     fi
     case $mode in
         1) break;;
         2) break;;
         3) 
-            if [ -f "$(dirname "$0")/test_env" ]; then
-                source "$(dirname "$0")/test_env"
-                echo "Loaded environment variables from test_env file"
+            # Overwrite env variables with test.env
+            if [ -f "$(dirname "$0")/test.env" ]; then
+                source "$(dirname "$0")/test.env"
+                echo "[measurement] Overwrite environment variables from test.env file"
             else
-                echo "Warning: test_env file not found in the same directory"
+                echo "[measurement] Warning: test.env file not found in the same directory"
             fi
             break;;
         *)
-            echo "Invalid choice, please enter a number between 1 and 2"
+            echo "Invalid choice, please enter a number in range"
             mode=""
             ;;
     esac
 done
+
+read_operator_specific_env() {
+    local operator=$1
+    if [ -f "$(dirname "$0")/${operator}.env" ]; then
+        source "$(dirname "$0")/${operator}.env"
+        echo "[measurement] Load operator-specific env from ${operator}.env file"
+    fi
+}
 
 operator_choice=$2
 while true; do
@@ -94,24 +103,32 @@ while true; do
     case $operator_choice in
         1)
             operator="verizon"
+            read_operator_specific_env $operator
+
             nuttcp_port=$VERIZON_NUTTCP_PORT
             iperf_port=$VERIZON_IPERF_PORT
             break
             ;;
         2)
             operator="att"
+            read_operator_specific_env $operator
+
             nuttcp_port=$ATT_NUTTCP_PORT
             iperf_port=$ATT_IPERF_PORT
             break
             ;;
         3)
             operator="starlink"
+            read_operator_specific_env $operator
+
             nuttcp_port=$STARLINK_NUTTCP_PORT
             iperf_port=$STARLINK_IPERF_PORT
             break
             ;;
         4)
             operator="tmobile"
+            read_operator_specific_env $operator
+
             nuttcp_port=$TMOBILE_NUTTCP_PORT
             iperf_port=$TMOBILE_IPERF_PORT
             break
@@ -126,40 +143,35 @@ done
 
 ip_address=$3
 if [ -z "$ip_address" ]; then
+    # Read server options from env file
+    IFS=$'\n' read -d '' -r -a SERVER_NAMES <<< "${SERVER_NAMES_LIST}"
+    IFS=$'\n' read -d '' -r -a SERVER_IPS <<< "${SERVER_IPS_LIST}"
+
+    if [ ${#SERVER_IPS[@]} -eq 0 ]; then
+        echo "Error: SERVER_IPS_LIST is empty"
+        exit 1
+    fi
+
+    # Validate arrays have same length
+    if [ ${#SERVER_NAMES[@]} -ne ${#SERVER_IPS[@]} ]; then
+        echo "Error: SERVER_NAMES_LIST and SERVER_IPS_LIST must have the same number of entries"
+        exit 1
+    fi
+    
     while true; do
         echo "Starting a network measurement, please choose a server"
-        echo "1) Cloud East: 54.197.223.49"
-        echo "2) Boston Wavelength: 155.146.11.34" 
-        echo "3) Chicago Wavelength: 155.146.180.31"
-        echo "4) West Coast Cloud: 54.176.53.206"
-        echo "5) Localhost (for testing): 127.0.0.1"
-        read -p "Enter your choice (1-5): " server_choice
-        case $server_choice in
-            1)
-                ip_address=54.197.223.49
-                break
-                ;;
-            2)
-                ip_address=155.146.11.34
-                break
-                ;;
-            3)
-                ip_address=155.146.180.31
-                break
-                ;;
-            4)
-                ip_address=54.176.53.206
-                break
-                ;;
-            5)
-                ip_address=127.0.0.1
-                break
-                ;;
-            *)
-                echo "Invalid choice, please enter a number between 1 and 5"
-                ip_address=""
-                ;;
-        esac
+        for i in "${!SERVER_NAMES[@]}"; do
+            echo "$i) ${SERVER_NAMES[$i]}: ${SERVER_IPS[$i]}"
+        done
+        read -p "Enter your choice (0-$((${#SERVER_NAMES[@]}-1))): " server_choice
+        
+        if [[ "$server_choice" =~ ^[0-9]+$ ]] && [ "$server_choice" -lt "${#SERVER_NAMES[@]}" ]; then
+            ip_address=${SERVER_IPS[$server_choice]}
+            break
+        else
+            echo "Invalid choice, please enter a number in range"
+            ip_address=""
+        fi
     done
 fi
 
