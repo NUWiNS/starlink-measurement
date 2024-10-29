@@ -375,3 +375,77 @@ def plot_cdf_tput_tcp_vs_udp_for_starlink_and_cellular(
     plt.savefig(os.path.join(output_dir, config['filename']))
     plt.show()
     plt.close(fig)
+
+def plot_cdf_xcal_vs_app_tput_combined(
+        app_tput_dfs: dict, 
+        xcal_tput_dfs: dict, 
+        output_file_path: str, 
+        title: str = None
+    ):
+    """Plot CDF comparing XCAL and application throughput measurements in a 2x2 subplot.
+    
+    Args:
+        app_tput_dfs: Dict containing app throughput Series for each protocol/direction
+        xcal_tput_dfs: Dict containing XCAL throughput Series for each protocol/direction
+        output_file_path: Path to save the output figure
+    """
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    cmap20 = plt.cm.tab20
+    
+    # Add title for whole figure
+    if title:
+        fig.suptitle(title, fontsize=18, y=1.02)
+    
+    # Subplot positions for each combination
+    positions = {
+        ('tcp', 'downlink'): (0, 0),
+        ('tcp', 'uplink'): (0, 1),
+        ('udp', 'downlink'): (1, 0),
+        ('udp', 'uplink'): (1, 1)
+    }
+    
+    # Plot each subplot
+    for protocol in ['tcp', 'udp']:
+        for direction in ['downlink', 'uplink']:
+            row, col = positions[(protocol, direction)]
+            ax = axs[row, col]
+            
+            key = f"{protocol}_{direction}"
+            app_data = app_tput_dfs[key]
+            xcal_data = xcal_tput_dfs[key]
+            
+            # Plot CDFs
+            for idx, data in enumerate([app_data, xcal_data]):
+                xvals, yvals = get_cdf(data)
+                ax.plot(xvals, yvals,
+                       label=['Application', 'XCAL'][idx],
+                       color=[cmap20(0), cmap20(4)][idx],
+                       linewidth=3)
+            
+            # Formatting each subplot
+            fzsize = 16
+            ax.tick_params(axis='both', labelsize=fzsize-2)
+            ax.set_xlabel('Throughput (Mbps)', fontsize=fzsize)
+            ax.set_ylabel('CDF', fontsize=fzsize)
+            ax.set_yticks(np.arange(0, 1.1, 0.25))
+            
+            # Set axis limits
+            max_tput = max(app_data.max(), xcal_data.max())
+            ax.set_xlim(0, max_tput)
+            if max_tput <= 100:
+                ax.set_xticks(range(0, int(max_tput) + 1, 25))
+            else:
+                ax.set_xticks(range(0, int(max_tput) + 1, 50))
+            ax.set_ylim(0, 1.02)
+            
+            # Add subplot title
+            ax.set_title(f'{protocol.upper()} {direction.capitalize()}', fontsize=fzsize)
+            ax.grid(True)
+            
+            # Only add legend to first subplot
+            if row == 0 and col == 0:
+                ax.legend(prop={'size': fzsize-2}, loc='lower right')
+    
+    plt.tight_layout()
+    plt.savefig(output_file_path)
+    plt.close()

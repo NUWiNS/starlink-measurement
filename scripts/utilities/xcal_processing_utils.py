@@ -104,8 +104,8 @@ def filter_xcal_logs(
             (df_xcal_logs['utc_dt'] <= utc_end_dt)
         ]
         protocol, direction = protocol_direction.split('_')
-        period_rows['app_tput_protocol'] = protocol
-        period_rows['app_tput_direction'] = direction
+        period_rows.loc[:, 'app_tput_protocol'] = protocol
+        period_rows.loc[:, 'app_tput_direction'] = direction
         # Add filtered rows to the list
         filtered_rows.append(period_rows)
 

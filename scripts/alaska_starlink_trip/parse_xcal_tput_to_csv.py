@@ -142,7 +142,7 @@ def main():
     if not path.exists(output_dir):
         os.makedirs(output_dir)
 
-    for operator in ['verizon']:
+    for operator in ['att', 'verizon', 'tmobile']:
         print(f"--- Processing {operator}...")
         process_operator_xcal_tput(operator, location, output_dir)
         print(f"--- Finished processing {operator}")
