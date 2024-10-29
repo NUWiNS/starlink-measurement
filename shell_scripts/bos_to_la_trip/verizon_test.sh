@@ -36,4 +36,4 @@ if [ ! -d $DATA_DIR ]; then
     mkdir -p $DATA_DIR
 fi
 
-bash run_network_measurement.sh $MODE $OPERATOR $SERVER 2>&1 | tee -a $DATA_DIR/measurement.log
+bash "$(dirname "$0")/run_network_measurement.sh" $MODE $OPERATOR $SERVER 2>&1 | tee -a $DATA_DIR/measurement.log

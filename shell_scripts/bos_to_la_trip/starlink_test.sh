@@ -35,6 +35,6 @@ if [ ! -d $DATA_DIR ]; then
     mkdir -p $DATA_DIR
 fi
 
-bash run_network_measurement.sh $MODE $OPERATOR $SERVER 2>&1 | tee -a $DATA_DIR/measurement.log
+bash "$(dirname "$0")/run_network_measurement.sh" $MODE $OPERATOR $SERVER 2>&1 | tee -a $DATA_DIR/measurement.log
 
-bash ./pull_starlink_history.sh 2>&1 | tee -a $DATA_DIR/starlink_rpc.log
+bash "$(dirname "$0")/pull_starlink_history.sh" 2>&1 | tee -a $DATA_DIR/starlink_rpc.log

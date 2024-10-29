@@ -350,6 +350,27 @@ grep_file() {
     fi
 }
 
+check_file_lines_gt() {
+  local filename="$1"
+  local min_lines="${2:-0}"  # Default to 0 if not provided
+
+  if [ ! -f "$filename" ]; then
+    echo "File not found: $filename" >&2
+    return 1
+  fi
+
+  # Count the number of lines in the file
+  local line_count
+  line_count=$(wc -l < "$filename")
+
+  # Check if the line count is less than the minimum
+  if (( line_count > min_lines )); then
+    return 0
+  else
+    return 1
+  fi
+}
+
 start_tcp_dl_test() {
     local base_dir="$1"
 
@@ -377,8 +398,12 @@ start_tcp_dl_test() {
     echo "End time: $actual_end_ts_ms" >> $log_file_name
 
     echo "Saved ${thrpt_protocol} downlink test to $log_file_name"
-    rate=$(grep_file "$log_file_name" "nuttcp-r" '([0-9]+(\.[0-9]+)?)\s*Mbps')
-    echo "DL AVG TPUT: $rate"
+    if check_file_lines_gt $log_file_name 2; then
+      rate=$(grep_file "$log_file_name" "nuttcp-r" '([0-9]+(\.[0-9]+)?)\s*Mbps')
+      echo "DL AVG TPUT: $rate"
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
     report_end_time_and_duration "${thrpt_protocol} downlink test" $start_ts_ms $actual_end_ts_ms
 }
 
@@ -414,8 +439,12 @@ start_5g_booster() {
     echo "End time: $actual_end_ts_ms" >> $log_file_name
 
     echo "Saved TCP DL results to $log_file_name"
-    rate=$(grep_file "$log_file_name" "nuttcp-r" '([0-9]+(\.[0-9]+)?)\s*Mbps')
-    echo "DL AVG TPUT: $rate"
+    if check_file_lines_gt $log_file_name 2; then
+      rate=$(grep_file "$log_file_name" "nuttcp-r" '([0-9]+(\.[0-9]+)?)\s*Mbps')
+      echo "DL AVG TPUT: $rate"
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
     report_end_time_and_duration "5G booster" $start_ts_ms $actual_end_ts_ms
 }
 
@@ -444,8 +473,12 @@ start_tcp_ul_test() {
     echo "End time: $actual_end_ts_ms" >> $log_file_name
 
     echo "Saved uplink test to $log_file_name"
-    rate=$(grep_file "$log_file_name" "nuttcp-r" '([0-9]+(\.[0-9]+)?)\s*Mbps')
-    echo "UL AVG TPUT: $rate"
+    if check_file_lines_gt $log_file_name 2; then
+      rate=$(grep_file "$log_file_name" "nuttcp-r" '([0-9]+(\.[0-9]+)?)\s*Mbps')
+      echo "UL AVG TPUT: $rate"
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
     report_end_time_and_duration "${thrpt_protocol} uplink test" $start_ts_ms $actual_end_ts_ms
 }
 
@@ -482,7 +515,11 @@ start_icmp_ping_test() {
         # Android format
         summary=$(grep_file "$log_file_name" "rtt min/avg/max/mdev" "= ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+) ms")
     fi
-    echo "Ping summary (min/avg/max/mdev) $summary"
+    if check_file_lines_gt $log_file_name 2; then
+      echo "Ping summary (min/avg/max/mdev) $summary"
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
     report_end_time_and_duration "Ping test" $start_ts_ms $actual_end_ts_ms
 }
 
@@ -505,6 +542,11 @@ start_traceroute_test() {
     echo "End time: $actual_end_ts_ms">>$log_file_name
 
     echo "Saved traceroute test to $log_file_name"
+    if check_file_lines_gt $log_file_name 2; then
+      echo "Traceroute summary (min/avg/max/mdev) $summary"
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
     report_end_time_and_duration "Traceroute test" $start_ts_ms $actual_end_ts_ms
 }
 
@@ -542,8 +584,12 @@ start_tcp_ping_test() {
 
     echo "Saved TCP Ping test to $log_file_name"
     
-    summary=$(grep_file "$log_file_name" "rtt min/avg/max/mdev" "= ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+) ms")
-    echo "TCP Ping summary (min/avg/max/mdev) $summary"
+    if check_file_lines_gt $log_file_name 2; then
+      1summary=$(grep_file "$log_file_name" "rtt min/avg/max/mdev" "= ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+) ms")
+      echo "TCP Ping summary (min/avg/max/mdev) $summary"
+    else
+      echo "[CAUTION] EMPTY LOG!"
+    fi
     report_end_time_and_duration "TCP Ping test" $start_ts_ms $actual_end_ts_ms
 }
 
