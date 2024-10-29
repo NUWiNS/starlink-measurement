@@ -4,20 +4,22 @@ import sys
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from scripts.math_utils import get_cdf
 from scripts.alaska_starlink_trip.configs import ROOT_DIR
 from scripts.logging_utils import create_logger
 from scripts.cdf_tput_plotting_utils import get_data_frame_from_all_csv, plot_cdf_of_throughput_with_all_operators, \
     plot_cdf_of_throughput, plot_cdf_of_starlink_throughput_by_weather, \
     plot_cdf_tput_tcp_vs_udp_for_starlink_and_cellular
 
-from scripts.constants import DATASET_DIR, OUTPUT_DIR
+from scripts.constants import OUTPUT_DIR
 
-base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput')
-tput_cubic_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_cubic')
-tput_bbr_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/throughput_bbr')
-tmp_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/tmp')
+base_dir = os.path.join(ROOT_DIR, 'throughput')
+tput_cubic_dir = os.path.join(ROOT_DIR, 'throughput_cubic')
+tput_bbr_dir = os.path.join(ROOT_DIR, 'throughput_bbr')
+tmp_dir = os.path.join(ROOT_DIR, 'tmp')
 output_dir = os.path.join(OUTPUT_DIR, 'alaska_starlink_trip/plots')
 
 logger = create_logger('plot_cdf_throughput', filename=os.path.join(tmp_dir, 'plot_cdf_throughput.log'))
@@ -268,7 +270,7 @@ def read_all_throughput_data(direction: str, protocol: str, filter_by: (str, str
 
 
 def read_and_plot_starlink_throughput_data(output_dir: str, filter_by: str = None):
-    data_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/starlink')
+    data_dir = os.path.join(ROOT_DIR, 'starlink')
     sl_metric_df = pd.read_csv(os.path.join(data_dir, 'starlink_metric.csv'))
 
     # convert the throughput_cubic to Mbps
@@ -323,38 +325,124 @@ def read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr(protocol: str, direction: str, 
         output_dir=output_dir
     )
 
-def read_and_plot_xcal_tput_data(output_dir: str):
-    operators = ['att']
+def plot_cdf_xcal_vs_app_tput_combined(app_tput_dfs: dict, xcal_tput_dfs: dict, output_file_path: str, title: str = None):
+    """Plot CDF comparing XCAL and application throughput measurements in a 2x2 subplot.
+    
+    Args:
+        app_tput_dfs: Dict containing app throughput Series for each protocol/direction
+        xcal_tput_dfs: Dict containing XCAL throughput Series for each protocol/direction
+        output_file_path: Path to save the output figure
+    """
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    cmap20 = plt.cm.tab20
+    
+    # Add title for whole figure
+    if title:
+        fig.suptitle(title, fontsize=18, y=1.02)
+    
+    # Subplot positions for each combination
+    positions = {
+        ('tcp', 'downlink'): (0, 0),
+        ('tcp', 'uplink'): (0, 1),
+        ('udp', 'downlink'): (1, 0),
+        ('udp', 'uplink'): (1, 1)
+    }
+    
+    # Plot each subplot
+    for protocol in ['tcp', 'udp']:
+        for direction in ['downlink', 'uplink']:
+            row, col = positions[(protocol, direction)]
+            ax = axs[row, col]
+            
+            key = f"{protocol}_{direction}"
+            app_data = app_tput_dfs[key]
+            xcal_data = xcal_tput_dfs[key]
 
-    combined_df = pd.DataFrame(columns=['operator', 'throughput_mbps'])
-    stats = {}
+            if protocol == 'tcp' and direction == 'downlink':
+                plot_cdf_of_throughput(
+                    app_data, 
+                    title=f'{protocol.upper()} {direction.capitalize()} Throughput (Application)', 
+                    output_file_path=os.path.join(output_dir, 'app_tcp_dl_tput.png')
+                )
+                plot_cdf_of_throughput(
+                    xcal_data, 
+                    title=f'{protocol.upper()} {direction.capitalize()} Throughput (XCAL)', 
+                    output_file_path=os.path.join(output_dir, 'xcal_tcp_dl_tput.png')
+                )
+            
+            # Plot CDFs
+            for idx, data in enumerate([app_data, xcal_data]):
+                xvals, yvals = get_cdf(data)
+                ax.plot(xvals, yvals,
+                       label=['Application', 'XCAL'][idx],
+                       color=[cmap20(0), cmap20(4)][idx],
+                       linewidth=3)
+            
+            # Formatting each subplot
+            fzsize = 16
+            ax.tick_params(axis='both', labelsize=fzsize-2)
+            ax.set_xlabel('Throughput (Mbps)', fontsize=fzsize)
+            ax.set_ylabel('CDF', fontsize=fzsize)
+            ax.set_yticks(np.arange(0, 1.1, 0.25))
+            
+            # Set axis limits
+            max_tput = max(app_data.max(), xcal_data.max())
+            ax.set_xlim(0, max_tput)
+            if max_tput <= 100:
+                ax.set_xticks(range(0, int(max_tput) + 1, 25))
+            else:
+                ax.set_xticks(range(0, int(max_tput) + 1, 50))
+            ax.set_ylim(0, 1.02)
+            
+            # Add subplot title
+            ax.set_title(f'{protocol.upper()} {direction.capitalize()}', fontsize=fzsize)
+            ax.grid(True)
+            
+            # Only add legend to first subplot
+            if row == 0 and col == 0:
+                ax.legend(prop={'size': fzsize-2}, loc='lower right')
+    
+    plt.tight_layout()
+    plt.savefig(output_file_path)
+    plt.close()
+
+def read_and_plot_xcal_tput_data(output_dir: str):
+    operators = ['att', 'verizon', 'tmobile']
+
     for operator in operators:
-        df = pd.read_csv(os.path.join(ROOT_DIR, f'xcal/{operator}_smart_tput.csv'))
+        df = pd.read_csv(os.path.join(ROOT_DIR, f'xcal/{operator}_xcal_smart_tput.csv'))
+        
+        # Collect all data first
+        app_tput_dfs = {}
+        xcal_tput_dfs = {}
+        
         for protocol in ['tcp', 'udp']:
             for direction in ['downlink', 'uplink']:
                 sub_df = df[(df['app_tput_protocol'] == protocol) & (df['app_tput_direction'] == direction)]
-                if direction == 'downlink':
-                    tput_mbps_df = sub_df['Smart Phone Smart Throughput Mobile Network DL Throughput [Mbps]']
-                elif direction == 'uplink':
-                    tput_mbps_df = sub_df['Smart Phone Smart Throughput Mobile Network UL Throughput [Mbps]']
-                else:
-                    raise ValueError(f'direction should be either downlink or uplink')
                 
-                new_df = pd.DataFrame({'operator': operator, 'throughput_mbps': tput_mbps_df})
-                combined_df = pd.concat([combined_df, new_df], ignore_index=True)
+                # Get XCAL throughput
+                if direction == 'downlink':
+                    xcal_tput = sub_df['dl']
+                else:
+                    xcal_tput = sub_df['ul']
+                
+                # Get application throughput
+                app_tput = get_data_frame_from_all_csv(operator, protocol, direction)['throughput_mbps']
+                
+                # Store in dictionaries
+                key = f"{protocol}_{direction}"
+                app_tput_dfs[key] = app_tput
+                xcal_tput_dfs[key] = xcal_tput
 
-                plot_cdf_of_throughput_with_all_operators(
-                    combined_df,
-                    all_operators=['att', 'verizon'],
-                    data_stats=stats,
-                    title=f'CDF of XCAL Smart Tput: {protocol.upper()} {direction.capitalize()}',
-                    output_file_path=os.path.join(output_dir, f'cdf_xcal_smart_tput_{protocol}_{direction}.png')
-                )
-                print('Done!')
-
-
-    
-
+        # Plot combined figure
+        fig_path = os.path.join(output_dir, f'cdf_xcal_smart_tput_{operator}_combined.png')
+        plot_cdf_xcal_vs_app_tput_combined(
+            app_tput_dfs,
+            xcal_tput_dfs,
+            output_file_path=fig_path,
+            title=f'CDF of Smart Tput and App Throughput: {operator}'
+        )
+        print(f'Saved combined XCAL vs application throughput plot to {fig_path}')
 
 def main():
     if not os.path.exists(base_dir):

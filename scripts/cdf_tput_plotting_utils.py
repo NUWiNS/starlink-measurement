@@ -74,21 +74,22 @@ def plot_cdf_of_throughput(
         title='CDF of Throughput',
         output_file_path=None
 ):
-    data_sorted = np.sort(data_frame)
-    cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
+    xvals, yvals = get_cdf(data_frame)
 
     stats = get_statistics(data_frame)
     label = format_statistics(stats)
 
     plt.figure(figsize=(10, 6))
-    plt.plot(data_sorted, cdf, linestyle='-', label=label)
+    plt.plot(xvals, yvals, linestyle='-', label=label)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
     plt.grid(True)
     if output_file_path:
         plt.savefig(output_file_path)
-    plt.show()
+    else:
+        plt.show()
+    plt.close()
 
 
 def plot_cdf_of_throughput_with_all_operators(

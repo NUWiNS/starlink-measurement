@@ -65,38 +65,55 @@ def read_daily_xcal_data(base_dir: str, date: str, operator: str, location: str)
     df_xcal_log = pd.read_excel(filepath)
     return df_xcal_log
 
-def filter_xcal_logs(df_xcal_logs: pd.DataFrame, periods: list[tuple[datetime, datetime, str]]) -> pd.DataFrame:
+def filter_xcal_logs(
+        df_xcal_logs: pd.DataFrame, 
+        periods: list[tuple[datetime, datetime, str]],
+        xcal_timezone: str = 'US/Eastern'
+    ) -> pd.DataFrame:
     """
     Filter the xcal logs to only include the specified periods.
+
+    - Add a column 'app_layer_label' to the filtered rows to indicate the protocol and direction
+
     :df_xcal_logs: pd.DataFrame, the xcal logs, with a column 'TIME_STAMP' as the timestamp in Eastern time
     :periods: list of tuples, each tuple contains a start and end timestamp (UTC aware datetime objects)
     """
     # Create a temporary datetime column (from Eastern time) for filtering, and convert to UTC
-    df_xcal_logs['tmp_utc_dt'] = pd.to_datetime(df_xcal_logs['TIME_STAMP'], errors='coerce').dt.tz_localize('US/Eastern', ambiguous='raise', nonexistent='raise').dt.tz_convert('UTC')
-    df_xcal_logs = df_xcal_logs.dropna(subset=['tmp_utc_dt'])
+    df_xcal_logs['utc_dt'] = pd.to_datetime(
+        df_xcal_logs['TIME_STAMP'],
+        errors='coerce').dt.tz_localize(
+            xcal_timezone, 
+            ambiguous='raise', 
+            nonexistent='raise'
+        ).dt.tz_convert('UTC')
+
+    # drop rows with empty utc_dt
+    df_xcal_logs = df_xcal_logs.dropna(subset=['utc_dt'])
 
     # Initialize an empty list to store filtered rows
     filtered_rows = []
 
-    # Iterate through each period
     for period in periods:
-        utc_start_dt, utc_end_dt, _ = period
+        utc_start_dt, utc_end_dt, protocol_direction = period
         # Ensure start and end datetimes are timezone-aware
         utc_start_dt = pd.to_datetime(utc_start_dt, utc=True)
         utc_end_dt = pd.to_datetime(utc_end_dt, utc=True)
         # Filter rows within the current period
-        period_rows = df_xcal_logs[(df_xcal_logs['tmp_utc_dt'] >= utc_start_dt) & 
-                                   (df_xcal_logs['tmp_utc_dt'] <= utc_end_dt)]
+        period_rows = df_xcal_logs[
+            (df_xcal_logs['utc_dt'] >= utc_start_dt) & 
+            (df_xcal_logs['utc_dt'] <= utc_end_dt)
+        ]
+        protocol, direction = protocol_direction.split('_')
+        period_rows['app_tput_protocol'] = protocol
+        period_rows['app_tput_direction'] = direction
         # Add filtered rows to the list
         filtered_rows.append(period_rows)
 
     # Combine all filtered rows
     if filtered_rows:
         filtered_df = pd.concat(filtered_rows, ignore_index=True)
-        # Remove duplicate rows and temporary datetime column
-        filtered_df = filtered_df.drop(columns=['tmp_utc_dt']).drop_duplicates().reset_index(drop=True)
     else:
-        filtered_df = pd.DataFrame(columns=df_xcal_logs.columns)
+        filtered_df = pd.DataFrame()
 
     return filtered_df
 
