@@ -394,7 +394,7 @@ def plot_cdf_xcal_vs_app_tput_combined(
     
     # Add title for whole figure
     if title:
-        fig.suptitle(title, fontsize=18, y=1.02)
+        fig.suptitle(title)
     
     # Subplot positions for each combination
     positions = {
@@ -423,28 +423,28 @@ def plot_cdf_xcal_vs_app_tput_combined(
                        linewidth=3)
             
             # Formatting each subplot
-            fzsize = 16
-            ax.tick_params(axis='both', labelsize=fzsize-2)
-            ax.set_xlabel('Throughput (Mbps)', fontsize=fzsize)
-            ax.set_ylabel('CDF', fontsize=fzsize)
-            ax.set_yticks(np.arange(0, 1.1, 0.25))
+            # fzsize = 16
+            # ax.tick_params(axis='both', labelsize=fzsize-2)
+            # ax.set_xlabel('Throughput (Mbps)', fontsize=fzsize)
+            # ax.set_ylabel('CDF', fontsize=fzsize)
+            # ax.set_yticks(np.arange(0, 1.1, 0.25))
             
-            # Set axis limits
-            max_tput = max(app_data.max(), xcal_data.max())
-            ax.set_xlim(0, max_tput)
-            if max_tput <= 100:
-                ax.set_xticks(range(0, int(max_tput) + 1, 25))
-            else:
-                ax.set_xticks(range(0, int(max_tput) + 1, 50))
-            ax.set_ylim(0, 1.02)
+            # # Set axis limits
+            # max_tput = max(app_data.max(), xcal_data.max())
+            # ax.set_xlim(0, max_tput)
+            # if max_tput <= 100:
+            #     ax.set_xticks(range(0, int(max_tput) + 1, 25))
+            # else:
+            #     ax.set_xticks(range(0, int(max_tput) + 1, 50))
+            # ax.set_ylim(0, 1.02)
             
             # Add subplot title
-            ax.set_title(f'{protocol.upper()} {direction.capitalize()}', fontsize=fzsize)
+            ax.set_title(f'{protocol.upper()} {direction.capitalize()}')
             ax.grid(True)
             
             # Only add legend to first subplot
             if row == 0 and col == 0:
-                ax.legend(prop={'size': fzsize-2}, loc='lower right')
+                ax.legend(loc='lower right')
     
     plt.tight_layout()
     plt.savefig(output_file_path)
