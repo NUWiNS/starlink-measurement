@@ -36,4 +36,5 @@ if [ ! -d $DATA_DIR ]; then
     mkdir -p $DATA_DIR
 fi
 
-bash "$(dirname "$0")/run_network_measurement.sh" $MODE $OPERATOR $SERVER 2>&1 | tee -a $DATA_DIR/measurement.log
+TS_DATETIME_FORMAT="%Y-%m-%dT%H:%M:%S%z"
+bash "$(dirname "$0")/run_network_measurement.sh" $MODE $OPERATOR $SERVER 2>&1 | ts "[${TS_DATETIME_FORMAT}]" | tee -a $DATA_DIR/measurement.log
