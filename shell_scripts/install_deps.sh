@@ -7,7 +7,8 @@
 # dnsutils - dns utilities, used for dns queries
 # traceroute - network diagnostic tool, used for tracing the route to a host
 # bc - basic calculator, used for arithmetic operations
-dependencies="wget jq moreutils dnsutils traceroute bc"
+dependencies="wget jq moreutils bc coreutils"
+android_dependencies="dnsutils traceroute"
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     apt install $dependencies
@@ -21,7 +22,7 @@ elif [[ "$OSTYPE" == "linux-android"* ]]; then
         termux-setup-storage
     fi
 
-    pkg install $dependencies
+    pkg install $dependencies $android_dependencies
     
     usr_bin_path=/data/data/com.termux/files/usr/bin
 
@@ -50,6 +51,24 @@ elif [[ "$OSTYPE" == "linux-android"* ]]; then
 
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     brew install $dependencies
+    
+    usr_bin_path=/usr/local/bin
+
+    if ! command -v grpcurl &> /dev/null
+    then
+       brew install grpcurl
+    fi
+
+    # nuttcp: https://nuttcp.net/nuttcp/
+    if ! command -v nuttcp &> /dev/null 
+    then
+        brew install nuttcp
+    fi
+
+    if ! command -v iperf3 &> /dev/null
+    then
+        brew install iperf3
+    fi
 else
     echo "Failed to install dependencies: unsupported OS $OSTYPE"
     exit 1
