@@ -1,11 +1,26 @@
 #!/bin/bash
 
+# Accept input from command line for test mode, default is production mode
+# Use 3 for test mode (consistent with run_network_measurement.sh)
+MODE=${1:-2}
+
 # Read env file from the same directory
-if [ -f "$(dirname "$0")/env" ]; then
-    source "$(dirname "$0")/env"
-    echo "Loaded environment variables from env file"
+if [ "$MODE" = "3" ]; then
+    if [ -f "$(dirname "$0")/test.env" ]; then
+        source "$(dirname "$0")/test.env"
+        echo "Loaded environment variables from test.env file"
+    else
+        echo "Error: test.env file not found in the same directory"
+        exit 1
+    fi
 else
-    echo "Warning: env file not found in the same directory"
+    if [ -f "$(dirname "$0")/prod.env" ]; then
+        source "$(dirname "$0")/prod.env"
+        echo "Loaded environment variables from prod.env file"
+    else
+        echo "Error: prod.env file not found in the same directory"
+        exit 1
+    fi
 fi
 
 # Check if essential variables are set
