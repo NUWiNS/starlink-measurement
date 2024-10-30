@@ -594,7 +594,7 @@ start_tcp_ping_test() {
 }
 
 __print_divider__() {
-    echo "-----------------------------------"
+    echo "-------------------------------"
 }
 
 while true; do
