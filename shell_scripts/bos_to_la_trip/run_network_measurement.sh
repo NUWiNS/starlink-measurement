@@ -585,7 +585,7 @@ start_tcp_ping_test() {
     echo "Saved TCP Ping test to $log_file_name"
     
     if check_file_lines_gt $log_file_name 2; then
-      1summary=$(grep_file "$log_file_name" "rtt min/avg/max/mdev" "= ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+) ms")
+      summary=$(grep_file "$log_file_name" "rtt min/avg/max/mdev" "= ([0-9.]+)/([0-9.]+)/([0-9.]+)/([0-9.]+) ms")
       echo "TCP Ping summary (min/avg/max/mdev) $summary"
     else
       echo "[CAUTION] EMPTY LOG!"
