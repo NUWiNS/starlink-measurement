@@ -3,8 +3,8 @@ import os
 
 logging.basicConfig(
     level=logging.INFO,  # Set the logging level
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # Format of log messages
-    datefmt='%Y-%m-%d %H:%M:%S',  # Format of the timestamp
+    format='[%(asctime)s.%(msecs)03d] - %(name)s - %(levelname)s - %(message)s',  # Format of log messages with timezone
+    datefmt='%Y-%m-%dT%H:%M:%S',  # Format of the timestamp
 )
 
 
@@ -31,8 +31,8 @@ def create_logger(
         reset_logger(name)
 
     if formatter is None:
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                                      datefmt='%Y-%m-%dT%H:%M:%S%z')
+        formatter = logging.Formatter('[%(asctime)s.%(msecs)03d] - %(name)s - %(levelname)s - %(message)s',
+                                      datefmt='%Y-%m-%dT%H:%M:%S')
     
     if filename is not None:
         if not os.path.exists(os.path.dirname(filename)):
