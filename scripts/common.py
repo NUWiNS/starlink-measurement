@@ -43,8 +43,9 @@ class TputBaseProcessor(ABC):
             protocol: str,
             direction: str,
             file_path: str = None,
-            timezone_str: str = None,
+            timezone_str: str = 'auto',
             logger: Logger = None,
+            expected_data_points = 240,
     ):
         self.content = content
         self.protocol = protocol
@@ -56,6 +57,7 @@ class TputBaseProcessor(ABC):
         self.start_time = None
         self.end_time = None
         self.logger = logger or SilentLogger()
+        self.EXPECTED_NUM_OF_DATA_POINTS = expected_data_points
 
     def process(self):
         self.logger.info(f'[start processing] {self.file_path}')

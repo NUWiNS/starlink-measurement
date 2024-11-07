@@ -33,11 +33,15 @@ class NuttcpUdpMetric:
 
 
 def parse_nuttcp_timestamp(timestamp: str):
-    # Parse the timestamp in the format of "2024-05-27 15:00:00.000000"
+    # Handle two timestamp formats:
+    # 1. "2024-06-18 14:29:20.723545" (no timezone)
+    # 2. "2024-11-03T10:02:26.992053-0700" (with timezone)
+    if 'T' in timestamp:
+        return datetime.fromisoformat(timestamp)
     return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
 
 
-def format_nuttcp_timestamp(dt_str: str, timezone_str=None):
+def format_nuttcp_timestamp(dt_str: str, timezone_str: str | None = None):
     """
     Format the nuttcp timestamp to ISO 8601 format
     :param dt_str:
@@ -45,24 +49,36 @@ def format_nuttcp_timestamp(dt_str: str, timezone_str=None):
     :return:
     """
     dt = parse_nuttcp_timestamp(dt_str)
-    if timezone_str:
+    if timezone_str and timezone_str != 'auto':
         dt = append_timezone(dt, timezone_str)
     return format_datetime_as_iso_8601(dt)
 
 
-def parse_nuttcp_tcp_line(line: str, timezone_str: str) -> Dict[str, str]:
+def parse_nuttcp_tcp_line(line: str, timezone_str: str = 'auto') -> Dict[str, str]:
     """
     Parse a single line of nuttcp TCP log
-    :param line:
-    :return:
+    :param line: Line from nuttcp TCP log
+    :param timezone_str: Timezone string (default: 'UTC')
+    :return: Dictionary containing parsed metrics or None if line doesn't match pattern
     """
-    pattern = re.compile(
-        r"\[(.*?)\]\s+.*?=\s+([\d.]+)\s+Mbps\s+(\d+)\s+retrans\s+(\d+)\s+KB-cwnd"
-    )
-    match = pattern.search(line)
-    if not match:
-        return None
-    dt, throughput, retrans, cwnd = match.groups()
+    if 'cwnd' in line:
+        pattern = re.compile(
+            r"\[(.*?)\]\s+.*?=\s*([\d.]+)\s+Mbps\s+(\d+)\s+retrans\s+(\d+)\s+KB-cwnd"
+        )
+        match = pattern.search(line)
+        if not match:
+            return None
+        dt, throughput, retrans, cwnd = match.groups()
+    else:
+        pattern = re.compile(
+            r"\[(.*?)\]\s+.*?=\s*([\d.]+)\s+Mbps\s+(\d+)\s+retrans.*"
+        )
+        match = pattern.search(line)
+        if not match:
+            return None
+        dt, throughput, retrans = match.groups()
+        cwnd = '0'  # Default value when cwnd is not present
+
     dt_isoformat = format_nuttcp_timestamp(dt, timezone_str)
     return asdict(
         NuttcpTcpMetric(
@@ -74,7 +90,7 @@ def parse_nuttcp_tcp_line(line: str, timezone_str: str) -> Dict[str, str]:
     )
 
 
-def parse_nuttcp_tcp_result(content: str, timezone_str: str) -> List[Dict[str, str]]:
+def parse_nuttcp_tcp_result(content: str, timezone_str: str = 'auto') -> List[Dict[str, str]]:
     """
     Extract timestamp, throughput, retrans and cwnd from the TCP log of nuttcp
     :param content:
@@ -94,11 +110,35 @@ class NuttcpBaseProcessor(TputBaseProcessor):
     EXPECTED_NUM_OF_DATA_POINTS = 240
     INTERVAL_SEC = 0.5
 
+    def __init__(
+            self, 
+            content: str, 
+            protocol: str, 
+            direction: str, 
+            file_path: str = None, 
+            timezone_str: str = 'auto', 
+            logger: Logger = None,
+            allow_zero_tput_padding = True,
+            expected_data_points=240,
+        ):
+        super().__init__(
+            content=content, 
+            protocol=protocol, 
+            direction=direction, 
+            file_path=file_path, 
+            timezone_str=timezone_str, 
+            logger=logger,
+            expected_data_points=expected_data_points
+        )
+        self.allow_zero_tput_padding = allow_zero_tput_padding
+
+
     @overrides
     def postprocess_data_points(self):
-        self.logger.info(f'-- [start auto_complete_data_points] before: {len(self.data_points)}')
-        self.auto_complete_data_points()
-        self.logger.info(f'-- [end auto_complete_data_points] after: {len(self.data_points)}')
+        if self.allow_zero_tput_padding:
+            self.logger.info(f'-- [start auto_complete_data_points] before: {len(self.data_points)}')
+            self.auto_complete_data_points()
+            self.logger.info(f'-- [end auto_complete_data_points] after: {len(self.data_points)}')
 
     @overrides
     def parse_measurement_summary(self, content: str):
@@ -215,17 +255,44 @@ class NuttcpProcessorFactory:
         protocol: str, 
         direction: str, 
         file_path: str,
-        timezone_str: str,
+        timezone_str: str = 'auto',
+        allow_zero_tput_padding=True,
+        expected_data_points=240,
         logger: Logger = None
     ) -> NuttcpBaseProcessor:
         if protocol == 'tcp':
             if direction == 'downlink':
-                return NuttcpTcpDownlinkProcessor(content, protocol, direction, file_path, timezone_str, logger)
+                return NuttcpTcpDownlinkProcessor(
+                    content=content, 
+                    protocol=protocol, 
+                    direction=direction, 
+                    file_path=file_path, 
+                    timezone_str=timezone_str, 
+                    logger=logger, 
+                    allow_zero_tput_padding=allow_zero_tput_padding, 
+                    expected_data_points=expected_data_points
+                )
             elif direction == 'uplink':
-                return NuttcpTcpUplinkProcessor(content, protocol, direction, file_path, timezone_str, logger)
+                return NuttcpTcpUplinkProcessor(
+                    content=content, 
+                    protocol=protocol, 
+                    direction=direction, 
+                    file_path=file_path, 
+                    timezone_str=timezone_str, 
+                    logger=logger, 
+                    expected_data_points=expected_data_points
+                )
         if protocol == 'udp':
             if direction == 'uplink':
-                return NuttcpUdpUplinkProcessor(content, protocol, direction, file_path, timezone_str, logger)
+                return NuttcpUdpUplinkProcessor(
+                    content=content, 
+                    protocol=protocol, 
+                    direction=direction, 
+                    file_path=file_path, 
+                    timezone_str=timezone_str, 
+                    logger=logger, 
+                    expected_data_points=expected_data_points
+                )
         raise ValueError('Unsupported protocol')
 
 
@@ -343,11 +410,20 @@ def save_extracted_data_to_csv(data: List[Dict[str, str]], output_filename: str)
 def find_tcp_downlink_files(base_dir: str):
     return find_files(base_dir, prefix="tcp_downlink", suffix=".out")
 
+def find_5g_booster_files(base_dir: str):
+    return find_files(base_dir, prefix="5g_booster", suffix=".out")
+
 
 def find_tcp_downlink_files_by_dir_list(dir_list: List[str]):
     files = []
     for dir in dir_list:
         files.extend(find_tcp_downlink_files(dir))
+    return files
+
+def find_5g_booster_files_by_dir_list(dir_list: List[str]):
+    files = []
+    for dir in dir_list:
+        files.extend(find_5g_booster_files(dir))
     return files
 
 
@@ -377,7 +453,7 @@ class UnitTest(unittest.TestCase):
     def test_tcp_downlink_result_parsing(self):
         line = '[2024-05-27 10:57:21.047467]     1.6875 MB /   0.50 sec =   28.3104 Mbps     1 retrans   1375 KB-cwnd'
         self.assertEqual({
-            'time': '2024-05-27T10:57:21.047467',
+            'time': '2024-05-27T10:57:21.047467+00:00',
             'throughput_mbps': '28.3104',
             'retrans': '1',
             'cwnd_kb': '1375'

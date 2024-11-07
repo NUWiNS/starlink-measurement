@@ -29,12 +29,14 @@ def append_timezone(dt: datetime, timezone_str: str, is_dst: bool = True):
 
 class StartEndLogTimeProcessor:
     @staticmethod
-    def get_start_end_time_from_log(content: str, timezone_str: str = 'UTC') -> (datetime, datetime):
+    def get_start_end_time_from_log(content: str, timezone_str: str = 'auto') -> (datetime, datetime):
         """
         Get the start and end time from the log file
         :param log:
         :return:
         """
+        if timezone_str == 'auto':
+            timezone_str = 'UTC'
         start_pattern = r'Start time:\s*(\d+)'
         end_pattern = r'End time:\s*(\d+)'
 

@@ -99,7 +99,9 @@ def plot_cdf_of_throughput_with_all_operators(
         xlabel='Throughput (Mbps)',
         ylabel='CDF',
         title='CDF of Throughput with all Operators',
-        output_file_path=None
+        output_file_path=None,
+        x_lim=None,
+        figsize=(6, 4)
 ):
     """
 
@@ -112,7 +114,7 @@ def plot_cdf_of_throughput_with_all_operators(
     :param output_file_path:
     :return:
     """
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=figsize)
     # ensure the order by making Categorical
     data_frame['operator'] = pd.Categorical(data_frame['operator'], categories=all_operators, ordered=True)
     # make sure the colors are consistent for each operator
@@ -149,6 +151,8 @@ def plot_cdf_of_throughput_with_all_operators(
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_yticks(np.arange(0, 1.1, 0.25))
+    if x_lim:
+        ax.set_xlim(x_lim[0] - 10, x_lim[1] + 10)
     ax.set_title(title)
     ax.legend(fontsize=8)
     ax.grid(True)
