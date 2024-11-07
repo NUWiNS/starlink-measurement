@@ -6,6 +6,7 @@ from typing import Tuple, List
 import pandas as pd
 import pytz
 
+from scripts.nuttcp_utils import format_nuttcp_timestamp
 from scripts.time_utils import StartEndLogTimeProcessor
 from scripts.utils import find_files
 
@@ -40,14 +41,17 @@ def append_edt_timezone(dt: datetime, is_dst: bool = True):
 
 
 def parse_timestamp_of_ping(timestamp):
+    if 'T' in timestamp:
+        return datetime.fromisoformat(timestamp)
     # Parse the timestamp in the format of "2024-05-27 15:00:00.000000"
     return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
 
 
-def format_timestamp(dt_str: str):
+def format_timestamp(dt_str: str, timezone_str: str = 'auto'):
     dt = parse_timestamp_of_ping(dt_str)
-    dt_edt = append_edt_timezone(dt)
-    return format_datetime_as_iso_8601(dt_edt)
+    if timezone_str and timezone_str != 'auto':
+        dt = append_timezone(dt, timezone_str)
+    return format_datetime_as_iso_8601(dt)
 
 
 def match_ping_line(line: str):
@@ -116,10 +120,22 @@ def find_ping_file(base_dir):
     return find_files(base_dir, prefix="ping", suffix=".out")
 
 
+def find_icmp_ping_file(base_dir):
+    return find_files(base_dir, prefix="icmp_ping", suffix=".out")
+
+
 def find_ping_files_by_dir_list(dir_list: List[str]):
     files = []
     for dir in dir_list:
         files.extend(find_ping_file(dir))
+    return files
+
+
+
+def find_icmp_ping_files_by_dir_list(dir_list: List[str]):
+    files = []
+    for dir in dir_list:
+        files.extend(find_icmp_ping_file(dir))
     return files
 
 
