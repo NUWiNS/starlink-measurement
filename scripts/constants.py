@@ -15,7 +15,12 @@ class XcalField:
     CUSTOM_UTC_TIME = 'utc_dt'
     EVENT_LTE = 'Event LTE'
     EVENT_5G_LTE = 'Event 5G-NR/LTE Events'
+    APP_TPUT_PROTOCOL = 'app_tput_protocol'
+    APP_TPUT_DIRECTION = 'app_tput_direction'
 
+class XcalTech:
+    LTE = 'LTE'
+    NO_SERVICE = 'NO_SERVICE'
 
 class XcallHandoverEvent:
     HANDOVER_SUCCESS = 'Handover Success'

@@ -16,6 +16,8 @@ class Segment:
             band_field: str,
             dl_tput_field: str,
             ul_tput_field: str,
+            app_tput_protocol_field: str,
+            app_tput_direction_field: str,
         ):
         self.df = df
         self.start_idx = start_idx
@@ -27,10 +29,12 @@ class Segment:
         self.band_field = band_field
         self.dl_tput_field = dl_tput_field
         self.ul_tput_field = ul_tput_field
+        self.app_tput_protocol_field = app_tput_protocol_field
+        self.app_tput_direction_field = app_tput_direction_field
 
-        self.has_tput = self.get_dl_tput_count() > 0 or self.get_ul_tput_count() > 0
-        self.has_freq_5g = self.get_freq_5g_mhz() is not None
-        self.duration_ms = get_segment_duration_ms(df, time_field=time_field)
+        # self.has_tput = self.get_dl_tput_count() > 0 or self.get_ul_tput_count() > 0
+        # self.has_freq_5g = self.get_freq_5g_mhz() is not None
+        # self.duration_ms = get_segment_duration_ms(df, time_field=time_field)
 
     def get_range(self) -> str:
         return f"{self.start_idx}:{self.end_idx}"
@@ -73,8 +77,6 @@ class Segment:
             return True 
         else:
             raise ValueError(f"Segment ({self.get_range()}) has {num_of_techs} different techs: {unique_techs}")
-        
-
 
     def get_band(self) -> str:
         raise NotImplementedError('get_band is not implemented')
@@ -117,23 +119,47 @@ class TechBreakdown:
     def __init__(
             self, 
             df: pd.DataFrame,
+            app_tput_protocol: str,
+            app_tput_direction: str,
             time_field: str = XcalField.TIMESTAMP,
             tech_field: str = XcalField.TECH,
+            band_field: str = XcalField.BAND,
             dl_tput_field: str = XcalField.SMART_TPUT_DL,
             ul_tput_field: str = XcalField.SMART_TPUT_UL,
             event_field: str = XcalField.EVENT_LTE,
+            freq_5g_field: str = XcalField.PCELL_FREQ_5G,
         ):
         self.df = df
         self.time_field = time_field
         self.tech_field = tech_field
+        self.band_field = band_field
         self.dl_tput_field = dl_tput_field
         self.ul_tput_field = ul_tput_field
         self.event_field = event_field
+        self.freq_5g_field = freq_5g_field
+        self.app_tput_protocol = app_tput_protocol
+        self.app_tput_direction = app_tput_direction
 
     def process(self) -> List[Segment]:
         segments = self.partition_data_by_handover(self.df)
+        segments = self.partition_data_by_no_service(segments)
         return segments
     
+    def create_segment(self, df: pd.DataFrame, start_idx: int, end_idx: int) -> Segment:
+        return Segment(
+                df=df,
+                start_idx=start_idx,
+                end_idx=end_idx,
+                time_field=self.time_field,
+                freq_field=self.freq_5g_field,
+                tech_field=self.tech_field,
+                band_field=self.band_field,
+                dl_tput_field=self.dl_tput_field,
+                ul_tput_field=self.ul_tput_field,
+                app_tput_protocol_field=self.app_tput_protocol,
+                app_tput_direction_field=self.app_tput_direction,
+            )
+
     def partition_data_by_handover(self, df: pd.DataFrame) -> List[Segment]:
         """
         Splits the dataframe into multiple sub-dataframes, using handover events as splitting points.
@@ -160,16 +186,10 @@ class TechBreakdown:
             start_idx = start_idx
             end_idx = split_idx
             segment_df = df.loc[start_idx:end_idx].copy()
-            segment = Segment(
+            segment = self.create_segment(
                 df=segment_df,
                 start_idx=start_idx,
                 end_idx=end_idx,
-                time_field=XcalField.CUSTOM_UTC_TIME,
-                freq_field=XcalField.PCELL_FREQ_5G,
-                tech_field=XcalField.TECH,
-                band_field=XcalField.BAND,
-                dl_tput_field=XcalField.SMART_TPUT_DL,
-                ul_tput_field=XcalField.SMART_TPUT_UL,
             )
 
             # threshold_ms = 500
@@ -178,36 +198,146 @@ class TechBreakdown:
             segments.append(segment)
             start_idx = split_idx + 1
 
-        if len(segments) == 0:
-            segments.append(Segment(df=df, start_idx=0, end_idx=len(df) - 1))
+        if start_idx < len(df):
+            end_idx = len(df) - 1
+            segment_df = df.loc[start_idx:end_idx].copy()
+            segments.append(self.create_segment(
+                df=segment_df, 
+                start_idx=start_idx, 
+                end_idx=end_idx,
+            ))
         return segments
 
+    def partition_data_by_no_service(self, segments: List[Segment]) -> List[Segment]:
+        res = []
+        for segment in segments:
+            if not segment.check_if_no_service():
+                res.append(segment)
+                continue
+            
+            no_service_periods = self.find_no_service_periods(segment.df)
+            first_idx = segment.start_idx
+            
+            # Process each period, including both no-service and has-service segments
+            for start_idx, end_idx in no_service_periods:
+                # Add has-service segment before the no-service period if it exists
+                if first_idx < start_idx:
+                    service_df = segment.df.loc[first_idx:start_idx-1].copy()
+                    service_segment = self.create_segment(
+                        df=service_df,
+                        start_idx=first_idx,
+                        end_idx=start_idx-1
+                    )
+                    res.append(service_segment)
+                
+                # Add the no-service segment
+                no_service_df = segment.df.loc[start_idx:end_idx].copy()
+                no_service_segment = self.create_segment(
+                    df=no_service_df,
+                    start_idx=start_idx,
+                    end_idx=end_idx
+                )
+                res.append(no_service_segment)
+                
+                first_idx = end_idx + 1
+            
+            # Add remaining has-service segment if it exists
+            if first_idx <= segment.end_idx:
+                remaining_df = segment.df.loc[first_idx:segment.end_idx].copy()
+                remaining_segment = self.create_segment(
+                    df=remaining_df,
+                    start_idx=first_idx,
+                    end_idx=segment.end_idx
+                )
+                res.append(remaining_segment)
+                
+        return res
+    
+    def find_first_non_zero_tput_idx(self, df: pd.DataFrame, start_idx: int, step: int) -> int:
+        """
+        Find the first index with non-zero throughput data starting from start_idx and moving in the direction specified by step.
+        
+        Args:
+            df (pd.DataFrame): The dataframe to search in
+            start_idx (int): The starting index for the search
+            step (int): Direction of search (1 for downward/forward, -1 for upward/backward)
+        
+        Returns:
+            int: Index of the last non-zero throughput value, or None if no non-zero throughput is found
+        """
+        tput_field = self.dl_tput_field if self.app_tput_direction == 'downlink' else self.ul_tput_field
+        
+        # Get actual DataFrame indices
+        df_indices = df.index.tolist()
+        start_idx_position = df_indices.index(start_idx)
+        
+        # Determine the range of indices to search based on step direction
+        if step == 1:
+            # Search downward to end of dataframe
+            search_indices = df_indices[start_idx_position:]
+        else:
+            # Search upward to start of dataframe
+            search_indices = df_indices[start_idx_position::-1]
+        
+        first_non_zero_idx = None
+        for idx in search_indices:
+            tput_value = df.loc[idx, tput_field]
+            if pd.notna(tput_value) and float(tput_value) > 0:
+                first_non_zero_idx = idx
+                break
+        return first_non_zero_idx
+    
+    def find_no_service_periods(self, df: pd.DataFrame) -> List[Tuple[int, int]]:
+        initial_no_service_periods = self.find_consecutive_no_service_rows(df)
+        res = []
+        for start_idx, end_idx in initial_no_service_periods:
+            # try to look up and down to see the last non-zero tput
+
+            # look up from the start_idx
+            up_first_non_zero_idx = self.find_first_non_zero_tput_idx(df, start_idx, -1)
+            if up_first_non_zero_idx is None:
+                # extend to the start of the dataframe
+                start_idx = df.index.tolist()[0]
+            else:
+                start_idx = up_first_non_zero_idx + 1
+
+            # look down from the end_idx
+            down_first_non_zero_idx = self.find_first_non_zero_tput_idx(df, end_idx, 1)
+            if down_first_non_zero_idx is None:
+                # extend to the end of the dataframe
+                end_idx = df.index.tolist()[-1]
+            else:
+                end_idx = down_first_non_zero_idx - 1
+            res.append((start_idx, end_idx))
+        return res
+    
+    def find_consecutive_no_service_rows(self, df: pd.DataFrame) -> List[Tuple[int, int]]:
+      consecutive_periods = []
+      start_idx = None
+      last_idx_of_no_service = None
+      for idx, row in df.iterrows():
+          tech = row[XcalField.TECH]
+          if pd.isna(tech):
+              continue
+          if tech.lower() == 'no service':
+              if start_idx is None:
+                  start_idx = idx
+              last_idx_of_no_service = idx
+          elif start_idx is not None:
+              # Found the end of a period where condition was True
+              consecutive_periods.append((start_idx, last_idx_of_no_service))
+              start_idx = None
+              last_idx_of_no_service = None
+      
+      # Handle case where condition extends to the end
+      if start_idx is not None:
+          consecutive_periods.append((start_idx, last_idx_of_no_service))
+      
+      return consecutive_periods
 
 
   
-def find_consecutive_no_service_rows(items: pd.DataFrame) -> List[Tuple[int, int]]:
-    consecutive_periods = []
-    start_idx = None
-    last_idx_of_no_service = None
-    for idx, row in items.iterrows():
-        tech = row[XcalField.TECH]
-        if pd.isna(tech):
-            continue
-        if tech.lower() == 'no service':
-            if start_idx is None:
-                start_idx = idx
-            last_idx_of_no_service = idx
-        elif start_idx is not None:
-            # Found the end of a period where condition was True
-            consecutive_periods.append((start_idx, last_idx_of_no_service))
-            start_idx = None
-            last_idx_of_no_service = None
-    
-    # Handle case where condition extends to the end
-    if start_idx is not None:
-        consecutive_periods.append((start_idx, last_idx_of_no_service))
-    
-    return consecutive_periods
+
 
 def partition_data_by_no_service(segment: Segment) -> List[Segment]:
     consecutive_periods = find_consecutive_no_service_rows(segment.df)
