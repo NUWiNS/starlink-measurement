@@ -395,7 +395,17 @@ class TechBreakdown:
             if segments[i].end_idx + 1 != segments[i + 1].start_idx:
                 raise ValueError(f"Segments are not consecutive: {segments[i].get_range()} - {segments[i + 1].get_range()}")
     
-
+    def reassemble_segments(self, segments: List[Segment]) -> pd.DataFrame:
+        df = None
+        segments.sort(key=lambda x: x.start_idx)
+        for segment in segments:
+            new_segment_df = segment.df
+            new_segment_df[XcalField.ACTUAL_TECH] = segment.get_tech()
+            if df is None:
+                df = new_segment_df
+            else:
+                df = pd.concat([df, new_segment_df])
+        return df
 
 
 

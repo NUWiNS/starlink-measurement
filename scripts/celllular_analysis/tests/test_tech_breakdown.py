@@ -96,11 +96,13 @@ class TestTechBreakdown(unittest.TestCase):
         self.assertEqual(segments[1].has_handover, False)
 
         # iterate through segments, all idx should be consecutive
-        for i in range(len(segments) - 1):
-            self.assertEqual(segments[i].end_idx + 1, segments[i + 1].start_idx)
+        tech_breakdown.check_if_consecutive_segments(segments)
 
-
-
+        # reassemble segments
+        df = tech_breakdown.reassemble_segments(segments)
+        self.assertEqual(len(df), 19)
+        # all tech field of df should contain non-na
+        self.assertEqual(df[XcalField.ACTUAL_TECH].notna().all(), True)
 
 
 if __name__ == '__main__':
