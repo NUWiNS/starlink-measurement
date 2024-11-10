@@ -60,12 +60,19 @@ class TestSegment(unittest.TestCase):
         segment = Segment(df, start_idx=0, end_idx=4)
         self.assertEqual(segment.get_tech(), '5G-mid')
 
-        # if no-service is detected, then raise an error
+        # if only no-service is detected, then tech is NO_SERVICE
+        df = pd.DataFrame([
+            {XcalField.CUSTOM_UTC_TIME: 1, XcalField.TECH: 'NO SERVICE', XcalField.SMART_TPUT_DL: None, XcalField.EVENT_LTE: None, XcalField.PCELL_FREQ_5G: None, XcalField.APP_TPUT_PROTOCOL: 'tcp', XcalField.APP_TPUT_DIRECTION: 'downlink'},
+        ])
+        segment = Segment(df, start_idx=0, end_idx=0)
+        self.assertEqual(segment.get_tech(), 'NO SERVICE')
+
+        # if no-service and other tech are detected, then raise an error
         df = pd.DataFrame([
             {XcalField.CUSTOM_UTC_TIME: 1, XcalField.TECH: 'LTE', XcalField.SMART_TPUT_DL: None, XcalField.EVENT_LTE: None, XcalField.PCELL_FREQ_5G: None, XcalField.APP_TPUT_PROTOCOL: 'tcp', XcalField.APP_TPUT_DIRECTION: 'downlink'},
             {XcalField.CUSTOM_UTC_TIME: 2, XcalField.TECH: 'NO SERVICE', XcalField.SMART_TPUT_DL: None, XcalField.EVENT_LTE: None, XcalField.PCELL_FREQ_5G: None, XcalField.APP_TPUT_PROTOCOL: 'tcp', XcalField.APP_TPUT_DIRECTION: 'downlink'},
         ])
-        segment = Segment(df, start_idx=0, end_idx=0)
+        segment = Segment(df, start_idx=0, end_idx=1)
         self.assertRaises(ValueError, segment.get_tech)
 
     def test_ffill_tech(self):

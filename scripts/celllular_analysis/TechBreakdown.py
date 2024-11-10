@@ -10,10 +10,11 @@ class Segment:
             df: pd.DataFrame, 
             start_idx: int,
             end_idx: int,
-            time_field: str = XcalField.TIMESTAMP, 
+            time_field: str = XcalField.CUSTOM_UTC_TIME, 
             freq_field: str = XcalField.PCELL_FREQ_5G,
             tech_field: str = XcalField.TECH,
             band_field: str = XcalField.BAND,
+            event_field: str = XcalField.EVENT_LTE,
             dl_tput_field: str = XcalField.SMART_TPUT_DL,
             ul_tput_field: str = XcalField.SMART_TPUT_UL,
             app_tput_protocol_field: str = XcalField.APP_TPUT_PROTOCOL,
@@ -28,6 +29,7 @@ class Segment:
         self.freq_field = freq_field
         self.tech_field = tech_field
         self.actual_tech_field = actual_tech_field
+        self.event_field = event_field
         self.band_field = band_field
         self.dl_tput_field = dl_tput_field
         self.ul_tput_field = ul_tput_field
@@ -36,7 +38,9 @@ class Segment:
 
         # self.has_tput = self.get_dl_tput_count() > 0 or self.get_ul_tput_count() > 0
         # self.has_freq_5g = self.get_freq_5g_mhz() is not None
-        # self.duration_ms = get_segment_duration_ms(df, time_field=time_field)
+        self.duration_ms = get_segment_duration_ms(df, time_field=time_field)
+        self.has_handover = self.check_if_has_handover()
+        self.has_no_service = self.check_if_no_service()
 
     def ffill_tech(self):
         self.df[self.actual_tech_field] = self.get_tech()
@@ -58,7 +62,9 @@ class Segment:
         all_techs = self.get_all_techs_from_xcal()
 
         if self.check_if_no_service():
-            raise ValueError(f"Segment ({self.get_range()}) has no service, please further split the segment")
+            if len(all_techs) > 1:
+                raise ValueError(f"Segment ({self.get_range()}) has no service, please further split the segment")
+            return 'NO SERVICE'
 
         if freq_5g_mhz is None:
             if any('ca' in tech.lower() for tech in all_techs):
@@ -126,6 +132,9 @@ class Segment:
     def check_if_no_service(self) -> bool:
         return self.df[self.df[self.tech_field].str.lower() == 'no service'].shape[0] > 0
 
+    def check_if_has_handover(self) -> bool:
+        return self.df[self.df[self.event_field].isin(XcallHandoverEvent.get_all_events())].shape[0] > 0
+
     def __lt__(self, other):
         """for min-heap sorting"""
         return self.start_idx < other.start_idx
@@ -136,7 +145,7 @@ class TechBreakdown:
             df: pd.DataFrame,
             app_tput_protocol: str,
             app_tput_direction: str,
-            time_field: str = XcalField.TIMESTAMP,
+            time_field: str = XcalField.CUSTOM_UTC_TIME,
             tech_field: str = XcalField.TECH,
             band_field: str = XcalField.BAND,
             dl_tput_field: str = XcalField.SMART_TPUT_DL,
