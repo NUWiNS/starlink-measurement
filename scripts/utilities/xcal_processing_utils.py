@@ -7,6 +7,9 @@ from unittest.mock import patch, mock_open
 
 import pandas as pd
 
+from scripts.celllular_analysis.TechBreakdown import TechBreakdown
+from scripts.constants import XcalField
+
 def extract_period_from_file(file: str) -> tuple[datetime, datetime, str]:
     with open(file, 'r') as f:
         # file name is like tcp_downlink_142919618.out
@@ -79,8 +82,9 @@ def filter_xcal_logs(
     :periods: list of tuples, each tuple contains a start and end timestamp (UTC aware datetime objects)
     """
     # Create a temporary datetime column (from Eastern time) for filtering, and convert to UTC
-    df_xcal_logs['utc_dt'] = pd.to_datetime(
-        df_xcal_logs['TIME_STAMP'],
+
+    df_xcal_logs[XcalField.CUSTOM_UTC_TIME] = pd.to_datetime(
+        df_xcal_logs[XcalField.TIMESTAMP],
         errors='coerce').dt.tz_localize(
             xcal_timezone, 
             ambiguous='raise', 
@@ -88,7 +92,7 @@ def filter_xcal_logs(
         ).dt.tz_convert('UTC')
 
     # drop rows with empty utc_dt
-    df_xcal_logs = df_xcal_logs.dropna(subset=['utc_dt'])
+    df_xcal_logs = df_xcal_logs.dropna(subset=[XcalField.CUSTOM_UTC_TIME])
 
     # Initialize an empty list to store filtered rows
     filtered_rows = []
@@ -99,15 +103,37 @@ def filter_xcal_logs(
         utc_start_dt = pd.to_datetime(utc_start_dt, utc=True)
         utc_end_dt = pd.to_datetime(utc_end_dt, utc=True)
         # Filter rows within the current period
-        period_rows = df_xcal_logs[
-            (df_xcal_logs['utc_dt'] >= utc_start_dt) & 
-            (df_xcal_logs['utc_dt'] <= utc_end_dt)
+        period_rows_df = df_xcal_logs[
+            (df_xcal_logs[XcalField.CUSTOM_UTC_TIME] >= utc_start_dt) & 
+            (df_xcal_logs[XcalField.CUSTOM_UTC_TIME] <= utc_end_dt)
         ].copy()
         protocol, direction = protocol_direction.split('_')
-        period_rows['app_tput_protocol'] = protocol
-        period_rows['app_tput_direction'] = direction
+        period_rows_df[XcalField.APP_TPUT_PROTOCOL] = protocol
+        period_rows_df[XcalField.APP_TPUT_DIRECTION] = direction
+
+        # detect if 5G-NR column exists in df; if not, use LTE
+        event_field = XcalField.EVENT_5G_LTE if XcalField.EVENT_5G_LTE in df_xcal_logs.columns else XcalField.EVENT_LTE
+
+        # Breakdown technology
+        tech_breakdown = TechBreakdown(
+            period_rows_df, 
+            app_tput_protocol=protocol,
+            app_tput_direction=direction, 
+            event_field=event_field
+        )
+        try:
+            segments = tech_breakdown.process()
+        except Exception as e:
+            print(f"Error in tech breakdown: {str(e)}")
+            raise e
+        try:
+            reassembled_period_rows_df = tech_breakdown.reassemble_segments(segments)
+        except Exception as e:
+            print(f"Error in reassemble segments: {str(e)}")
+            raise e
+
         # Add filtered rows to the list
-        filtered_rows.append(period_rows)
+        filtered_rows.append(reassembled_period_rows_df)
 
     # Combine all filtered rows
     if filtered_rows:

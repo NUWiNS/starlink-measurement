@@ -10,6 +10,8 @@ class Segment:
             df: pd.DataFrame, 
             start_idx: int,
             end_idx: int,
+            app_tput_protocol: str,
+            app_tput_direction: str,
             time_field: str = XcalField.CUSTOM_UTC_TIME, 
             freq_field: str = XcalField.PCELL_FREQ_5G,
             tech_field: str = XcalField.TECH,
@@ -17,9 +19,8 @@ class Segment:
             event_field: str = XcalField.EVENT_LTE,
             dl_tput_field: str = XcalField.SMART_TPUT_DL,
             ul_tput_field: str = XcalField.SMART_TPUT_UL,
-            app_tput_protocol_field: str = XcalField.APP_TPUT_PROTOCOL,
-            app_tput_direction_field: str = XcalField.APP_TPUT_DIRECTION,
             actual_tech_field: str = XcalField.ACTUAL_TECH,
+            low_tput_threshold: float = 0.1,
         ):
         self.df = df
         self.start_idx = start_idx
@@ -33,9 +34,9 @@ class Segment:
         self.band_field = band_field
         self.dl_tput_field = dl_tput_field
         self.ul_tput_field = ul_tput_field
-        self.app_tput_protocol_field = app_tput_protocol_field
-        self.app_tput_direction_field = app_tput_direction_field
-
+        self.app_tput_protocol = app_tput_protocol
+        self.app_tput_direction = app_tput_direction
+        self.low_tput_threshold = low_tput_threshold
         # self.has_tput = self.get_dl_tput_count() > 0 or self.get_ul_tput_count() > 0
         # self.has_freq_5g = self.get_freq_5g_mhz() is not None
         self.duration_ms = self.get_duration_ms()
@@ -62,8 +63,15 @@ class Segment:
         all_techs = self.get_all_techs_from_xcal()
 
         if self.check_if_no_service():
-            if len(all_techs) > 1:
-                raise ValueError(f"Segment ({self.get_range()}) has no service, please further split the segment")
+            # Check if there is any non-zero DL throughput during no service period
+            if self.app_tput_direction == 'downlink':
+                tput_values = self.df[self.dl_tput_field].dropna()
+                if any(float(tput) > self.low_tput_threshold for tput in tput_values):
+                    raise ValueError(f"Segment ({self.get_range()}) has no service but contains non-zero DL throughput")
+            elif self.app_tput_direction == 'uplink':
+                tput_values = self.df[self.ul_tput_field].dropna()
+                if any(float(tput) > self.low_tput_threshold for tput in tput_values):
+                    raise ValueError(f"Segment ({self.get_range()}) has no service but contains non-zero UL throughput")
             return 'NO SERVICE'
 
         if freq_5g_mhz is None:
@@ -106,13 +114,13 @@ class Segment:
         """
         Might be unreliable due to the 1s resolution of the data
         """
-        return get_field_with_max_occurence(self.df, field=self.tech_field)
+        return self.get_field_with_max_occurence(self.tech_field)
     
     def get_band_from_xcal(self) -> str:
         """
         Might be unreliable due to the 1s resolution of the data
         """
-        return get_field_with_max_occurence(self.df, field=self.band_field)
+        return self.get_field_with_max_occurence(self.band_field)
     
     def get_dl_tput_count(self) -> int:
         return self.get_field_value_count(self.dl_tput_field)
@@ -196,8 +204,16 @@ class TechBreakdown:
         self.app_tput_direction = app_tput_direction
 
     def process(self) -> List[Segment]:
-        segments = self.partition_data_by_handover(self.df)
-        segments = self.partition_data_by_no_service(segments)
+        try:
+            segments = self.partition_data_by_handover(self.df)
+        except Exception as e:
+            print(f"Error in partition_data_by_handover: {str(e)}")
+            raise e
+        try:
+            segments = self.partition_data_by_no_service(segments)
+        except Exception as e:
+            print(f"Error in partition_data_by_no_service: {str(e)}")
+            raise e
         return segments
     
     def create_segment(self, df: pd.DataFrame, start_idx: int, end_idx: int) -> Segment:
@@ -205,14 +221,14 @@ class TechBreakdown:
                 df=df,
                 start_idx=start_idx,
                 end_idx=end_idx,
+                app_tput_protocol=self.app_tput_protocol,
+                app_tput_direction=self.app_tput_direction,
                 time_field=self.time_field,
                 freq_field=self.freq_5g_field,
                 tech_field=self.tech_field,
                 band_field=self.band_field,
                 dl_tput_field=self.dl_tput_field,
                 ul_tput_field=self.ul_tput_field,
-                app_tput_protocol_field=self.app_tput_protocol,
-                app_tput_direction_field=self.app_tput_direction,
             )
 
     def partition_data_by_handover(self, df: pd.DataFrame) -> List[Segment]:
@@ -236,11 +252,17 @@ class TechBreakdown:
 
         # Split dataframe into segments
         segments = []
-        start_idx = 0
+        if len(df) == 0:
+            return segments
+        start_idx = df.index.tolist()[0]
         for split_idx in split_indices:
             start_idx = start_idx
             end_idx = split_idx
-            segment_df = df.loc[start_idx:end_idx].copy()
+            try:
+                segment_df = df.loc[start_idx:end_idx].copy()
+            except Exception as e:
+                print(f"Error in getting segment df: {str(e)}")
+                raise e
             segment = self.create_segment(
                 df=segment_df,
                 start_idx=start_idx,
@@ -253,9 +275,14 @@ class TechBreakdown:
             segments.append(segment)
             start_idx = split_idx + 1
 
-        if start_idx < len(df):
-            end_idx = len(df) - 1
-            segment_df = df.loc[start_idx:end_idx].copy()
+        last_idx = df.index.tolist()[-1]
+        if start_idx < last_idx:
+            end_idx = last_idx
+            try:
+                segment_df = df.loc[start_idx:end_idx].copy()
+            except Exception as e:
+                print(f"Error in getting segment df: {str(e)}")
+                raise e
             segments.append(self.create_segment(
                 df=segment_df, 
                 start_idx=start_idx, 
@@ -277,7 +304,11 @@ class TechBreakdown:
             for start_idx, end_idx in no_service_periods:
                 # Add has-service segment before the no-service period if it exists
                 if first_idx < start_idx:
-                    service_df = segment.df.loc[first_idx:start_idx-1].copy()
+                    try:
+                        service_df = segment.df.loc[first_idx:start_idx-1].copy()
+                    except Exception as e:
+                        print(f"Error in getting service df: {str(e)}")
+                        raise e
                     service_segment = self.create_segment(
                         df=service_df,
                         start_idx=first_idx,
@@ -286,7 +317,11 @@ class TechBreakdown:
                     res.append(service_segment)
                 
                 # Add the no-service segment
-                no_service_df = segment.df.loc[start_idx:end_idx].copy()
+                try:
+                    no_service_df = segment.df.loc[start_idx:end_idx].copy()
+                except Exception as e:
+                    print(f"Error in getting no-service df: {str(e)}")
+                    raise e
                 no_service_segment = self.create_segment(
                     df=no_service_df,
                     start_idx=start_idx,
@@ -298,7 +333,11 @@ class TechBreakdown:
             
             # Add remaining has-service segment if it exists
             if first_idx <= segment.end_idx:
-                remaining_df = segment.df.loc[first_idx:segment.end_idx].copy()
+                try:
+                    remaining_df = segment.df.loc[first_idx:segment.end_idx].copy()
+                except Exception as e:
+                    print(f"Error in getting remaining df: {str(e)}")
+                    raise e
                 remaining_segment = self.create_segment(
                     df=remaining_df,
                     start_idx=first_idx,
@@ -400,7 +439,11 @@ class TechBreakdown:
         segments.sort(key=lambda x: x.start_idx)
         for segment in segments:
             new_segment_df = segment.df
-            new_segment_df[XcalField.ACTUAL_TECH] = segment.get_tech()
+            try:
+                new_segment_df[XcalField.ACTUAL_TECH] = segment.get_tech()
+            except Exception as e:
+                print(f"Error in getting tech for segment {segment.get_range()}: {str(e)}")
+                raise e
             if df is None:
                 df = new_segment_df
             else:

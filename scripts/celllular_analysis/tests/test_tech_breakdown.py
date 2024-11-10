@@ -104,6 +104,12 @@ class TestTechBreakdown(unittest.TestCase):
         # all tech field of df should contain non-na
         self.assertEqual(df[XcalField.ACTUAL_TECH].notna().all(), True)
 
+    # def test_no_service_with_csv(self):
+    #     df = pd.read_csv(os.path.join(os.path.dirname(__file__), './new_segment_df.csv'))
+    #     tech_breakdown = TechBreakdown(df, app_tput_protocol='tcp', app_tput_direction='uplink')
+    #     segments = tech_breakdown.process()
+    #     reassembled_df = tech_breakdown.reassemble_segments(segments)
+    #     self.assertEqual(len(reassembled_df), 19)
 
 if __name__ == '__main__':
     unittest.main()

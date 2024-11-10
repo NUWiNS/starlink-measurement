@@ -14,14 +14,18 @@ class XcalField:
     SMART_TPUT_DL = 'Smart Phone Smart Throughput Mobile Network DL Throughput [Mbps]'
     SMART_TPUT_UL = 'Smart Phone Smart Throughput Mobile Network UL Throughput [Mbps]'
     CUSTOM_UTC_TIME = 'utc_dt'
-    EVENT_LTE = 'Event LTE'
+    LOCAL_TIME = 'local_dt'
+    TPUT_DL = 'tput_dl'
+    TPUT_UL = 'tput_ul'
+    EVENT_LTE = 'Event LTE Events'
     EVENT_5G_LTE = 'Event 5G-NR/LTE Events'
     APP_TPUT_PROTOCOL = 'app_tput_protocol'
     APP_TPUT_DIRECTION = 'app_tput_direction'
 
 class XcalTech:
     LTE = 'LTE'
-    NO_SERVICE = 'NO_SERVICE'
+    NO_SERVICE = 'NO SERVICE'
+
 
 class XcallHandoverEvent:
     HANDOVER_SUCCESS = 'Handover Success'
