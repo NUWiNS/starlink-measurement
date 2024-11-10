@@ -8,6 +8,7 @@ OUTPUT_DIR = os.path.abspath(os.path.join(PROJ_ROOT_DIR, 'outputs'))
 class XcalField:
     TIMESTAMP = 'TIME_STAMP'
     TECH = 'Event Technology'
+    ACTUAL_TECH = 'actual_tech'
     BAND = 'Event Technology(Band)'
     PCELL_FREQ_5G = '5G KPI PCell RF Frequency [MHz]'
     SMART_TPUT_DL = 'Smart Phone Smart Throughput Mobile Network DL Throughput [Mbps]'

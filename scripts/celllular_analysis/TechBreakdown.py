@@ -10,14 +10,15 @@ class Segment:
             df: pd.DataFrame, 
             start_idx: int,
             end_idx: int,
-            time_field: str, 
-            freq_field: str,
-            tech_field: str,
-            band_field: str,
-            dl_tput_field: str,
-            ul_tput_field: str,
-            app_tput_protocol_field: str,
-            app_tput_direction_field: str,
+            time_field: str = XcalField.TIMESTAMP, 
+            freq_field: str = XcalField.PCELL_FREQ_5G,
+            tech_field: str = XcalField.TECH,
+            band_field: str = XcalField.BAND,
+            dl_tput_field: str = XcalField.SMART_TPUT_DL,
+            ul_tput_field: str = XcalField.SMART_TPUT_UL,
+            app_tput_protocol_field: str = XcalField.APP_TPUT_PROTOCOL,
+            app_tput_direction_field: str = XcalField.APP_TPUT_DIRECTION,
+            actual_tech_field: str = XcalField.ACTUAL_TECH,
         ):
         self.df = df
         self.start_idx = start_idx
@@ -26,6 +27,7 @@ class Segment:
         self.time_field = time_field
         self.freq_field = freq_field
         self.tech_field = tech_field
+        self.actual_tech_field = actual_tech_field
         self.band_field = band_field
         self.dl_tput_field = dl_tput_field
         self.ul_tput_field = ul_tput_field
@@ -36,6 +38,9 @@ class Segment:
         # self.has_freq_5g = self.get_freq_5g_mhz() is not None
         # self.duration_ms = get_segment_duration_ms(df, time_field=time_field)
 
+    def ffill_tech(self):
+        self.df[self.actual_tech_field] = self.get_tech()
+
     def get_range(self) -> str:
         return f"{self.start_idx}:{self.end_idx}"
     
@@ -44,13 +49,20 @@ class Segment:
         if freq_5g is None:
             return None
         return float(freq_5g)
-    
+
     def get_tech(self) -> str:
         """
         use the 5G frequency to determine the technology
         """
         freq_5g_mhz = self.get_freq_5g_mhz()
+        all_techs = self.get_all_techs_from_xcal()
+
+        if self.check_if_no_service():
+            raise ValueError(f"Segment ({self.get_range()}) has no service, please further split the segment")
+
         if freq_5g_mhz is None:
+            if any('ca' in tech.lower() for tech in all_techs):
+                return 'LTE-A'
             return 'LTE'
         
         if freq_5g_mhz < 1000:  # Below 1 GHz
@@ -63,6 +75,9 @@ class Segment:
             return '5G-mmWave (39GHz)'
         return 'Unknown'
     
+    def get_all_techs_from_xcal(self) -> List[str]:
+        return self.df[self.tech_field].dropna().unique().tolist()
+
     def check_if_only_one_or_zero_tech_exist(self) -> bool:
         unique_techs = self.df[self.tech_field].dropna().unique()
         num_of_techs = len(unique_techs)
