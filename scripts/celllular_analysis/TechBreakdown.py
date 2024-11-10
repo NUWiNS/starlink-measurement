@@ -50,6 +50,8 @@ class Segment:
         return f"{self.start_idx}:{self.end_idx}"
     
     def get_freq_5g_mhz(self) -> float:
+        if self.freq_field not in self.df.columns:
+            return None
         freq_5g = self.get_field_with_max_occurence(self.freq_field)
         if freq_5g is None:
             return None
@@ -59,7 +61,6 @@ class Segment:
         """
         use the 5G frequency to determine the technology
         """
-        freq_5g_mhz = self.get_freq_5g_mhz()
         all_techs = self.get_all_techs_from_xcal()
 
         if self.check_if_no_service():
@@ -74,6 +75,7 @@ class Segment:
                     raise ValueError(f"Segment ({self.get_range()}) has no service but contains non-zero UL throughput")
             return 'NO SERVICE'
 
+        freq_5g_mhz = self.get_freq_5g_mhz()
         if freq_5g_mhz is None:
             if any('ca' in tech.lower() for tech in all_techs):
                 return 'LTE-A'

@@ -107,9 +107,7 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
         XcalField.LOCAL_TIME: filtered_df[XcalField.CUSTOM_UTC_TIME].dt.tz_convert(TIMEZONE),
         XcalField.TPUT_DL: filtered_df[XCAL_SMART_TPUT_DL],
         XcalField.TPUT_UL: filtered_df[XCAL_SMART_TPUT_UL],
-        XcalField.EVENT_LTE: filtered_df[XCAL_EVENT_LTE],
-        XcalField.EVENT_5G_LTE: filtered_df[XCAL_EVENT_ALL],
-        XcalField.TECH: filtered_df[XCAL_EVENT_TECHNOLOGY],
+        XcalField.ACTUAL_TECH: filtered_df[XcalField.ACTUAL_TECH],
         XcalField.BAND: filtered_df[XCAL_EVENT_TECHNOLOGY_BAND],
         XcalField.APP_TPUT_PROTOCOL: filtered_df[FIELD_APP_TPUT_PROTOCOL],
         XcalField.APP_TPUT_DIRECTION: filtered_df[FIELD_APP_TPUT_DIRECTION],
@@ -156,7 +154,7 @@ def main():
     if not path.exists(output_dir):
         os.makedirs(output_dir)
 
-    for operator in ['att', 'verizon', 'tmobile']:
+    for operator in ['verizon', 'tmobile', 'att']:
         print(f"--- Processing {operator}...")
         process_operator_xcal_tput(operator, location, output_dir)
         print(f"--- Finished processing {operator}")
