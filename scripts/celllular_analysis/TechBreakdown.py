@@ -38,7 +38,7 @@ class Segment:
 
         # self.has_tput = self.get_dl_tput_count() > 0 or self.get_ul_tput_count() > 0
         # self.has_freq_5g = self.get_freq_5g_mhz() is not None
-        self.duration_ms = get_segment_duration_ms(df, time_field=time_field)
+        self.duration_ms = self.get_duration_ms()
         self.has_handover = self.check_if_has_handover()
         self.has_no_service = self.check_if_no_service()
 
@@ -49,7 +49,7 @@ class Segment:
         return f"{self.start_idx}:{self.end_idx}"
     
     def get_freq_5g_mhz(self) -> float:
-        freq_5g = get_field_with_max_occurence(self.df, field=self.freq_field)
+        freq_5g = self.get_field_with_max_occurence(self.freq_field)
         if freq_5g is None:
             return None
         return float(freq_5g)
@@ -115,14 +115,20 @@ class Segment:
         return get_field_with_max_occurence(self.df, field=self.band_field)
     
     def get_dl_tput_count(self) -> int:
-        return get_field_value_count(self.df, field=self.dl_tput_field)
-    
+        return self.get_field_value_count(self.dl_tput_field)
+
     def get_ul_tput_count(self) -> int:
-        return get_field_value_count(self.df, field=self.ul_tput_field)
+        return self.get_field_value_count(self.ul_tput_field)
 
     def check_if_multiple_freq(self) -> bool:
-        return check_if_multiple_values_exist(self.df, field=self.freq_field)
+        return self.check_if_multiple_values_exist(self.freq_field)
     
+    def check_if_multiple_values_exist(self, field: str) -> bool:
+        """
+        check if there are multiple values in the field
+        """
+        return self.df[field].nunique() > 1
+
     def get_dl_tput_df(self) -> pd.DataFrame:
         return self.df[self.df[self.dl_tput_field].notna()].copy()
     
@@ -134,6 +140,31 @@ class Segment:
 
     def check_if_has_handover(self) -> bool:
         return self.df[self.df[self.event_field].isin(XcallHandoverEvent.get_all_events())].shape[0] > 0
+
+    def get_duration_ms(self) -> float:
+        """
+        get the duration of the segment in milliseconds
+        """
+        start_time = pd.to_datetime(self.df[self.time_field].iloc[0])
+        end_time = pd.to_datetime(self.df[self.time_field].iloc[-1])
+        duration = end_time - start_time
+        return duration.total_seconds() * 1000 + duration.microseconds / 1000
+
+    def get_field_with_max_occurence(self, field: str) -> str:
+        """
+        get the 5G frequency with the max occurence
+        """
+        if self.df[field].isna().all():
+            return None
+        return self.df[field].value_counts().idxmax()
+
+    def get_field_value_count(self, field: str) -> int:
+        """
+        get the number of rows in the dataframe
+        """
+        if self.df[field].isna().all():
+            return 0
+        return self.df[field].value_counts().sum()
 
     def __lt__(self, other):
         """for min-heap sorting"""
@@ -359,77 +390,14 @@ class TechBreakdown:
       
       return consecutive_periods
 
-
-  
-
-
-def partition_data_by_no_service(segment: Segment) -> List[Segment]:
-    consecutive_periods = find_consecutive_no_service_rows(segment.df)
-
-    if len(consecutive_periods) == 0:
-        return []
-
-    segments = []
-    for start_idx, end_idx in consecutive_periods:
-        segment_df = segment.df.loc[start_idx:end_idx].copy()
-        segment = Segment(df=segment_df, start_idx=start_idx, end_idx=end_idx)
-        segments.append(segment)
-    return segments
+    def check_if_consecutive_segments(self, segments: List[Segment]):
+        for i in range(len(segments) - 1):
+            if segments[i].end_idx + 1 != segments[i + 1].start_idx:
+                raise ValueError(f"Segments are not consecutive: {segments[i].get_range()} - {segments[i + 1].get_range()}")
     
 
-def label_tech(df: pd.DataFrame) -> pd.DataFrame:
-    # use a min-heap to store the segments sorted by the start time
-    segments = partition_data_by_handover(df)
 
-    for idx, segment in enumerate(segments):
-        # try:
-        #     segment.check_if_only_one_or_zero_tech_exist()
-        # except ValueError as e:
-        #     logger.warn(e)
-        if segment.check_if_no_service():
-            sub_segments = partition_data_by_no_service(segment)
-            if len(sub_segments) > 0:
-                # replace the segment with the sub-segments
-                replace_with_elements(segments, idx, sub_segments, inplace=True)
-    
-    for segment in segments:
-        try:
-            segment.get_tech()
-        except ValueError as e:
-            logger.warn(e)
 
-    return segments
 
-def filter_segments_with_tput(segments: List[Segment]) -> List[Segment]:
-    return [segment for segment in segments if segment.has_tput]
 
-def get_segment_duration_ms(segment: pd.DataFrame, time_field: str = 'time') -> float:
-    """
-    get the duration of the segment in milliseconds
-    """
-    start_time = pd.to_datetime(segment[time_field].iloc[0])
-    end_time = pd.to_datetime(segment[time_field].iloc[-1])
-    duration = end_time - start_time
-    return duration.total_seconds() * 1000 + duration.microseconds / 1000
 
-def get_field_with_max_occurence(df: pd.DataFrame, field: str) -> str:
-    """
-    get the 5G frequency with the max occurence
-    """
-    if df[field].isna().all():
-        return None
-    return df[field].value_counts().idxmax()
-
-def check_if_multiple_values_exist(df: pd.DataFrame, field: str) -> bool:
-    """
-    check if there are multiple values in the field
-    """
-    return df[field].nunique() > 1
-
-def get_field_value_count(df: pd.DataFrame, field: str) -> int:
-    """
-    get the number of rows in the dataframe
-    """
-    if df[field].isna().all():
-        return 0
-    return df[field].value_counts().sum()

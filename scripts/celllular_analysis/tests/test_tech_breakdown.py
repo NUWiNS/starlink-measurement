@@ -74,6 +74,18 @@ class TestTechBreakdown(unittest.TestCase):
         segments = tech_breakdown.process()
 
         self.assertEqual(len(segments), 4)
+
+        # detect boundaries
+        self.assertEqual(segments[0].start_idx, 0)
+        self.assertEqual(segments[0].end_idx, 3)
+        self.assertEqual(segments[1].start_idx, 4)
+        self.assertEqual(segments[1].end_idx, 10)
+        self.assertEqual(segments[2].start_idx, 11)
+        self.assertEqual(segments[2].end_idx, 14)
+        self.assertEqual(segments[3].start_idx, 15)
+        self.assertEqual(segments[3].end_idx, 18)
+
+        # detech actual tech
         self.assertEqual(segments[0].get_tech(), 'LTE')
         self.assertEqual(segments[1].get_tech(), 'NO SERVICE')
         self.assertEqual(segments[2].get_tech(), 'LTE-A')
@@ -82,6 +94,12 @@ class TestTechBreakdown(unittest.TestCase):
         # detect handover
         self.assertEqual(segments[2].has_handover, True)
         self.assertEqual(segments[1].has_handover, False)
+
+        # iterate through segments, all idx should be consecutive
+        for i in range(len(segments) - 1):
+            self.assertEqual(segments[i].end_idx + 1, segments[i + 1].start_idx)
+
+
 
 
 
