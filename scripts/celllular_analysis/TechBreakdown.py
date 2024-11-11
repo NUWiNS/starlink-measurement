@@ -260,8 +260,8 @@ class TechBreakdown:
         split_indices = df[df[self.event_field].isin(handover_events)].index.tolist()
         split_indices.sort()
         
-        print(f"Found {len(split_indices)} handover events in the dataframe")
-        print(f"indices: {split_indices}")
+        # print(f"Found {len(split_indices)} handover events in the dataframe")
+        # print(f"indices: {split_indices}")
 
         # Split dataframe into segments
         segments = []
