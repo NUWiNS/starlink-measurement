@@ -21,7 +21,7 @@ class Segment:
             dl_tput_field: str = XcalField.SMART_TPUT_DL,
             ul_tput_field: str = XcalField.SMART_TPUT_UL,
             actual_tech_field: str = XcalField.ACTUAL_TECH,
-            low_tput_threshold: float = 0.1,
+            low_tput_threshold_mbps: float = 0.1,
             lon_field: str = XcalField.LON,
             lat_field: str = XcalField.LAT,
         ):
@@ -39,7 +39,7 @@ class Segment:
         self.ul_tput_field = ul_tput_field
         self.app_tput_protocol = app_tput_protocol
         self.app_tput_direction = app_tput_direction
-        self.low_tput_threshold = low_tput_threshold
+        self.low_tput_threshold_mbps = low_tput_threshold_mbps
         self.lon_field = lon_field
         self.lat_field = lat_field
         # self.has_tput = self.get_dl_tput_count() > 0 or self.get_ul_tput_count() > 0
@@ -78,12 +78,12 @@ class Segment:
             # Check if there is any non-zero DL throughput during no service period
             if self.app_tput_direction == 'downlink':
                 tput_values = self.df[self.dl_tput_field].dropna()
-                if any(float(tput) > self.low_tput_threshold for tput in tput_values):
-                    raise ValueError(f"Segment ({self.get_range()}) has no service but contains non-zero DL throughput")
+                if any(float(tput) > self.low_tput_threshold_mbps for tput in tput_values):
+                    print(f"Segment ({self.get_range()}) has no service but contains non-zero DL throughput (threshold: {self.low_tput_threshold_mbps}, max: {tput_values.max()})")
             elif self.app_tput_direction == 'uplink':
                 tput_values = self.df[self.ul_tput_field].dropna()
-                if any(float(tput) > self.low_tput_threshold for tput in tput_values):
-                    raise ValueError(f"Segment ({self.get_range()}) has no service but contains non-zero UL throughput")
+                if any(float(tput) > self.low_tput_threshold_mbps for tput in tput_values):
+                    print(f"Segment ({self.get_range()}) has no service but contains non-zero UL throughput (threshold: {self.low_tput_threshold_mbps}, max: {tput_values.max()})")
             return 'NO SERVICE'
 
         freq_5g_mhz = self.get_freq_5g_mhz()

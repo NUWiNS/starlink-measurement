@@ -12,7 +12,7 @@ from scripts.alaska_starlink_trip.labels import DatasetLabel
 from scripts.alaska_starlink_trip.separate_dataset import read_dataset
 from scripts.alaska_starlink_trip.configs import ROOT_DIR, TIMEZONE
 from scripts.constants import DATASET_DIR, XcalField
-from scripts.utilities.xcal_processing_utils import collect_periods_of_tput_measurements, filter_xcal_logs, read_daily_xcal_data, tag_xcal_logs_with_essential_info
+from scripts.utilities.xcal_processing_utils import collect_periods_of_tput_measurements, filter_xcal_logs, read_daily_xcal_data
 
 
 tmp_dir = os.path.join(ROOT_DIR, 'tmp')
