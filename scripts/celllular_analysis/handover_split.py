@@ -117,8 +117,73 @@ def plot_tech_by_protocol_direction(df: pd.DataFrame, operator: str, output_dir:
         json.dump(stats, f, indent=4)
     logger.info(f"Saved technology distribution stats to {stats_json_path}")
 
+def plot_tech_by_area_for_one_operator(df: pd.DataFrame, operator: str, output_dir: str):
+    # Plot a stack plot of the tput for each tech grouped by protocol + direction
+    fig, ax = plt.subplots(figsize=(12, 8))
 
-def plot_tech_by_operator(
+    # Create groups for protocol + direction combinations
+    groups = []
+    fractions = []
+
+    stats = {}
+    
+    for area in ['urban', 'suburban', 'rural']:
+        sub_stats = {}
+
+        # Filter data for this area
+        mask = (df[XcalField.AREA] == area)
+        data = df[mask]
+        if len(data) == 0:
+            continue
+
+        # Calculate fractions
+        grouped_df = data.groupby([XcalField.SEGMENT_ID])
+
+        tech_distance_mile_map, total_distance_miles = calculate_tech_coverage_in_miles(grouped_df)
+
+        sub_stats['tech_distance_miles'] = tech_distance_mile_map
+        sub_stats['total_distance_miles'] = total_distance_miles
+
+        if total_distance_miles > 0:  # Avoid division by zero
+            tech_fractions = {tech: tech_distance_mile_map.get(tech, 0) / total_distance_miles for tech in tech_order}
+            sub_stats['tech_fractions'] = tech_fractions
+            fractions.append(tech_fractions)
+            groups.append(area)
+
+        stats[area] = sub_stats
+    
+    # Plot stacked bars
+    x = range(len(groups))
+    bottom = np.zeros(len(groups))
+    bar_width = 0.5
+    
+    for i, tech in enumerate(tech_order):
+        values = [f[tech] if tech in f else 0 for f in fractions]
+        ax.bar(x, values, bottom=bottom, label=tech, color=colors[i], 
+               width=bar_width)
+        bottom += values
+    
+    ax.set_title(f'Tech Dist in miles by Area ({operator})')
+    ax.set_xlabel('Area')
+    ax.set_ylabel('Fraction of Total Distance (Miles)')
+    ax.set_xticks(x)
+    ax.set_xticklabels(groups)
+    ax.legend(title='Technology', bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax.grid(True, axis='y')
+    
+    plt.tight_layout()
+    figure_path = os.path.join(output_dir, f'tech_dist_by_area.{operator}.png')
+    plt.savefig(figure_path, bbox_inches='tight')
+    plt.close()
+    logger.info(f"Saved technology distribution plot to {figure_path}")
+
+    # save stats to json
+    stats_json_path = os.path.join(output_dir, f'tech_dist_by_area.{operator}.stats.json')
+    with open(stats_json_path, 'w') as f:
+        json.dump(stats, f, indent=4)
+    logger.info(f"Saved technology distribution stats to {stats_json_path}")
+
+def plot_tech_with_all_operators(
         dfs: dict, 
         df_mask: Callable, 
         output_dir: str, 
@@ -224,13 +289,14 @@ def main():
             df = pd.read_csv(input_csv_path)
             operator_dfs[operator] = df
         
-        # for operator in ['att', 'tmobile', 'verizon']:
-            # df = operator_dfs[operator]
+        for operator in ['att', 'tmobile', 'verizon']:
+            df = operator_dfs[operator]
             # plot_tech_by_protocol_direction(df, operator, output_dir)
-            # logger.info(f'---- Finished processing operator: {operator}')
+            plot_tech_by_area_for_one_operator(df, operator, output_dir)
+            logger.info(f'---- Finished processing operator: {operator}')
 
         # # Create combined plot for all operators
-        # plot_tech_by_operator(
+        # plot_tech_with_all_operators(
         #     dfs=operator_dfs, 
         #     output_dir=output_dir, 
         #     title=f'Technology Distribution by Operator ({location})',
@@ -239,26 +305,27 @@ def main():
 
         # Filter by direction
         # Downlink
-        logger.info('-- plot tech dist by downlink with all operators')
-        df_mask = lambda df: (df[XcalField.APP_TPUT_DIRECTION] == 'downlink')
-        plot_tech_by_operator(
-            dfs=operator_dfs, 
-            df_mask=df_mask,
-            output_dir=output_dir, 
-            title=f'Technology Distribution by Downlink ({location})',
-            fig_name=f'tech_dist_by_downlink.{location}'
-        )
+        # logger.info('-- plot tech dist by downlink with all operators')
+        # df_mask = lambda df: (df[XcalField.APP_TPUT_DIRECTION] == 'downlink')
+        # plot_tech_with_all_operators(
+        #     dfs=operator_dfs, 
+        #     df_mask=df_mask,
+        #     output_dir=output_dir, 
+        #     title=f'Technology Distribution by Downlink ({location})',
+        #     fig_name=f'tech_dist_by_downlink.{location}'
+        # )
 
-        # Uplink
-        logger.info('-- plot tech dist by uplink with all operators')
-        df_mask = lambda df: (df[XcalField.APP_TPUT_DIRECTION] == 'uplink')
-        plot_tech_by_operator(
-            dfs=operator_dfs, 
-            df_mask=df_mask,
-            output_dir=output_dir, 
-            title=f'Technology Distribution by Uplink ({location})',
-            fig_name=f'tech_dist_by_uplink.{location}'
-        )
+        # # Uplink
+        # logger.info('-- plot tech dist by uplink with all operators')
+        # df_mask = lambda df: (df[XcalField.APP_TPUT_DIRECTION] == 'uplink')
+        # plot_tech_with_all_operators(
+        #     dfs=operator_dfs, 
+        #     df_mask=df_mask,
+        #     output_dir=output_dir, 
+        #     title=f'Technology Distribution by Uplink ({location})',
+        #     fig_name=f'tech_dist_by_uplink.{location}'
+        # )
+
 
         logger.info(f'-- Finished processing dataset: {location}')
 

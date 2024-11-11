@@ -27,6 +27,8 @@ class XcalField:
     TPUT_UL = 'tput_ul'
     APP_TPUT_PROTOCOL = 'app_tput_protocol'
     APP_TPUT_DIRECTION = 'app_tput_direction'
+    WEATHER = 'weather'
+    AREA = 'area'
 
 class XcalTech:
     LTE = 'LTE'
