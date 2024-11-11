@@ -4,6 +4,8 @@ import pandas as pd
 import sys
 import os
 
+from scripts.utilities.distance_utils import DistanceUtils
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
 from scripts.celllular_analysis.TechBreakdown import Segment
@@ -94,18 +96,47 @@ class TestSegment(unittest.TestCase):
         segment = Segment(df, start_idx=0, end_idx=0, app_tput_protocol='tcp', app_tput_direction='downlink')
         self.assertEqual(segment.get_tech(), 'NO SERVICE')
 
-    def test_ffill_tech(self):
+    def test_fill_tech(self):
         df = pd.DataFrame([
             {XcalField.CUSTOM_UTC_TIME: 1, XcalField.TECH: 'LTE', XcalField.SMART_TPUT_DL: None, XcalField.EVENT_LTE: None, XcalField.PCELL_FREQ_5G: None, XcalField.APP_TPUT_PROTOCOL: 'tcp', XcalField.APP_TPUT_DIRECTION: 'downlink'},
             {XcalField.CUSTOM_UTC_TIME: 2, XcalField.TECH: None, XcalField.SMART_TPUT_DL: None, XcalField.EVENT_LTE: None, XcalField.PCELL_FREQ_5G: None, XcalField.APP_TPUT_PROTOCOL: 'tcp', XcalField.APP_TPUT_DIRECTION: 'downlink'},
             {XcalField.CUSTOM_UTC_TIME: 3, XcalField.TECH: None, XcalField.SMART_TPUT_DL: None, XcalField.EVENT_LTE: None, XcalField.PCELL_FREQ_5G: None, XcalField.APP_TPUT_PROTOCOL: 'tcp', XcalField.APP_TPUT_DIRECTION: 'downlink'},
         ])
         segment = Segment(df, start_idx=0, end_idx=2, app_tput_protocol='tcp', app_tput_direction='downlink')
-        segment.ffill_tech()
+        segment.fill_tech()
         # check segment.df[XcalField.TECH] is now 'LTE' for all rows
         self.assertEqual(segment.df[XcalField.ACTUAL_TECH].tolist(), ['LTE', 'LTE', 'LTE'])
         # while not changing the original tech field of df 
         self.assertEqual(segment.df[XcalField.TECH].tolist(), ['LTE', None, None])
+
+    def test_get_cumulative_meters(self):
+        df = pd.DataFrame([
+            {
+                XcalField.CUSTOM_UTC_TIME: 1, 
+                XcalField.TECH: 'LTE', 
+                XcalField.SMART_TPUT_DL: 100, 
+                XcalField.EVENT_LTE: None, 
+                XcalField.PCELL_FREQ_5G: None, 
+                XcalField.APP_TPUT_PROTOCOL: 'tcp', 
+                XcalField.APP_TPUT_DIRECTION: 'downlink',
+                XcalField.LON: -149.459656,
+                XcalField.LAT: 63.785090,
+            },
+            {
+                XcalField.CUSTOM_UTC_TIME: 2, 
+                XcalField.TECH: 'LTE', 
+                XcalField.SMART_TPUT_DL: 120, 
+                XcalField.EVENT_LTE: None, 
+                XcalField.PCELL_FREQ_5G: None, 
+                XcalField.APP_TPUT_PROTOCOL: 'tcp', 
+                XcalField.APP_TPUT_DIRECTION: 'downlink',
+                XcalField.LON: -149.459656,
+                XcalField.LAT: 63.785990, # Moved ~100m north
+            },
+        ])
+        segment = Segment(df, start_idx=0, end_idx=1, app_tput_protocol='tcp', app_tput_direction='downlink')
+        self.assertAlmostEqual(segment.get_cumulative_meters(), 100.1, places=1)
+        self.assertAlmostEqual(DistanceUtils.meter_to_mile(segment.get_cumulative_meters()), 0.062, places=2)
 
 if __name__ == '__main__':
     unittest.main()

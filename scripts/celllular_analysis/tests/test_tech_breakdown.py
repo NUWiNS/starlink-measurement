@@ -106,7 +106,7 @@ class TestTechBreakdown(unittest.TestCase):
 
     # def test_no_service_with_csv(self):
     #     df = pd.read_csv(os.path.join(os.path.dirname(__file__), './new_segment_df.csv'))
-    #     tech_breakdown = TechBreakdown(df, app_tput_protocol='tcp', app_tput_direction='uplink')
+    #     tech_breakdown = TechBreakdown(df, app_tput_protocol='tcp', app_tput_direction='upl')
     #     segments = tech_breakdown.process()
     #     reassembled_df = tech_breakdown.reassemble_segments(segments)
     #     self.assertEqual(len(reassembled_df), 19)

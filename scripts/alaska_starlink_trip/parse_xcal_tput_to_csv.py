@@ -103,6 +103,8 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
 
     # print("-- Stage 4: rename and add useful columns")
     df_tput_cols = {
+        XcalField.RUN_ID: filtered_df[XcalField.RUN_ID],
+        XcalField.SEGMENT_ID: filtered_df[XcalField.SEGMENT_ID],
         XcalField.CUSTOM_UTC_TIME: filtered_df[XcalField.CUSTOM_UTC_TIME],
         XcalField.LOCAL_TIME: filtered_df[XcalField.CUSTOM_UTC_TIME].dt.tz_convert(TIMEZONE),
         XcalField.TPUT_DL: filtered_df[XCAL_SMART_TPUT_DL],
@@ -111,6 +113,8 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
         XcalField.BAND: filtered_df[XCAL_EVENT_TECHNOLOGY_BAND],
         XcalField.APP_TPUT_PROTOCOL: filtered_df[FIELD_APP_TPUT_PROTOCOL],
         XcalField.APP_TPUT_DIRECTION: filtered_df[FIELD_APP_TPUT_DIRECTION],
+        XcalField.LON: filtered_df[XcalField.LON],
+        XcalField.LAT: filtered_df[XcalField.LAT],
     }
     if XcalField.EVENT_5G_LTE in filtered_df.columns:
         df_tput_cols[XcalField.EVENT_5G_LTE] = filtered_df[XcalField.EVENT_5G_LTE]

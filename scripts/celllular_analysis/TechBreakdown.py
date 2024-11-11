@@ -1,8 +1,9 @@
 from typing import List, Tuple
+import numpy as np
 import pandas as pd
 
 from scripts.constants import XcalField, XcallHandoverEvent
-
+from scripts.utilities.distance_utils import DistanceUtils
 
 class Segment:
     def __init__(
@@ -21,6 +22,8 @@ class Segment:
             ul_tput_field: str = XcalField.SMART_TPUT_UL,
             actual_tech_field: str = XcalField.ACTUAL_TECH,
             low_tput_threshold: float = 0.1,
+            lon_field: str = XcalField.LON,
+            lat_field: str = XcalField.LAT,
         ):
         self.df = df
         self.start_idx = start_idx
@@ -37,14 +40,22 @@ class Segment:
         self.app_tput_protocol = app_tput_protocol
         self.app_tput_direction = app_tput_direction
         self.low_tput_threshold = low_tput_threshold
+        self.lon_field = lon_field
+        self.lat_field = lat_field
         # self.has_tput = self.get_dl_tput_count() > 0 or self.get_ul_tput_count() > 0
         # self.has_freq_5g = self.get_freq_5g_mhz() is not None
         self.duration_ms = self.get_duration_ms()
         self.has_handover = self.check_if_has_handover()
         self.has_no_service = self.check_if_no_service()
 
-    def ffill_tech(self):
+    def fill_tech(self):
         self.df[self.actual_tech_field] = self.get_tech()
+
+    def get_cumulative_meters(self) -> float:
+
+        lats = self.df[self.lat_field].values
+        lons = self.df[self.lon_field].values
+        return DistanceUtils.calculate_cumulative_meters(lons, lats)
 
     def get_range(self) -> str:
         return f"{self.start_idx}:{self.end_idx}"
@@ -443,6 +454,7 @@ class TechBreakdown:
             new_segment_df = segment.df
             try:
                 new_segment_df[XcalField.ACTUAL_TECH] = segment.get_tech()
+                new_segment_df[XcalField.SEGMENT_ID] = f'{segment.start_idx}:{segment.end_idx}'
             except Exception as e:
                 print(f"Error in getting tech for segment {segment.get_range()}: {str(e)}")
                 raise e

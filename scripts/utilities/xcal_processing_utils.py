@@ -132,6 +132,8 @@ def filter_xcal_logs(
             print(f"Error in reassemble segments: {str(e)}")
             raise e
 
+        if reassembled_period_rows_df is not None:
+            reassembled_period_rows_df[XcalField.RUN_ID] = utc_start_dt.timestamp()
         # Add filtered rows to the list
         filtered_rows.append(reassembled_period_rows_df)
 
