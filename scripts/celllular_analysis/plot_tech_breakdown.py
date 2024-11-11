@@ -292,8 +292,8 @@ def main():
         for operator in ['att', 'tmobile', 'verizon']:
             df = operator_dfs[operator]
             # plot_tech_by_protocol_direction(df, operator, output_dir)
-            plot_tech_by_area_for_one_operator(df, operator, output_dir)
-            logger.info(f'---- Finished processing operator: {operator}')
+            # plot_tech_by_area_for_one_operator(df, operator, output_dir)
+            # logger.info(f'---- Finished processing operator: {operator}')
 
         # # Create combined plot for all operators
         # plot_tech_with_all_operators(
