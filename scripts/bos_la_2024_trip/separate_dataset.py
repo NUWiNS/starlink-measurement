@@ -142,6 +142,8 @@ class BosLaTripDatasetSplitter(DatasetSplitter):
     def label_test_data(self, labels: List[str], _date: datetime, operator: str):
         if _date < datetime(2024, 11, 1, 14):
             labels.append(DatasetLabel.TEST_DATA.value)
+        if datetime(2024, 11, 5, 0) < _date < datetime(2024, 11, 5, 9, 30):
+            labels.append(DatasetLabel.TEST_DATA.value)
         return labels
     
     def rename_5g_booster_tests(self, folder: str):
