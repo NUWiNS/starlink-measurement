@@ -2,11 +2,9 @@
 import os
 import sys
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR
 from scripts.ping_plotting_utils import plot_boxplot_of_rtt, plot_cdf_of_rtt_with_all_operators, plot_all_cdf_for_rtt
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-
 from scripts.constants import OUTPUT_DIR
 import pandas as pd
 
