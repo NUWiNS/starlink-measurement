@@ -21,7 +21,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 logger = create_logger('handover_split', filename=os.path.join(current_dir, 'outputs'   , 'handover_process.log'))
 
 # Colors for different technologies - from grey (NO SERVICE) to rainbow gradient (green->yellow->orange->red) for increasing tech
-colors = ['#808080', '#326f21', '#86c84d', '#f5ff61', '#f4b550', '#eb553a', '#ba281c']  # Grey, green, light green, yellow, amber, orange, red
+colors = ['#808080', '#326f21', '#86c84d', '#fadb14', '#f4b550', '#eb553a', '#ba281c']  # Grey, green, light green, yellow, amber, orange, red
 tech_order = ['NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']
 
 def calculate_tech_coverage_in_miles(grouped_df: pd.DataFrame) -> Tuple[dict, float]:
@@ -267,6 +267,94 @@ def plot_tech_with_all_operators(
     logger.info(f"Saved technology distribution stats to {stats_json_path}")
 
 
+def plot_tcp_tput_cdf_by_tech_for_one_operator(
+        df: pd.DataFrame, 
+        operator: str, 
+        output_dir: str,
+        dl_xlim: Tuple[float, float] = (0, 500),
+        ul_xlim: Tuple[float, float] = (0, 200),
+    ):
+    """Plot CDF of throughput for each technology for a given operator.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing the data
+        operator (str): Name of the operator
+        output_dir (str): Directory to save the plots
+    """
+    # Create separate plots for downlink and uplink
+    for direction in ['downlink', 'uplink']:
+        fig, ax = plt.subplots(figsize=(6, 3))
+        
+        # Initialize stats dictionary
+        stats = {}
+        
+        # Filter data for this direction
+        mask = (df[XcalField.APP_TPUT_PROTOCOL] == 'tcp') & \
+               (df[XcalField.APP_TPUT_DIRECTION] == direction)
+        direction_df = df[mask]
+        unique_techs = direction_df[XcalField.ACTUAL_TECH].unique()
+        # sort techs by the order of tech_order
+        unique_techs = sorted(unique_techs, key=lambda x: tech_order.index(x))
+        
+        # Plot CDF for each technology
+        for tech in unique_techs:
+            # Skip NO SERVICE
+            if tech.lower() == 'no service':
+                continue
+            
+            # Filter data for this technology
+            tech_df = direction_df[direction_df[XcalField.ACTUAL_TECH] == tech]
+            if len(tech_df) == 0:
+                continue
+                
+            tput_field = XcalField.TPUT_DL if direction == 'downlink' else XcalField.TPUT_UL
+            # Get throughput values and sort them
+            tput_values = tech_df[tput_field].sort_values()
+            
+            # Calculate statistics
+            stats[tech] = {
+                'median': float(np.median(tput_values)),
+                'mean': float(np.mean(tput_values)),
+                'min': float(np.min(tput_values)),
+                'max': float(np.max(tput_values)),
+                'percentile_25': float(np.percentile(tput_values, 25)),
+                'percentile_75': float(np.percentile(tput_values, 75)),
+                'sample_count': len(tput_values)
+            }
+            
+            # Calculate CDF
+            cdf = np.arange(1, len(tput_values) + 1) / len(tput_values)
+            
+            if tech not in tech_order:
+                raise ValueError(f"Tech ({tech}) not in tech_order")
+            
+            # Plot CDF
+            idx = tech_order.index(tech)
+            ax.plot(tput_values, cdf, label=tech, color=colors[idx])
+        
+        ax.set_title(f'Throughput CDF by Technology - {operator} ({direction})')
+        ax.set_xlabel('Throughput (Mbps)')
+        ax.set_ylabel('CDF')
+        if direction == 'downlink':
+            ax.set_xlim(dl_xlim)
+        else:
+            ax.set_xlim(ul_xlim)
+        ax.grid(True, which="both", ls="-", alpha=0.2)
+        ax.legend(title='Technology', loc='lower right', reverse=True)
+        
+        plt.tight_layout()
+        figure_path = os.path.join(output_dir, f'tput_cdf_by_tech.{operator}.{direction}.png')
+        plt.savefig(figure_path, bbox_inches='tight')
+        plt.close()
+        
+        # Save stats to json
+        stats_json_path = os.path.join(output_dir, f'tput_cdf_by_tech.{operator}.{direction}.stats.json')
+        with open(stats_json_path, 'w') as f:
+            json.dump(stats, f, indent=4)
+        
+        logger.info(f"Saved throughput CDF plot to {figure_path}")
+        logger.info(f"Saved throughput statistics to {stats_json_path}")
+
 def main():
     location_dir = {
         'alaska': AL_DATASET_DIR,
@@ -293,7 +381,14 @@ def main():
             df = operator_dfs[operator]
             # plot_tech_by_protocol_direction(df, operator, output_dir)
             # plot_tech_by_area_for_one_operator(df, operator, output_dir)
-            # logger.info(f'---- Finished processing operator: {operator}')
+            if location == 'alaska':
+                dl_xlim = (0, 400)
+                ul_xlim = (0, 125)
+            elif location == 'hawaii':
+                dl_xlim = (0, 1000)
+                ul_xlim = (0, 175)
+            plot_tcp_tput_cdf_by_tech_for_one_operator(df, operator, output_dir, dl_xlim, ul_xlim)
+            logger.info(f'---- Finished processing operator: {operator}')
 
         # # Create combined plot for all operators
         # plot_tech_with_all_operators(
