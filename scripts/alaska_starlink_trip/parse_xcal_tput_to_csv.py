@@ -59,6 +59,10 @@ def get_app_tput_periods(dir_list: list[str]) -> list[tuple[datetime, datetime, 
 
 def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
     dir_list = read_dataset(operator, label=DatasetLabel.NORMAL.value)
+    bbr_testing_data_dir_list = read_dataset(operator, label=DatasetLabel.BBR_TESTING_DATA.value)
+    # add bbr testing data into the final dataset
+    dir_list.extend(bbr_testing_data_dir_list)
+
     all_dates = set()
     for dir in dir_list:
         # dir is like /path/to/20240621/153752852
