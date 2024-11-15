@@ -16,6 +16,7 @@ from scripts.utilities.xcal_processing_utils import collect_periods_of_tput_meas
 
 
 tmp_dir = os.path.join(ROOT_DIR, 'tmp')
+ping_dir = os.path.join(ROOT_DIR, 'ping')
 logger = create_logger(__name__, filename=os.path.join(tmp_dir, f'parse_xcal_tput_to_csv.{now()}.log'))
 
 # XCAL XLSX FIELDS
@@ -96,7 +97,13 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
     except Exception as e:
         logger.info(f"Failed to filter xcal logs: {str(e)}")
         raise e
+    return filtered_df
 
+def process_filtered_xcal_data_for_tput_and_save_to_csv(
+        filtered_df: pd.DataFrame, 
+        operator: str,
+        output_dir: str
+    ):
     logger.info("-- Stage 4: rename and add useful columns")
     df_tput_cols = {
         XcalField.RUN_ID: filtered_df[XcalField.RUN_ID],
@@ -142,6 +149,59 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
     df_tput.to_csv(xcal_smart_tput_csv, index=False)
     logger.info(f"Saved xcal cleaned tput logs (size: {len(df_tput)}) to {xcal_smart_tput_csv}")
 
+def append_tech_to_rtt_data_and_save_to_csv(
+        xcal_df: pd.DataFrame, 
+        operator: str, 
+    ) -> pd.DataFrame:
+    """Append technology information to RTT data based on closest timestamp match.
+    
+    Args:
+        xcal_df: DataFrame containing XCAL data with technology information
+        operator: Operator name (verizon, tmobile, att)
+    
+    Returns:
+        DataFrame with appended technology information
+    """
+    rtt_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
+    df_rtt = pd.read_csv(rtt_csv_path)
+    xcal_df = xcal_df.copy().sort_values(by=XcalField.CUSTOM_UTC_TIME).reset_index(drop=True)
+    
+    # Convert timestamp columns to datetime
+    rtt_timestamp_series = pd.to_datetime(df_rtt['time'])
+    xcal_timestamp_series = pd.to_datetime(xcal_df[XcalField.CUSTOM_UTC_TIME])
+    
+    def find_nearest_tech(timestamp: datetime) -> str:
+        # Binary search to find the closest timestamp
+        idx = xcal_timestamp_series.searchsorted(timestamp)
+        
+        if idx == 0:
+            return xcal_df.iloc[0][XcalField.ACTUAL_TECH]
+        elif idx == len(xcal_timestamp_series):
+            return xcal_df.iloc[-1][XcalField.ACTUAL_TECH]
+            
+        # Get timestamps before and after
+        before = xcal_timestamp_series.iloc[idx-1]
+        after = xcal_timestamp_series.iloc[idx]
+        
+        # Convert time differences to seconds for comparison
+        diff_before = abs((timestamp - before).total_seconds())
+        diff_after = abs((timestamp - after).total_seconds())
+        
+        # Choose the closest timestamp
+        if diff_before < diff_after:
+            return xcal_df.iloc[idx-1][XcalField.ACTUAL_TECH]
+        return xcal_df.iloc[idx][XcalField.ACTUAL_TECH]
+    
+    # Apply the lookup function to each RTT timestamp
+    df_rtt[XcalField.ACTUAL_TECH] = rtt_timestamp_series.apply(find_nearest_tech)
+    
+    # Save the updated DataFrame to the original path
+    df_rtt.to_csv(rtt_csv_path, index=False)
+    logger.info(f"Appended technology information to RTT data and saved to {rtt_csv_path}")
+    
+    return df_rtt
+
+
 
 def main():
     output_dir = path.join(ROOT_DIR, f'xcal')
@@ -153,7 +213,9 @@ def main():
 
     for operator in ['verizon', 'tmobile', 'att']:
         logger.info(f"--- Processing {operator}...")
-        process_operator_xcal_tput(operator, location, output_dir)
+        filtered_df = process_operator_xcal_tput(operator, location, output_dir)
+        # process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_df, operator, output_dir)
+        append_tech_to_rtt_data_and_save_to_csv(filtered_df, operator)
         logger.info(f"--- Finished processing {operator}")
 
 
