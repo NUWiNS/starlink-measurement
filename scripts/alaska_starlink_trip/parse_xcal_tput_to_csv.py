@@ -209,7 +209,6 @@ def append_tech_to_rtt_data_and_save_to_csv(
     return df_rtt
 
 
-
 def main():
     output_dir = path.join(ROOT_DIR, f'xcal')
     location = 'alaska'

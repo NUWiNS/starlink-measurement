@@ -599,12 +599,139 @@ def plot_tcp_tput_cdf_with_tech_by_area_hawaii(
         logger.info(f"Saved throughput CDF plot to {figure_path}")
         logger.info(f"Saved throughput statistics to {stats_json_path}")
 
+def plot_latency_cdf_by_tech_for_one_operator(
+        df: pd.DataFrame, 
+        operator: str, 
+        output_dir: str,
+    ):
+    """Plot CDF of latency (RTT) for each technology for a given operator.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing the latency data with fields 'rtt_ms' and 'actual_tech'
+        operator (str): Name of the operator
+        output_dir (str): Directory to save the plots
+    """
+    fig, ax = plt.subplots(figsize=(6, 3))
+    
+    # Initialize stats dictionary
+    stats = {}
+    
+    # Get unique technologies and sort them according to tech_order
+    unique_techs = df[XcalField.ACTUAL_TECH].unique()
+    unique_techs = sorted(unique_techs, key=lambda x: tech_order.index(x))
+
+    x_lim_min = np.inf
+    x_lim_max = -np.inf
+    
+    # Plot CDF for each technology
+    for tech in unique_techs:
+        # Skip NO SERVICE
+        if tech.lower() == 'no service':
+            continue
+        
+        # Filter data for this technology
+        tech_df = df[df[XcalField.ACTUAL_TECH] == tech]
+        if len(tech_df) == 0:
+            continue
+            
+        # Get RTT values and sort them
+        rtt_values = tech_df['rtt_ms'].sort_values()
+        
+        # Calculate statistics
+        stats[tech] = {
+            'median': float(np.median(rtt_values)),
+            'mean': float(np.mean(rtt_values)),
+            'min': float(np.min(rtt_values)),
+            'max': float(np.max(rtt_values)),
+            'percentile_25': float(np.percentile(rtt_values, 25)),
+            'percentile_75': float(np.percentile(rtt_values, 75)),
+            'percentile_90': float(np.percentile(rtt_values, 90)),
+            'sample_count': len(rtt_values)
+        }
+
+        x_lim_min = min(x_lim_min, stats[tech]['min'])
+        x_lim_max = max(x_lim_max, stats[tech]['percentile_90'])
+
+        # Calculate CDF
+        cdf = np.arange(1, len(rtt_values) + 1) / len(rtt_values)
+        
+        # Get color based on tech
+        idx = tech_order.index(tech)
+        
+        # Plot CDF
+        ax.plot(rtt_values, cdf, label=tech, color=colors[idx])
+    
+    # Add small padding to x-axis limits to prevent occlusion
+    x_padding = (x_lim_max - x_lim_min) * 0.02  # 2% padding
+    ax.set_xlim(x_lim_min - x_padding, x_lim_max + x_padding)
+    
+    ax.set_title(f'Latency CDF by Technology - {operator}')
+    ax.set_xlabel('RTT (ms)')
+    ax.set_ylabel('CDF')
+    ax.set_yticks(np.arange(0, 1.1, 0.25))
+    ax.grid(True, which="both", ls="-", alpha=0.2)
+    ax.legend(title='Technology', loc='lower right', reverse=True)
+    
+    plt.tight_layout()
+    figure_path = os.path.join(output_dir, f'latency_cdf_by_tech.{operator}.png')
+    plt.savefig(figure_path, bbox_inches='tight')
+    plt.close()
+    
+    # Save stats to json
+    stats_json_path = os.path.join(output_dir, f'latency_cdf_by_tech.{operator}.stats.json')
+    with open(stats_json_path, 'w') as f:
+        json.dump(stats, f, indent=4)
+    
+    logger.info(f"Saved latency CDF plot to {figure_path}")
+    logger.info(f"Saved latency statistics to {stats_json_path}")
+
 def main():
     location_dir = {
         'alaska': AL_DATASET_DIR,
         'hawaii': HI_DATASET_DIR
     }
 
+    # Throughput relevant plots
+    # for location in ['alaska', 'hawaii']:
+    #     logger.info(f'-- Processing dataset: {location}')
+    #     base_dir = location_dir[location]
+    #     output_dir = os.path.join(current_dir, 'outputs', location)
+    #     if not os.path.exists(output_dir):
+    #         os.makedirs(output_dir)
+
+    #     # Store dataframes for all operators
+    #     operator_dfs = {}
+
+    #     for operator in ['att', 'tmobile', 'verizon']:
+    #         logger.info(f'---- Processing operator: {operator}')
+    #         input_csv_path = os.path.join(base_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+    #         df = pd.read_csv(input_csv_path)
+    #         operator_dfs[operator] = df
+        
+    #     for operator in ['att', 'tmobile', 'verizon']:
+    #         df = operator_dfs[operator]
+    #         # plot_tech_by_protocol_direction(df, operator, output_dir)
+    #         # plot_tech_by_area_for_one_operator(df, operator, location, output_dir)
+
+    #         if location == 'alaska':
+    #             dl_xlim = (0, 400)
+    #             ul_xlim = (0, 125)
+    #         elif location == 'hawaii':
+    #             dl_xlim = (0, 1000)
+    #             ul_xlim = (0, 175)
+
+    #         # plot_tcp_tput_cdf_by_tech_for_one_operator(df, operator, output_dir, dl_xlim, ul_xlim)
+            
+    #         if location == 'alaska':
+    #             plot_tcp_tput_cdf_with_tech_by_area_alaska(df, operator, output_dir)
+    #         elif location == 'hawaii':
+    #             plot_tcp_tput_cdf_with_tech_by_area_hawaii(df, operator, output_dir)
+
+    #         logger.info(f'---- Finished processing operator: {operator}')
+
+    #     logger.info(f'-- Finished processing dataset: {location}')
+
+    # Latency relevant plots
     for location in ['alaska', 'hawaii']:
         logger.info(f'-- Processing dataset: {location}')
         base_dir = location_dir[location]
@@ -612,34 +739,11 @@ def main():
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        # Store dataframes for all operators
-        operator_dfs = {}
-
         for operator in ['att', 'tmobile', 'verizon']:
             logger.info(f'---- Processing operator: {operator}')
-            input_csv_path = os.path.join(base_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+            input_csv_path = os.path.join(base_dir, 'ping', f'{operator}_ping.csv')
             df = pd.read_csv(input_csv_path)
-            operator_dfs[operator] = df
-        
-        for operator in ['att', 'tmobile', 'verizon']:
-            df = operator_dfs[operator]
-            # plot_tech_by_protocol_direction(df, operator, output_dir)
-            # plot_tech_by_area_for_one_operator(df, operator, location, output_dir)
-
-            if location == 'alaska':
-                dl_xlim = (0, 400)
-                ul_xlim = (0, 125)
-            elif location == 'hawaii':
-                dl_xlim = (0, 1000)
-                ul_xlim = (0, 175)
-
-            # plot_tcp_tput_cdf_by_tech_for_one_operator(df, operator, output_dir, dl_xlim, ul_xlim)
-            
-            if location == 'alaska':
-                plot_tcp_tput_cdf_with_tech_by_area_alaska(df, operator, output_dir)
-            elif location == 'hawaii':
-                plot_tcp_tput_cdf_with_tech_by_area_hawaii(df, operator, output_dir)
-
+            plot_latency_cdf_by_tech_for_one_operator(df, operator, output_dir)
             logger.info(f'---- Finished processing operator: {operator}')
 
         logger.info(f'-- Finished processing dataset: {location}')
