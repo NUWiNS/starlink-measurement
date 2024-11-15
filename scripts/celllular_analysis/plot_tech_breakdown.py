@@ -21,7 +21,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 logger = create_logger('handover_split', filename=os.path.join(current_dir, 'outputs'   , 'handover_process.log'))
 
 # Colors for different technologies - from grey (NO SERVICE) to rainbow gradient (green->yellow->orange->red) for increasing tech
-colors = ['#808080', '#326f21', '#86c84d', '#fadb14', '#f4b550', '#eb553a', '#ba281c']  # Grey, green, light green, yellow, amber, orange, red
+colors = ['#808080', '#326f21', '#86c84d', '#ffd700', '#ff9900', '#ff4500', '#ba281c']  # Grey, green, light green, yellow, amber, orange, red
 tech_order = ['NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']
 
 def calculate_tech_coverage_in_miles(grouped_df: pd.DataFrame) -> Tuple[dict, float]:
@@ -117,9 +117,13 @@ def plot_tech_by_protocol_direction(df: pd.DataFrame, operator: str, output_dir:
         json.dump(stats, f, indent=4)
     logger.info(f"Saved technology distribution stats to {stats_json_path}")
 
-def plot_tech_by_area_for_one_operator(df: pd.DataFrame, operator: str, output_dir: str):
+def plot_tech_by_area_for_one_operator(df: pd.DataFrame, operator: str, location: str, output_dir: str):
     # Plot a stack plot of the tput for each tech grouped by protocol + direction
-    fig, ax = plt.subplots(figsize=(12, 8))
+    if location == 'alaska':
+        figsize = (10, 8)
+    else:
+        figsize = (12, 8)
+    fig, ax = plt.subplots(figsize=figsize)
 
     # Create groups for protocol + direction combinations
     groups = []
@@ -149,13 +153,47 @@ def plot_tech_by_area_for_one_operator(df: pd.DataFrame, operator: str, output_d
             sub_stats['tech_fractions'] = tech_fractions
             fractions.append(tech_fractions)
             groups.append(area)
-
+        
         stats[area] = sub_stats
+
+    if location == 'alaska':
+        # Merge rural with suburban
+        if 'rural' in stats and 'suburban' in stats:
+            logger.info('Merging suburban with rural for Alaska')
+            stats['suburban+rural'] = {
+                'tech_distance_miles': {},
+                'total_distance_miles': 0,
+                'tech_fractions': {}
+            }
+            # Add rural miles to suburban
+            for tech in tech_order:
+                stats['suburban+rural']['tech_distance_miles'][tech] = stats['suburban']['tech_distance_miles'].get(tech, 0) + stats['rural']['tech_distance_miles'].get(tech, 0)
+            stats['suburban+rural']['total_distance_miles'] = stats['suburban']['total_distance_miles'] + stats['rural']['total_distance_miles']
+            
+            # Recalculate suburban fractions
+            if stats['suburban+rural']['total_distance_miles'] > 0:
+                stats['suburban+rural']['tech_fractions'] = {
+                    tech: stats['suburban+rural']['tech_distance_miles'][tech] / stats['suburban+rural']['total_distance_miles'] 
+                    for tech in tech_order
+                }
+            
+            # Update groups and fractions lists (add suburban+rural, remove rural and suburban  )
+            groups.append('suburban+rural')
+            fractions.append(stats['suburban+rural']['tech_fractions'])
+
+            rural_idx = groups.index('rural') if 'rural' in groups else -1
+            suburban_idx = groups.index('suburban') if 'suburban' in groups else -1
+            if rural_idx != -1:
+                groups.pop(rural_idx)
+                fractions.pop(rural_idx)
+            if suburban_idx != -1:
+                groups.pop(suburban_idx)
+                fractions.pop(suburban_idx)
     
     # Plot stacked bars
     x = range(len(groups))
     bottom = np.zeros(len(groups))
-    bar_width = 0.5
+    bar_width = 0.35
     
     for i, tech in enumerate(tech_order):
         values = [f[tech] if tech in f else 0 for f in fractions]
@@ -266,7 +304,6 @@ def plot_tech_with_all_operators(
     logger.info(f"Saved technology distribution plot to {figure_path}")
     logger.info(f"Saved technology distribution stats to {stats_json_path}")
 
-
 def plot_tcp_tput_cdf_by_tech_for_one_operator(
         df: pd.DataFrame, 
         operator: str, 
@@ -355,6 +392,213 @@ def plot_tcp_tput_cdf_by_tech_for_one_operator(
         logger.info(f"Saved throughput CDF plot to {figure_path}")
         logger.info(f"Saved throughput statistics to {stats_json_path}")
 
+def plot_tcp_tput_cdf_with_tech_by_area_alaska(
+        df: pd.DataFrame, 
+        operator: str, 
+        output_dir: str, 
+        dl_xlim: Tuple[float, float] = None,
+        ul_xlim: Tuple[float, float] = None,
+    ):
+    """Plot CDF of throughput for each technology grouped by area type for Alaska.
+    Suburban and rural areas are merged into one category.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing the data
+        operator (str): Name of the operator
+        output_dir (str): Directory to save the plots
+        dl_xlim (Tuple[float, float]): X-axis limits for downlink plot
+        ul_xlim (Tuple[float, float]): X-axis limits for uplink plot
+    """
+    # Create separate plots for downlink and uplink
+    for direction in ['downlink', 'uplink']:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        
+        # Initialize stats dictionary
+        stats = {}
+        
+        # Filter data for TCP and this direction
+        mask = (df[XcalField.APP_TPUT_PROTOCOL] == 'tcp') & \
+               (df[XcalField.APP_TPUT_DIRECTION] == direction)
+        direction_df = df[mask]
+        
+        # Define area groups for Alaska (merging suburban and rural)
+        area_groups = {
+            'urban': ['urban'],
+            'suburban+rural': ['suburban', 'rural']
+        }
+        
+        # Plot CDF for each area and technology
+        for area_label, area_types in area_groups.items():
+            stats[area_label] = {}
+            
+            # Filter data for this area group
+            area_df = direction_df[direction_df[XcalField.AREA].isin(area_types)]
+            unique_techs = area_df[XcalField.ACTUAL_TECH].unique()
+            # Sort techs by the order of tech_order
+            unique_techs = sorted(unique_techs, key=lambda x: tech_order.index(x))
+            
+            for tech in unique_techs:
+                # Skip NO SERVICE
+                if tech.lower() == 'no service':
+                    continue
+                
+                # Filter data for this technology
+                tech_df = area_df[area_df[XcalField.ACTUAL_TECH] == tech]
+                if len(tech_df) == 0:
+                    continue
+                
+                tput_field = XcalField.TPUT_DL if direction == 'downlink' else XcalField.TPUT_UL
+                tput_values = tech_df[tput_field].sort_values()
+                
+                # Calculate statistics
+                stats[area_label][tech] = {
+                    'median': float(np.median(tput_values)),
+                    'mean': float(np.mean(tput_values)),
+                    'min': float(np.min(tput_values)),
+                    'max': float(np.max(tput_values)),
+                    'percentile_25': float(np.percentile(tput_values, 25)),
+                    'percentile_75': float(np.percentile(tput_values, 75)),
+                    'sample_count': len(tput_values)
+                }
+                
+                # Calculate CDF
+                cdf = np.arange(1, len(tput_values) + 1) / len(tput_values)
+                
+                # Get color and linestyle based on area and tech
+                idx = tech_order.index(tech)
+                color = colors[idx]
+                linestyle = '--' if area_label == 'suburban+rural' else '-'
+                
+                # Plot CDF
+                label = f'{area_label}-{tech}'
+                ax.plot(tput_values, cdf, label=label, color=color, linestyle=linestyle)
+        
+        ax.set_title(f'Throughput CDF by Area and Technology - {operator} ({direction})')
+        ax.set_xlabel('Throughput (Mbps)')
+        ax.set_ylabel('CDF')
+        if direction == 'downlink':
+            if dl_xlim is not None:
+                ax.set_xlim(dl_xlim)
+        else:
+            if ul_xlim is not None:
+                ax.set_xlim(ul_xlim)
+        ax.grid(True, which="both", ls="-", alpha=0.2)
+        ax.legend(title='Area-Technology', loc='lower right', bbox_to_anchor=(1.35, 0))
+        
+        plt.tight_layout()
+        figure_path = os.path.join(output_dir, f'tput_cdf_by_area_tech.{operator}.{direction}.png')
+        plt.savefig(figure_path, bbox_inches='tight')
+        plt.close()
+        
+        # Save stats to json
+        stats_json_path = os.path.join(output_dir, f'tput_cdf_by_area_tech.{operator}.{direction}.stats.json')
+        with open(stats_json_path, 'w') as f:
+            json.dump(stats, f, indent=4)
+        
+        logger.info(f"Saved throughput CDF plot to {figure_path}")
+        logger.info(f"Saved throughput statistics to {stats_json_path}")
+
+def plot_tcp_tput_cdf_with_tech_by_area_hawaii(
+        df: pd.DataFrame, 
+        operator: str, 
+        output_dir: str, 
+        dl_xlim: Tuple[float, float] = None,
+        ul_xlim: Tuple[float, float] = None,
+    ):
+    """Plot CDF of throughput for each technology grouped by area type for Hawaii.
+    Uses all three area types: urban, suburban, and rural.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing the data
+        operator (str): Name of the operator
+        output_dir (str): Directory to save the plots
+        dl_xlim (Tuple[float, float]): X-axis limits for downlink plot
+        ul_xlim (Tuple[float, float]): X-axis limits for uplink plot
+    """
+    # Create separate plots for downlink and uplink
+    for direction in ['downlink', 'uplink']:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        
+        # Initialize stats dictionary
+        stats = {}
+        
+        # Filter data for TCP and this direction
+        mask = (df[XcalField.APP_TPUT_PROTOCOL] == 'tcp') & \
+               (df[XcalField.APP_TPUT_DIRECTION] == direction)
+        direction_df = df[mask]
+        
+        # Define area types for Hawaii
+        areas = ['urban', 'suburban', 'rural']
+        linestyles = ['-', '--', ':']  # Different line styles for each area
+        
+        # Plot CDF for each area and technology
+        for area, linestyle in zip(areas, linestyles):
+            stats[area] = {}
+            
+            # Filter data for this area
+            area_df = direction_df[direction_df[XcalField.AREA] == area]
+            unique_techs = area_df[XcalField.ACTUAL_TECH].unique()
+            # Sort techs by the order of tech_order
+            unique_techs = sorted(unique_techs, key=lambda x: tech_order.index(x))
+            
+            for tech in unique_techs:
+                # Skip NO SERVICE
+                if tech.lower() == 'no service':
+                    continue
+                
+                # Filter data for this technology
+                tech_df = area_df[area_df[XcalField.ACTUAL_TECH] == tech]
+                if len(tech_df) == 0:
+                    continue
+                
+                tput_field = XcalField.TPUT_DL if direction == 'downlink' else XcalField.TPUT_UL
+                tput_values = tech_df[tput_field].sort_values()
+                
+                # Calculate statistics
+                stats[area][tech] = {
+                    'median': float(np.median(tput_values)),
+                    'mean': float(np.mean(tput_values)),
+                    'min': float(np.min(tput_values)),
+                    'max': float(np.max(tput_values)),
+                    'percentile_25': float(np.percentile(tput_values, 25)),
+                    'percentile_75': float(np.percentile(tput_values, 75)),
+                    'sample_count': len(tput_values)
+                }
+                
+                # Calculate CDF
+                cdf = np.arange(1, len(tput_values) + 1) / len(tput_values)
+                
+                # Get color based on tech
+                idx = tech_order.index(tech)
+                color = colors[idx]
+                
+                # Plot CDF
+                label = f'{area}-{tech}'
+                ax.plot(tput_values, cdf, label=label, color=color, linestyle=linestyle)
+        
+        ax.set_title(f'Throughput CDF by Area and Technology - {operator} ({direction})')
+        ax.set_xlabel('Throughput (Mbps)')
+        ax.set_ylabel('CDF')
+        if direction == 'downlink':
+            ax.set_xlim(dl_xlim)
+        else:
+            ax.set_xlim(ul_xlim)
+        ax.grid(True, which="both", ls="-", alpha=0.2)
+        ax.legend(title='Area-Technology', loc='lower right', bbox_to_anchor=(1.35, 0))
+        
+        plt.tight_layout()
+        figure_path = os.path.join(output_dir, f'tput_cdf_by_area_tech.{operator}.{direction}.png')
+        plt.savefig(figure_path, bbox_inches='tight')
+        plt.close()
+        
+        # Save stats to json
+        stats_json_path = os.path.join(output_dir, f'tput_cdf_by_area_tech.{operator}.{direction}.stats.json')
+        with open(stats_json_path, 'w') as f:
+            json.dump(stats, f, indent=4)
+        
+        logger.info(f"Saved throughput CDF plot to {figure_path}")
+        logger.info(f"Saved throughput statistics to {stats_json_path}")
+
 def main():
     location_dir = {
         'alaska': AL_DATASET_DIR,
@@ -380,47 +624,23 @@ def main():
         for operator in ['att', 'tmobile', 'verizon']:
             df = operator_dfs[operator]
             # plot_tech_by_protocol_direction(df, operator, output_dir)
-            # plot_tech_by_area_for_one_operator(df, operator, output_dir)
+            # plot_tech_by_area_for_one_operator(df, operator, location, output_dir)
+
             if location == 'alaska':
                 dl_xlim = (0, 400)
                 ul_xlim = (0, 125)
             elif location == 'hawaii':
                 dl_xlim = (0, 1000)
                 ul_xlim = (0, 175)
-            plot_tcp_tput_cdf_by_tech_for_one_operator(df, operator, output_dir, dl_xlim, ul_xlim)
+
+            # plot_tcp_tput_cdf_by_tech_for_one_operator(df, operator, output_dir, dl_xlim, ul_xlim)
+            
+            if location == 'alaska':
+                plot_tcp_tput_cdf_with_tech_by_area_alaska(df, operator, output_dir)
+            elif location == 'hawaii':
+                plot_tcp_tput_cdf_with_tech_by_area_hawaii(df, operator, output_dir)
+
             logger.info(f'---- Finished processing operator: {operator}')
-
-        # # Create combined plot for all operators
-        # plot_tech_with_all_operators(
-        #     dfs=operator_dfs, 
-        #     output_dir=output_dir, 
-        #     title=f'Technology Distribution by Operator ({location})',
-        #     fig_name=f'tech_dist_by_operator.{location}'
-        # )
-
-        # Filter by direction
-        # Downlink
-        # logger.info('-- plot tech dist by downlink with all operators')
-        # df_mask = lambda df: (df[XcalField.APP_TPUT_DIRECTION] == 'downlink')
-        # plot_tech_with_all_operators(
-        #     dfs=operator_dfs, 
-        #     df_mask=df_mask,
-        #     output_dir=output_dir, 
-        #     title=f'Technology Distribution by Downlink ({location})',
-        #     fig_name=f'tech_dist_by_downlink.{location}'
-        # )
-
-        # # Uplink
-        # logger.info('-- plot tech dist by uplink with all operators')
-        # df_mask = lambda df: (df[XcalField.APP_TPUT_DIRECTION] == 'uplink')
-        # plot_tech_with_all_operators(
-        #     dfs=operator_dfs, 
-        #     df_mask=df_mask,
-        #     output_dir=output_dir, 
-        #     title=f'Technology Distribution by Uplink ({location})',
-        #     fig_name=f'tech_dist_by_uplink.{location}'
-        # )
-
 
         logger.info(f'-- Finished processing dataset: {location}')
 
