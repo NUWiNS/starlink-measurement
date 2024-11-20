@@ -84,6 +84,7 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
         except Exception as e:
             logger.info(f"Failed to read or concatenate xcal data for date {date}: {str(e)}")
     logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) for all dates: {all_dates}")
+    df_xcal_all_logs.to_csv(path.join(output_dir, f'{operator}_xcal_raw_logs_all_dates.csv'), index=False)
 
     logger.info("-- Stage 3: filter xcal logs by app tput periods")
     try:
@@ -215,7 +216,7 @@ def main():
         logger.info(f"--- Processing {operator}...")
         filtered_df = process_operator_xcal_tput(operator, location, output_dir)
         # process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_df, operator, output_dir)
-        append_tech_to_rtt_data_and_save_to_csv(filtered_df, operator)
+        # append_tech_to_rtt_data_and_save_to_csv(filtered_df, operator)
         logger.info(f"--- Finished processing {operator}")
 
 
