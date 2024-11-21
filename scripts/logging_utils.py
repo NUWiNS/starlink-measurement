@@ -1,28 +1,26 @@
 import logging
 import os
 
-logging.basicConfig(
-    level=logging.INFO,  # Set the logging level
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',  # Format of log messages
-    datefmt='%Y-%m-%d %H:%M:%S',  # Format of the timestamp
-)
-
-
 def reset_logger(name):
     logger = logging.getLogger(name)
     # Remove all handlers associated with the logger
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
         handler.close()
-
+    # Also set propagate to False to prevent duplicate logging
+    logger.propagate = False
 
 def create_logger(
         name: str, 
         filename: str | None = None,
         formatter: logging.Formatter | None = None,
-        filemode: str = 'a'
+        filemode: str = 'a',
+        level: int = logging.INFO
 ) -> logging.Logger:
     logger = logging.getLogger(name)
+    logger.setLevel(level)
+    # Prevent propagation to avoid duplicate logging
+    logger.propagate = False
 
     if logger.handlers:
         reset_logger(name)
@@ -34,12 +32,12 @@ def create_logger(
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
         file_handler = logging.FileHandler(filename, mode=filemode)
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
     else:
         stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(logging.INFO)
+        stream_handler.setLevel(level)
         stream_handler.setFormatter(formatter)
         logger.addHandler(stream_handler)
 
