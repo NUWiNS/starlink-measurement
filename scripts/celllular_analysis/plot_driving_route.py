@@ -224,7 +224,7 @@ def plot_route_in_hawaii_within_measurements(operator: str):
         output_file_path=output_hawaii_driving_route_file_path
     )
 
-def plot_route_with_area_type(df: pd.DataFrame, operator: str, output_file_path: str):
+def plot_route_with_area_type(df: pd.DataFrame, area_field: str, operator: str, output_file_path: str):
     # Create a map centered on the mean coordinates with grayscale tiles
     center_coordinates = [df[XcalField.LAT].mean(), df[XcalField.LON].mean()]
     grayscale_tiles = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png'
@@ -252,7 +252,7 @@ def plot_route_with_area_type(df: pd.DataFrame, operator: str, output_file_path:
     
     for segment_id, segment_data in grouped_df:
         # For each area type in the segment
-        grouped_by_area = segment_data.groupby(XcalField.AREA)
+        grouped_by_area = segment_data.groupby(area_field)
         for area_type, area_segment in grouped_by_area:
             # Get coordinates for this area segment
             route_coordinates = area_segment[[XcalField.LAT, XcalField.LON]].values.tolist()
@@ -309,32 +309,44 @@ def main():
         os.makedirs(OUTPUT_DIR)
 
 
-    dfs_alaska = {}
-    for operator in ["att", "verizon"]:
-        df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
-        dfs_alaska[operator] = df_xcal_data_in_alaska
+    # dfs_alaska = {}
+    # for operator in ["att", "verizon"]:
+    #     df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
+    #     dfs_alaska[operator] = df_xcal_data_in_alaska
     
-    for operator, df_xcal_data_in_alaska in dfs_alaska.items():
-        # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_tech.html")
-        # plot_driving_route_with_tech(
-        #     df_xcal_data_in_alaska, 
-        #     center_coordinates=COORD_ANCHORAGE, 
-        #     timezone=ALASKA_TIMEZONE, 
-        #     operator=operator,
-        #     output_file_path=output_file_path
-        # )
+    # for operator, df_xcal_data_in_alaska in dfs_alaska.items():
+    #     # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_tech.html")
+    #     # plot_driving_route_with_tech(
+    #     #     df_xcal_data_in_alaska, 
+    #     #     center_coordinates=COORD_ANCHORAGE, 
+    #     #     timezone=ALASKA_TIMEZONE, 
+    #     #     operator=operator,
+    #     #     output_file_path=output_file_path
+    #     # )
 
-        output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.html")
-        plot_route_with_area_type(
-            df_xcal_data_in_alaska, 
-            operator=operator,
-            output_file_path=output_file_path
-        )
+    #     # Use our manually classified area types
+    #     # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.html")
+    #     # plot_route_with_area_type(
+    #     #     df_xcal_data_in_alaska, 
+    #     #     area_field=XcalField.AREA,
+    #     #     operator=operator,
+    #     #     output_file_path=output_file_path
+    #     # )
+
+    #     # Use the area_geojson field
+    #     output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_geojson.html")
+    #     plot_route_with_area_type(
+    #         df_xcal_data_in_alaska, 
+    #         area_field=XcalField.AREA_GEOJSON,
+    #         operator=operator,
+    #         output_file_path=output_file_path
+    #     )
 
     dfs_hawaii = {}
     for operator in ["att", "verizon", "tmobile"]:
         df_xcal_data_in_hawaii = pd.read_csv(os.path.join(HAWAII_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
         dfs_hawaii[operator] = df_xcal_data_in_hawaii
+
     for operator, df_xcal_data_in_hawaii in dfs_hawaii.items():
         output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_tech.html")
         # plot_driving_route_with_tech(
@@ -345,9 +357,20 @@ def main():
         #     output_file_path=output_file_path
         # )
 
-        output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_type.html")
+        # Use our manually classified area types
+        # output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_type.html")
+        # plot_route_with_area_type(
+        #     df_xcal_data_in_hawaii, 
+        #     area_field=XcalField.AREA,
+        #     operator=operator,
+        #     output_file_path=output_file_path
+        # )
+
+        # Use the area_geojson field
+        output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_geojson.html")
         plot_route_with_area_type(
             df_xcal_data_in_hawaii, 
+            area_field=XcalField.AREA_GEOJSON,
             operator=operator,
             output_file_path=output_file_path
         )
