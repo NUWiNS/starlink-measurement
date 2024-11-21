@@ -5,9 +5,9 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from scripts.utilities.geo_utils import HawaiiZoneClassifier
+from scripts.utilities.geo_utils import AlaskaZoneClassifier
 from scripts.constants import DATASET_DIR, XcalField
-from scripts.hawaii_starlink_trip.configs import CRS_HAWAII_MAUI, ROOT_DIR
+from scripts.alaska_starlink_trip.configs import CRS_ALASKA_ANCHORAGE, ROOT_DIR
 from scripts.logging_utils import create_logger
 
 logger = create_logger('append_area')
@@ -19,9 +19,9 @@ def append_area_based_on_geojson_to_xcal_tput_traces(geojson_path: str, xcal_tpu
         xcal_tput_dir: Directory containing the xcal throughput CSV files
     """
     # Load GeoJSON zoning data
-    classifier = HawaiiZoneClassifier(
+    classifier = AlaskaZoneClassifier(
         geojson_path=geojson_path,
-        projected_crs=CRS_HAWAII_MAUI
+        projected_crs=CRS_ALASKA_ANCHORAGE
     )
   
     # Find all throughput CSV files
@@ -65,7 +65,7 @@ def append_area_based_on_geojson_to_xcal_tput_traces(geojson_path: str, xcal_tpu
 
 def main():
     xcal_tput_dir = os.path.join(ROOT_DIR, 'xcal')
-    geojson_path = os.path.join(DATASET_DIR, 'others', 'hawaii_geo_zoning.geojson')
+    geojson_path = os.path.join(DATASET_DIR, 'others', 'alaska_geo_zoning.geojson')
     append_area_based_on_geojson_to_xcal_tput_traces(geojson_path, xcal_tput_dir)
 
 if __name__ == "__main__":

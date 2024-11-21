@@ -81,7 +81,6 @@ def append_weather_area_to_app_tput_traces(tput_dir: str):
         tput_df.to_csv(tput_csv_file, index=False)
         logger.info(f'Finished processing {tput_csv_file}, weather and area data appended')
 
-
 def main():
     # append_weather_area_to_app_tput_traces(tput_dir=tput_dir)
     # append_weather_area_to_app_tput_traces(tput_dir=tput_dir_for_cubic)
