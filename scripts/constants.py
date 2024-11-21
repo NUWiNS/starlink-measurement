@@ -29,6 +29,7 @@ class XcalField:
     APP_TPUT_DIRECTION = 'app_tput_direction'
     WEATHER = 'weather'
     AREA = 'area'
+    AREA_GEOJSON = 'area_geojson'
 
 class XcalTech:
     LTE = 'LTE'
