@@ -15,7 +15,8 @@ def create_logger(
         filename: str | None = None,
         formatter: logging.Formatter | None = None,
         filemode: str = 'a',
-        level: int = logging.INFO
+        level: int = logging.INFO,
+        console_output: bool = False
 ) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -28,6 +29,8 @@ def create_logger(
     if formatter is None:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                                       datefmt='%Y-%m-%dT%H:%M:%S%z')
+    
+    # Add file handler if filename is provided
     if filename is not None:
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
@@ -35,7 +38,9 @@ def create_logger(
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
-    else:
+    
+    # Add console handler if requested or if no filename provided
+    if console_output or filename is None:
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(level)
         stream_handler.setFormatter(formatter)
