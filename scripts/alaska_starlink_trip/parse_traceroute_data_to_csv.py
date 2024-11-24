@@ -103,8 +103,8 @@ def dissect_bent_pipe_latency():
 
 
 def main():
-    # main_df = process_raw_data('starlink')
-    # save_ip_info_map(main_df)
+    main_df = process_raw_data('starlink')
+    save_ip_info_map(main_df)
     # dissect_bent_pipe_latency()
 
     for operator in ['tmobile', 'att', 'verizon']:
