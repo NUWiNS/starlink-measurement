@@ -128,15 +128,10 @@ def plot_hop_points_on_map():
     # Create base map centered around Hawaii
     m = folium.Map(location=[21.3069, -157.8583], zoom_start=4, tiles=grayscale_tiles, attr=attr)
     
-    # Create a marker cluster group
-    marker_cluster = plugins.MarkerCluster(
-        options={
-            'spiderfyOnMaxZoom': True,
-            'disableClusteringAtZoom': 8,
-            'spiderLegPolylineOptions': {'weight': 1.5, 'color': '#222', 'opacity': 0.5},
-            'maxClusterRadius': 30
-        }
-    ).add_to(m)
+    # Create feature groups
+    all_points = folium.FeatureGroup(name="All Points")
+    base_group = folium.FeatureGroup(name="Base Layer")  # New group for permanent labels
+    path_groups = {}  # Store feature groups by start_time
     
     # Find global max hop number for consistent color scaling
     global_max_hops = df['hop_number'].max()
@@ -172,13 +167,11 @@ def plot_hop_points_on_map():
                 }
             ip_locations[row['ip']]['hops'].add(row['hop_number'])
     
-    # Create markers for unique IP locations
+    # Create markers for unique IP locations - add to All Points group
     for ip, location in ip_locations.items():
-        # Get color based on average hop number
         avg_hop = sum(location['hops']) / len(location['hops'])
         color = get_color_gradient(avg_hop, global_max_hops)
         
-        # Create popup text showing all hop numbers this IP appears in
         hop_list = sorted(location['hops'])
         popup_text = f"""
         IP: {ip}<br>
@@ -187,7 +180,7 @@ def plot_hop_points_on_map():
         ISP: {location['data']['isp']}
         """
         
-        # Add marker
+        # Add marker to all_points group
         folium.CircleMarker(
             location=[location['lat'], location['lon']],
             radius=8,
@@ -195,35 +188,106 @@ def plot_hop_points_on_map():
             fill=True,
             popup=popup_text,
             weight=2
-        ).add_to(marker_cluster)
+        ).add_to(all_points)
         
-        # Add hop numbers as text
+        # Add hop numbers as text to base_group
         folium.Popup(f"{min(hop_list)}-{max(hop_list)}", permanent=True).add_to(
             folium.CircleMarker(
                 location=[location['lat'], location['lon']],
                 radius=1,
                 color='transparent',
                 fill=False
-            ).add_to(m)
+            ).add_to(base_group)
         )
     
-    # Second pass: draw lines between points for each traceroute
+    # Add groups to map in specific order
+    base_group.add_to(m)
+    all_points.add_to(m)
+    
+    # Add JavaScript to handle All Points visibility
+    js_code = """
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait a bit for Leaflet to fully initialize
+        setTimeout(function() {
+            // Get the layer control container
+            var layerControl = document.querySelector('.leaflet-control-layers-list');
+            var labels = layerControl.getElementsByTagName('label');
+            var allPointsCheckbox = null;
+            var baseLayerCheckbox = null;
+            
+            // Find our checkboxes
+            for (var i = 0; i < labels.length; i++) {
+                if (labels[i].textContent.includes('All Points')) {
+                    allPointsCheckbox = labels[i].querySelector('input');
+                } else if (labels[i].textContent.includes('Base Layer')) {
+                    baseLayerCheckbox = labels[i].querySelector('input');
+                    labels[i].style.display = 'none';  // Hide base layer control
+                }
+            }
+            
+            if (allPointsCheckbox) {
+                allPointsCheckbox.addEventListener('change', function() {
+                    // Get all checkboxes except All Points and Base Layer
+                    var otherCheckboxes = Array.from(layerControl.querySelectorAll('input[type="checkbox"]'))
+                        .filter(cb => cb !== allPointsCheckbox && cb !== baseLayerCheckbox);
+                    
+                    otherCheckboxes.forEach(function(checkbox) {
+                        // Only trigger click if state needs to change
+                        if (checkbox.checked !== this.checked) {
+                            checkbox.click();  // Use click() to trigger Leaflet's events
+                        }
+                    }, this);  // Pass 'this' context to access allPointsCheckbox.checked
+                });
+            }
+        }, 100);  // Small delay to ensure the map is fully loaded
+    });
+    </script>
+    """
+    
+    # Add the JavaScript to the map
+    m.get_root().html.add_child(folium.Element(js_code))
+    
+    # Second pass: create separate groups for each traceroute path
     for start_time, group in df.groupby('start_time'):
+        # Format timestamp for display
+        display_time = pd.to_datetime(start_time).strftime('%Y-%m-%d %H:%M:%S')
+        group_name = f"Traceroute {display_time}"
+        path_group = folium.FeatureGroup(name=group_name)
+        
         path_coords = []
         path_metadata = []
         
+        # Add markers for this traceroute
         for _, row in group.iterrows():
             if pd.isna(row['ip']) or row['ip'] not in ip_locations:
                 continue
                 
             location = ip_locations[row['ip']]
             path_coords.append([location['lat'], location['lon']])
+            
+            # Add marker specific to this traceroute
+            folium.CircleMarker(
+                location=[location['lat'], location['lon']],
+                radius=8,
+                color=get_color_gradient(row['hop_number'], global_max_hops),
+                fill=True,
+                popup=f"""
+                Hop: {row['hop_number']}<br>
+                IP: {row['ip']}<br>
+                RTT: {row['rtt_ms']:.2f} ms<br>
+                Location: {location['data']['city']}, {location['data']['regionName']}<br>
+                ISP: {location['data']['isp']}
+                """,
+                weight=2
+            ).add_to(path_group)
+            
             path_metadata.append({
                 'hop': row['hop_number'],
                 'color': get_color_gradient(row['hop_number'], global_max_hops)
             })
         
-        # Draw lines
+        # Draw lines for this traceroute
         if len(path_coords) >= 2:
             for i in range(len(path_coords) - 1):
                 points = [path_coords[i], path_coords[i + 1]]
@@ -239,7 +303,13 @@ def plot_hop_points_on_map():
                     color=line_color,
                     opacity=0.8,
                     popup=f'Hop {start_hop} → {end_hop}'
-                ).add_to(m)
+                ).add_to(path_group)
+        
+        # Add the path group to the map
+        path_group.add_to(m)
+    
+    # Add layer control with expanded view
+    folium.LayerControl(collapsed=False).add_to(m)
     
     # Add colorbar legend
     add_colorbar_to_map(m, global_max_hops)

@@ -227,14 +227,12 @@ def plot_hop_points_on_map():
                     var otherCheckboxes = Array.from(layerControl.querySelectorAll('input[type="checkbox"]'))
                         .filter(cb => cb !== allPointsCheckbox && cb !== baseLayerCheckbox);
                     
-                    // If All Points is unchecked, uncheck all other layers
-                    if (!this.checked) {
-                        otherCheckboxes.forEach(function(checkbox) {
-                            if (checkbox.checked) {
-                                checkbox.click();  // Use click() instead of checked = false
-                            }
-                        });
-                    }
+                    otherCheckboxes.forEach(function(checkbox) {
+                        // Only trigger click if state needs to change
+                        if (checkbox.checked !== this.checked) {
+                            checkbox.click();  // Use click() to trigger Leaflet's events
+                        }
+                    }, this);  // Pass 'this' context to access allPointsCheckbox.checked
                 });
             }
         }, 100);  // Small delay to ensure the map is fully loaded
