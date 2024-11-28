@@ -69,5 +69,5 @@ operator_color_map = {
     'starlink': 'black',
     'att': 'b',
     'verizon': 'r',
-    'tmobile': 'deeppink'
+    'tmobile': 'darkviolet'
 }
