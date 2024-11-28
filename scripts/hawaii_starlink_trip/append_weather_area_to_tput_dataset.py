@@ -16,7 +16,7 @@ xcal_tput_dir = os.path.join(ROOT_DIR, 'xcal')
 
 others_dir = os.path.join(ROOT_DIR, 'others')
 tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
-
+ping_dir = os.path.join(ROOT_DIR, 'ping')
 logger = create_logger('append_weather_area_to_tput_dataset',
                        filename=os.path.join(tmp_data_path, 'append_weather_area_to_tput_dataset.log'))
 
@@ -83,10 +83,38 @@ def append_weather_area_to_app_tput_traces(tput_dir: str):
         logger.info(f'Finished processing {tput_csv_file}, weather and area data appended')
 
 
-def main():
-    # append_weather_area_to_app_tput_traces(tput_dir=tput_dir)
-    append_weather_area_to_xcal_tput_traces(xcal_tput_dir=xcal_tput_dir)
+def append_weather_area_to_rtt_traces(df: pd.DataFrame, weather_query_util: TypeIntervalQueryUtil, area_query_util: TypeIntervalQueryUtil):
+    df['time'] = pd.to_datetime(df['time'], format="ISO8601")
+    for idx, row in df.iterrows():
+        df.at[idx, 'weather'] = weather_query_util.query(row['time'])
+        df.at[idx, 'area'] = area_query_util.query(row['time'])
+    return df   
 
+def main():
+    weather_csv_path = os.path.join(others_dir, 'weather.csv')
+    logger.info(f'Loading weather data from {weather_csv_path}')
+    area_csv_path = os.path.join(others_dir, 'area.csv')
+    logger.info(f'Loading area data from {area_csv_path}')
+    
+    weather_df = pd.read_csv(weather_csv_path)
+    weather_df['time'] = pd.to_datetime(weather_df['time'], format="ISO8601")
+    weatherIntervalQueryUtil = TypeIntervalQueryUtil(weather_df[['time', 'value']].values.tolist())
+
+    area_df = pd.read_csv(area_csv_path)
+    area_df['time'] = pd.to_datetime(area_df['time'], format="ISO8601")
+    areaIntervalQueryUtil = TypeIntervalQueryUtil(area_df[['time', 'value']].values.tolist())
+
+    # append_weather_area_to_app_tput_traces(tput_dir=tput_dir)
+    # append_weather_area_to_app_tput_traces(tput_dir=tput_dir_for_cubic)
+    # append_weather_area_to_app_tput_traces(tput_dir=tput_dir_for_bbr)
+    # append_weather_area_to_xcal_tput_traces(xcal_tput_dir=xcal_tput_dir)
+
+    for rtt_csv_file in glob.glob(os.path.join(ping_dir, '*_ping.csv')):
+        logger.info(f'Appending weather and area data to {rtt_csv_file}')
+        rtt_df = pd.read_csv(rtt_csv_file)
+        rtt_df = append_weather_area_to_rtt_traces(rtt_df, weatherIntervalQueryUtil, areaIntervalQueryUtil)
+        rtt_df.to_csv(rtt_csv_file, index=False)
+        logger.info(f'Finished processing {rtt_csv_file}, weather and area data appended')
 
 if __name__ == '__main__':
     main()
