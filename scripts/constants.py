@@ -64,3 +64,10 @@ class XcallHandoverEvent:
             cls.SCG_FAILURE_INFORMATION_NR,
             cls.EUTRA_TO_NR_REDIRECTION_SUCCESS,
         ]
+    
+operator_color_map = {
+    'starlink': 'black',
+    'att': 'b',
+    'verizon': 'r',
+    'tmobile': 'deeppink'
+}
