@@ -23,16 +23,41 @@ def plot_driving_route(df: pd.DataFrame, center_coordinates: List[float], output
     # Create a map centered on Alaska
     m = folium.Map(location=center_coordinates, zoom_start=6)
 
-    # Create a PolyLine of the driving route
-    route_coordinates = df[['latitude', 'longitude']].values.tolist()
-    folium.PolyLine(route_coordinates, color="red", weight=2.5, opacity=1).add_to(m)
+    # Sort data by time and group by run_id
+    df = df.sort_values(by='timestamp')
+    grouped_df = df.groupby('run_id')
+    
+    # Create a different colored line for each run
+    for run_id, run_data in grouped_df:
+        # Get coordinates for this run
+        route_coordinates = run_data[['latitude', 'longitude']].values.tolist()
+        
+        # Only create line if we have at least 2 points
+        if len(route_coordinates) >= 2:
+            # Create a PolyLine for this run
+            folium.PolyLine(
+                route_coordinates,
+                color="red",
+                weight=2.5,
+                opacity=1,
+                popup=f"Run {run_id}"
+            ).add_to(m)
 
-    # Add markers for start and end points
-    start_point = route_coordinates[0]
-    end_point = route_coordinates[-1]
+    # Add markers only for overall start and end points
+    overall_start = df.iloc[0][['latitude', 'longitude']].tolist()
+    overall_end = df.iloc[-1][['latitude', 'longitude']].tolist()
 
-    folium.Marker(start_point, popup="Start", icon=folium.Icon(color='green', icon='play')).add_to(m)
-    folium.Marker(end_point, popup="End", icon=folium.Icon(color='red', icon='stop')).add_to(m)
+    folium.Marker(
+        overall_start, 
+        popup="Start", 
+        icon=folium.Icon(color='green', icon='play')
+    ).add_to(m)
+    
+    folium.Marker(
+        overall_end, 
+        popup="End", 
+        icon=folium.Icon(color='red', icon='stop')
+    ).add_to(m)
 
     # Save the map
     m.save(output_file_path)
@@ -164,7 +189,8 @@ def plot_route_in_hawaii_with_all_xcal_data():
     df_hawaii_gps_data_in_hawaii = pd.DataFrame({
         "latitude": [],
         "longitude": [],
-        'timestamp': []
+        'timestamp': [],
+        'run_id': []
     })
     for hawaii_xcal_file in hawaii_xcal_files:
         df = pd.read_excel(hawaii_xcal_file)
@@ -180,6 +206,7 @@ def plot_route_in_hawaii_with_all_xcal_data():
             "latitude": df[XcalField.LAT],
             "longitude": df[XcalField.LON],
             'timestamp': df[XcalField.TIMESTAMP],
+            'run_id': df[XcalField.RUN_ID],
         })], ignore_index=True)
         df_hawaii_gps_data_in_hawaii = df_hawaii_gps_data_in_hawaii.drop_duplicates(subset=["latitude", "longitude"])  # Remove duplicate lat/lon pairs after concatenation
         # sort by time
@@ -198,10 +225,11 @@ def plot_route_in_alaska_within_measurements(operator: str):
         "latitude": df_xcal_data_in_alaska[XcalField.LAT],
         "longitude": df_xcal_data_in_alaska[XcalField.LON],
         'timestamp': df_xcal_data_in_alaska[XcalField.CUSTOM_UTC_TIME],
+        'run_id': df_xcal_data_in_alaska[XcalField.RUN_ID],
     })
     # sort by time
     df_gps_data_in_alaska = df_gps_data_in_alaska.sort_values(by='timestamp')
-    output_alaska_driving_route_file_path = os.path.join(OUTPUT_DIR, f"{operator}_alaska_driving_route.html")
+    output_alaska_driving_route_file_path = os.path.join(OUTPUT_DIR, f"alaska_driving_route.{operator}.html")
     plot_driving_route(
         df_gps_data_in_alaska, 
         center_coordinates=COORD_ANCHORAGE,  # Anchorage coordinates
@@ -214,10 +242,11 @@ def plot_route_in_hawaii_within_measurements(operator: str):
         "latitude": df_xcal_data_in_hawaii[XcalField.LAT],
         "longitude": df_xcal_data_in_hawaii[XcalField.LON],
         'timestamp': df_xcal_data_in_hawaii[XcalField.CUSTOM_UTC_TIME],
+        'run_id': df_xcal_data_in_hawaii[XcalField.RUN_ID],
     })
     # sort by time
     df_gps_data_in_hawaii = df_gps_data_in_hawaii.sort_values(by='timestamp')
-    output_hawaii_driving_route_file_path = os.path.join(OUTPUT_DIR, f"{operator}_hawaii_driving_route.html")
+    output_hawaii_driving_route_file_path = os.path.join(OUTPUT_DIR, f"hawaii_driving_route.{operator}.html")
     plot_driving_route(
         df_gps_data_in_hawaii, 
         center_coordinates=COORD_MAUI,  # Maui coordinates
@@ -314,7 +343,7 @@ def main():
         df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
         dfs_alaska[operator] = df_xcal_data_in_alaska
     
-    for operator, df_xcal_data_in_alaska in dfs_alaska.items():
+    # for operator, df_xcal_data_in_alaska in dfs_alaska.items():
         # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_tech.html")
         # plot_driving_route_with_tech(
         #     df_xcal_data_in_alaska, 
@@ -333,14 +362,14 @@ def main():
         #     output_file_path=output_file_path
         # )
 
-        # Use the area_geojson field
-        output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_geojson.html")
-        plot_route_with_area_type(
-            df_xcal_data_in_alaska, 
-            area_field=XcalField.AREA_GEOJSON,
-            operator=operator,
-            output_file_path=output_file_path
-        )
+        # # Use the area_geojson field
+        # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_geojson.html")
+        # plot_route_with_area_type(
+        #     df_xcal_data_in_alaska, 
+        #     area_field=XcalField.AREA_GEOJSON,
+        #     operator=operator,
+        #     output_file_path=output_file_path
+        # )
 
     # dfs_hawaii = {}
     # for operator in ["att", "verizon", "tmobile"]:
@@ -375,11 +404,11 @@ def main():
     #         output_file_path=output_file_path
     #     )
 
-    # for operator in ["att", "verizon"]:
-    #     plot_route_in_alaska_within_measurements(operator)
+    for operator in ["att", "verizon"]:
+        plot_route_in_alaska_within_measurements(operator)
     
-    # for operator in ["att", "verizon", 'tmobile']:
-    #     plot_route_in_hawaii_within_measurements(operator)
+    for operator in ["att", "verizon", 'tmobile']:
+        plot_route_in_hawaii_within_measurements(operator)
     
 
     # Just for cross-validation
