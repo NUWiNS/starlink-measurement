@@ -93,111 +93,6 @@ def aggregate_latency_data_by_location(locations: List[str]):
         combined_data = pd.concat([combined_data, latency_data], ignore_index=True)
     return combined_data
 
-def plot_network_kpis_comparison(
-        df: pd.DataFrame, 
-        title: str,
-        data_field: str,
-        data_label: str,
-        loc_conf: Dict[str, Dict],
-        operator_conf: Dict[str, Dict],
-        output_filepath: str,
-        show_location_label: bool = False,
-        show_legend: bool = False,
-        show_ylabel: bool = False,
-        max_percentile: float = 100,
-    ):
-    # Calculate number of locations for subplot layout
-    n_locations = len(loc_conf)
-    fig, axes = plt.subplots(n_locations, 1, figsize=(4, 3*n_locations))
-    if n_locations == 1:
-        axes = [axes]
-
-    # Sort locations by order
-    locations_sorted = sorted(df['location'].unique(), key=lambda x: loc_conf[x]['order'])
-
-    # Track max x value for consistent axis limits
-    max_x_value = 0
-
-    # First pass to determine consistent x-axis limit
-    if max_percentile < 100:
-        for location in locations_sorted:
-            sub_df = df[df['location'] == location]
-            for _, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
-                operator_label = op_conf['label']
-                if operator_label in sub_df['operator'].unique():
-                    operator_data = sub_df[sub_df['operator'] == operator_label][data_field]
-                    percentile_value = np.percentile(operator_data, max_percentile)
-                    max_x_value = max(max_x_value, percentile_value)
-
-    # Add padding for better visualization
-    plot_max_x = max_x_value * 1.05  # 5% padding
-
-    # Create subplot for each location
-    for idx, location in enumerate(locations_sorted):
-        location_label = loc_conf[location]['label']
-        sub_df = df[df['location'] == location]
-        
-        # Plot CDF for each operator
-        for _, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
-            operator_label = op_conf['label']
-            if operator_label in sub_df['operator'].unique():
-                operator_data = sub_df[sub_df['operator'] == operator_label][data_field]
-                
-                if max_percentile < 100:
-                    # Filter data based on max_percentile
-                    percentile_value = np.percentile(operator_data, max_percentile)
-                    operator_data = operator_data[operator_data <= percentile_value]
-                
-                # Calculate CDF
-                data_sorted = np.sort(operator_data)
-                cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
-                
-                # Plot CDF line
-                axes[idx].plot(
-                    data_sorted,
-                    cdf,
-                    label=operator_label,
-                    color=op_conf['color'],
-                    linewidth=2
-                )
-        
-        # Set x-axis limits
-        if max_percentile < 100:
-            axes[idx].set_xlim(0, plot_max_x)
-        
-        if show_location_label:
-            axes[idx].text(-0.15, 0.5, location_label, 
-                          transform=axes[idx].transAxes,
-                          rotation=0,
-                          verticalalignment='center',
-                          horizontalalignment='right',
-                          fontsize=14,
-                          fontweight='bold')
-            
-        axes[idx].grid(True, alpha=0.3)
-        axes[idx].set_xlabel(data_label, fontsize=12)
-        if show_ylabel:
-            axes[idx].set_ylabel('CDF', fontsize=12)
-        
-        axes[idx].set_yticks(np.arange(0, 1.1, 0.25))
-        axes[idx].tick_params(axis='both', labelsize=10)
-        
-        if show_legend and idx == 0:
-            legend = axes[idx].legend(fontsize=12)
-            for text in legend.get_texts():
-                text.set_fontweight('bold')
-    
-    # Add overall title
-    fig.suptitle(title, y=1.0, fontsize=16, fontweight='bold')
-    
-    # Adjust layout
-    plt.tight_layout()
-    
-    # Save plot
-    plt.savefig(output_filepath, bbox_inches='tight', dpi=300)
-    plt.close()
-
-
 def aggregate_tput_data_by_location(locations: List[str], protocol: str, direction: str):
     combined_data = pd.DataFrame()
     for location in locations:
@@ -212,57 +107,62 @@ def aggregate_tput_data_by_location(locations: List[str], protocol: str, directi
         combined_data = pd.concat([combined_data, tcp_dl_tput_data], ignore_index=True)
     return combined_data
 
-def plot_all_network_kpis(
-        tput_data: Dict[str, Dict[str, pd.DataFrame]],
-        latency_data: pd.DataFrame,
+def plot_metric_grid(
+        data: Dict[str, pd.DataFrame],
         loc_conf: Dict[str, Dict],
         operator_conf: Dict[str, Dict],
+        metrics: List[tuple],
         output_filepath: str,
+        title: str = None,
+        percentile_filter: Dict[str, float] = None,  # e.g., {'latency': 95}
     ):
-    n_locations = len(loc_conf)
-    n_metrics = 5
+    """Generic function to plot grid of CDF plots.
     
-    fig, axes = plt.subplots(n_locations, n_metrics, figsize=(24, 3*n_locations))
+    Args:
+        data: Dictionary mapping metric name to its DataFrame
+        loc_conf: Location configuration
+        operator_conf: Operator configuration
+        metrics: List of tuples (metric_name, column_title, xlabel, data_field)
+        output_filepath: Where to save the plot
+        title: Optional overall title for the plot
+        percentile_filter: Dictionary mapping metric name to percentile filter
+    """
+    n_locations = len(loc_conf)
+    n_metrics = len(metrics)
+    
+    fig, axes = plt.subplots(n_locations, n_metrics, figsize=(4.8*n_metrics, 3*n_locations))
     if n_locations == 1:
         axes = axes.reshape(1, -1)
+    if n_metrics == 1:
+        axes = axes.reshape(-1, 1)
     
     plt.subplots_adjust(wspace=0.2, hspace=0.2)
-    
-    metrics = [
-        ('tcp', 'downlink', 'TCP DL', 'Throughput (Mbps)', 'throughput_mbps'),
-        ('tcp', 'uplink', 'TCP UL', 'Throughput (Mbps)', 'throughput_mbps'),
-        ('udp', 'downlink', 'UDP DL', 'Throughput (Mbps)', 'throughput_mbps'),
-        ('udp', 'uplink', 'UDP UL', 'Throughput (Mbps)', 'throughput_mbps'),
-        (None, None, 'Latency (95th percentile)', 'RTT (ms)', 'rtt_ms'),
-    ]
     
     locations_sorted = sorted(loc_conf.keys(), key=lambda x: loc_conf[x]['order'])
     
     # First pass: determine column-wise min and max values
     col_max_values = []
     col_min_values = []
-    for col, (protocol, direction, _, _, data_field) in enumerate(metrics):
+    for col, (metric_name, _, _, data_field) in enumerate(metrics):
         max_val = 0
         min_val = float('inf')
-        for location in locations_sorted:
-            if protocol is None:  # Latency
-                plot_df = latency_data[latency_data['location'] == location]
-                for op_label in plot_df['operator'].unique():
-                    op_data = plot_df[plot_df['operator'] == op_label][data_field]
-                    max_val = max(max_val, np.percentile(op_data, 95))  # 95th for latency
-                    min_val = min(min_val, np.min(op_data))
-            else:  # Throughput
-                plot_df = tput_data[protocol][direction][tput_data[protocol][direction]['location'] == location]
-                for op_label in plot_df['operator'].unique():
-                    op_data = plot_df[plot_df['operator'] == op_label][data_field]
-                    max_val = max(max_val, np.max(op_data))  # All data for throughput
-                    min_val = min(min_val, np.min(op_data))
+        percentile = percentile_filter.get(metric_name, 100) if percentile_filter else 100
         
-        # Add padding (5% of range)
+        for location in locations_sorted:
+            plot_df = data[metric_name][data[metric_name]['location'] == location]
+            for op_label in plot_df['operator'].unique():
+                op_data = plot_df[plot_df['operator'] == op_label][data_field]
+                if percentile < 100:
+                    max_val = max(max_val, np.percentile(op_data, percentile))
+                else:
+                    max_val = max(max_val, np.max(op_data))
+                min_val = min(min_val, np.min(op_data))
+        
         padding = (max_val - min_val) * 0.05
         col_max_values.append(max_val + padding)
         col_min_values.append(min_val - padding)
-    # Create empty lines for legend with all operators
+    
+    # Create empty lines for legend
     first_ax = axes[0, 0]
     for _, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
         first_ax.plot([], [], 
@@ -272,21 +172,10 @@ def plot_all_network_kpis(
     
     # Second pass: create plots
     for row, location in enumerate(locations_sorted):
-        for col, (protocol, direction, title, xlabel, data_field) in enumerate(metrics):
+        for col, (metric_name, column_title, xlabel, data_field) in enumerate(metrics):
             ax = axes[row, col]
-            
-            if protocol is None:  # Latency
-                plot_df = latency_data[latency_data['location'] == location]
-                percentile = 95
-                
-                # Set x-ticks for latency
-                step = 50
-                max_tick = int(np.ceil(col_max_values[col] / step)) * step
-                ax.set_xticks(np.arange(0, max_tick + step, step))
-            else:  # Throughput
-                mask = tput_data[protocol][direction]['location'] == location
-                plot_df = tput_data[protocol][direction][mask]
-                percentile = 100
+            plot_df = data[metric_name][data[metric_name]['location'] == location]
+            percentile = percentile_filter.get(metric_name, 100) if percentile_filter else 100
             
             for _, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
                 operator_label = op_conf['label']
@@ -306,16 +195,25 @@ def plot_all_network_kpis(
                         linewidth=2
                     )
             
-            # Set consistent x-axis limits for each column
+            # Set x-axis limits and ticks
             ax.set_xlim(col_min_values[col], col_max_values[col])
+            if metric_name == 'latency':
+                step = 50
+            elif 'downlink' in metric_name:
+                step = 100
+            elif 'uplink' in metric_name:
+                step = 25
+            if step:
+                max_tick = int(np.ceil(col_max_values[col] / step)) * step
+                ax.set_xticks(np.arange(0, max_tick + step, step))
+        
             
             ax.grid(True, alpha=0.3)
             ax.set_yticks(np.arange(0, 1.1, 0.25))
             ax.tick_params(axis='both', labelsize=10)
             
-            # Only set location label and y-label for the first column
             if col == 0:
-                ax.text(-0.25, 0.5, loc_conf[location]['label'],
+                ax.text(-0.2, 0.5, loc_conf[location]['label'],
                        transform=ax.transAxes,
                        rotation=0,
                        verticalalignment='center',
@@ -324,11 +222,9 @@ def plot_all_network_kpis(
                        fontweight='bold')
                 ax.set_ylabel('CDF', fontsize=10)
             
-            # Only set title for the first row
             if row == 0:
-                ax.set_title(title, fontsize=12, fontweight='bold')
+                ax.set_title(column_title, fontsize=12, fontweight='bold')
             
-            # Only set legend in the first plot
             if row == 0 and col == 0:
                 legend = ax.legend(fontsize=10, 
                                  loc='best',
@@ -337,10 +233,12 @@ def plot_all_network_kpis(
                 for text in legend.get_texts():
                     text.set_fontweight('bold')
             
-            # Only set x-label for the last row
             if row == n_locations - 1:
                 ax.set_xlabel(xlabel, fontsize=10)
-
+    
+    if title:
+        fig.suptitle(title, y=1.02, fontsize=14, fontweight='bold')
+    
     plt.savefig(output_filepath, bbox_inches='tight', dpi=300)
     plt.close()
 
@@ -403,7 +301,7 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Collect all throughput data
+    # Collect all data
     tput_data = {}
     for protocol in ['tcp', 'udp']:
         tput_data[protocol] = {}
@@ -414,16 +312,51 @@ def main():
                 direction=direction
             )
     
-    # Collect latency data
     latency_data = aggregate_latency_data_by_location(locations=['alaska', 'hawaii'])
     
-    # Create combined plot
-    plot_all_network_kpis(
-        tput_data=tput_data,
-        latency_data=latency_data,
+    # Plot TCP throughput
+    tcp_metrics = [
+        ('tcp_downlink', 'TCP DL', 'Throughput (Mbps)', 'throughput_mbps'),
+        ('tcp_uplink', 'TCP UL', 'Throughput (Mbps)', 'throughput_mbps'),
+    ]
+    plot_metric_grid(
+        data={
+            'tcp_downlink': tput_data['tcp']['downlink'],
+            'tcp_uplink': tput_data['tcp']['uplink']
+        },
         loc_conf=location_conf,
         operator_conf=operator_conf,
-        output_filepath=os.path.join(output_dir, 'all_network_kpis.png'),
+        metrics=tcp_metrics,
+        output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_tcp_tput.png'),
+    )
+    
+    # Plot UDP throughput
+    udp_metrics = [
+        ('udp_downlink', 'UDP DL', 'Throughput (Mbps)', 'throughput_mbps'),
+        ('udp_uplink', 'UDP UL', 'Throughput (Mbps)', 'throughput_mbps'),
+    ]
+    plot_metric_grid(
+        data={
+            'udp_downlink': tput_data['udp']['downlink'],
+            'udp_uplink': tput_data['udp']['uplink']
+        },
+        loc_conf=location_conf,
+        operator_conf=operator_conf,
+        metrics=udp_metrics,
+        output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_udp_tput.png'),
+    )
+    
+    # Plot latency
+    latency_metrics = [
+        ('latency', 'Latency (95th percentile)', 'RTT (ms)', 'rtt_ms'),
+    ]
+    plot_metric_grid(
+        data={'latency': latency_data},
+        loc_conf=location_conf,
+        operator_conf=operator_conf,
+        metrics=latency_metrics,
+        output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_latency.png'),
+        percentile_filter={'latency': 95}
     )
 
     save_stats_network_kpi(tput_data, latency_data, location_conf, operator_conf, output_dir)
