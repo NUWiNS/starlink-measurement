@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import sys
-from typing import Callable, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -685,11 +685,300 @@ def plot_latency_cdf_by_tech_for_one_operator(
     logger.info(f"Saved latency CDF plot to {figure_path}")
     logger.info(f"Saved latency statistics to {stats_json_path}")
 
+location_conf = {
+    'alaska': {
+        'label': 'AK',
+        'root_dir': AL_DATASET_DIR,
+        'operators': ['verizon', 'att'],
+        'order': 1
+    },
+    'hawaii': {
+        'label': 'HI',
+        'root_dir': HI_DATASET_DIR,
+        'operators': ['verizon', 'att', 'tmobile'],
+        'order': 2
+    }
+}
+
+operator_conf = {
+    'att': {
+        'label': 'AT&T',
+        'order': 1,
+        'linestyle': 'solid'
+    },
+    'verizon': {
+        'label': 'Verizon',
+        'order': 2,
+        'linestyle': 'dashed'
+    },
+    'tmobile': {
+        'label': 'T-Mobile',
+        'order': 3,
+        'linestyle': 'dotted'
+    },
+}
+
+tech_conf = {
+    'LTE': {
+        'label': 'LTE',
+        'color': '#326f21',
+        'order': 1
+    },
+    'LTE-A': {
+        'label': 'LTE-A',
+        'color': '#86c84d',
+        'order': 2
+    },
+    '5G-low': {
+        'label': '5G Low',
+        'color': '#ffd700',
+        'order': 3
+    },
+    '5G-mid': {
+        'label': '5G Mid',
+        'color': '#ff9900',
+        'order': 4
+    },
+}
+
+def read_xcal_tput_data(root_dir: str, operator: str, protocol: str = None, direction: str = None):
+    input_csv_path = os.path.join(root_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+    df = pd.read_csv(input_csv_path)
+    if protocol:
+        df = df[df[XcalField.APP_TPUT_PROTOCOL] == protocol]
+    if direction:
+        df = df[df[XcalField.APP_TPUT_DIRECTION] == direction]
+    return df
+
+def aggregate_xcal_tput_data(
+        root_dir: str, 
+        operators: List[str], 
+        protocol: str = None, 
+        direction: str = None, 
+    ):
+    data = pd.DataFrame()
+    for operator in operators:
+        df = read_xcal_tput_data(
+            root_dir=root_dir, 
+            operator=operator, 
+            protocol=protocol, 
+            direction=direction, 
+        )
+        df['operator'] = operator
+        data = pd.concat([data, df])
+    return data
+
+def aggregate_xcal_tput_data_by_location(
+        locations: List[str], 
+        protocol: str = None, 
+        direction: str = None, 
+
+    ):
+    data = pd.DataFrame()
+    for location in locations:
+        conf = location_conf[location]
+        df = aggregate_xcal_tput_data(
+            root_dir=conf['root_dir'], 
+            operators=conf['operators'], 
+            protocol=protocol, 
+            direction=direction, 
+        )
+        df['location'] = location
+        data = pd.concat([data, df])
+    return data
+
+def plot_metric_grid(
+        data: Dict[str, pd.DataFrame],
+        metrics: List[tuple],
+        loc_conf: Dict[str, Dict],
+        operator_conf: Dict[str, Dict],
+        tech_conf: Dict[str, Dict],
+        output_filepath: str,
+        title: str = None,
+        percentile_filter: Dict[str, float] = None,
+        max_xlim: float = None,
+    ):
+    n_locations = len(loc_conf)
+    n_metrics = len(metrics)
+    
+    # Increased figure width to accommodate legends
+    fig, axes = plt.subplots(n_locations, n_metrics, figsize=(4.8*n_metrics, 3*n_locations))
+    if n_locations == 1:
+        axes = axes.reshape(1, -1)
+    if n_metrics == 1:
+        axes = axes.reshape(-1, 1)
+    
+    # Adjusted right margin to leave more space for legends
+    plt.subplots_adjust(wspace=0.2, hspace=0.2, right=0.85)  # Reduced right margin from 0.8 to 0.75
+    
+    locations_sorted = sorted(loc_conf.keys(), key=lambda x: loc_conf[x]['order'])
+    
+    # First pass: determine column-wise min and max values
+    col_max_values = []
+    col_min_values = []
+    for col, (metric_name, _, _, data_field) in enumerate(metrics):
+        max_val = 0
+        min_val = float('inf')
+        percentile = percentile_filter.get(metric_name, 100) if percentile_filter else 100
+        
+        for location in locations_sorted:
+            plot_df = data[metric_name][data[metric_name]['location'] == location]
+            for op_tech in plot_df[['operator', XcalField.ACTUAL_TECH]].drop_duplicates().itertuples():
+                op_data = plot_df[
+                    (plot_df['operator'] == op_tech.operator) & 
+                    (plot_df[XcalField.ACTUAL_TECH] == op_tech.actual_tech)
+                ][data_field]
+                
+                if percentile < 100:
+                    max_val = max(max_val, np.percentile(op_data, percentile))
+                else:
+                    max_val = max(max_val, np.max(op_data))
+                min_val = min(min_val, np.min(op_data))
+        
+        padding = (max_val - min_val) * 0.05
+        col_max_values.append(max_val + padding)
+        col_min_values.append(min_val - padding)
+    
+    operator_lines = []
+    for _, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
+        line = axes[1, 0].plot([], [], 
+                            color='gray',
+                            label=op_conf['label'],
+                            linestyle=op_conf['linestyle'],
+                            linewidth=2)[0]
+        operator_lines.append(line)
+    
+    # Create tech legend (colors)
+    tech_lines = []
+    for _, t_conf in sorted(tech_conf.items(), key=lambda x: x[1]['order']):
+        line = axes[0, 0].plot([], [],
+                            color=t_conf['color'],
+                            label=t_conf['label'],
+                            linestyle='-',
+                            linewidth=2)[0]
+        tech_lines.append(line)
+    
+    # Place tech legend in first subplot (0,0)
+    tech_legend = axes[0, 0].legend(handles=tech_lines,
+                                title='Technology',
+                                loc='lower right',
+                                fontsize=8,
+                                framealpha=0.9,
+                                edgecolor='black')
+    tech_legend.get_title().set_fontweight('bold')
+    tech_legend.get_title().set_fontsize(8)
+    
+    # Place operator legend in subplot below (1,0)
+    operator_legend = axes[1, 0].legend(handles=operator_lines, 
+                                    title='Operator',
+                                    loc='lower right',
+                                    fontsize=8,
+                                    framealpha=0.9,
+                                    edgecolor='black')
+    operator_legend.get_title().set_fontweight('bold')
+    operator_legend.get_title().set_fontsize(8)
+    
+    # Add both legends to their respective subplots
+    axes[0, 0].add_artist(tech_legend)
+    axes[1, 0].add_artist(operator_legend)
+    
+    # Clear any automatic legend that might appear
+    for ax in axes.flat:
+        ax.get_legend().remove() if ax.get_legend() else None
+    
+    # Second pass: create plots
+    for row, location in enumerate(locations_sorted):
+        for col, (metric_name, column_title, xlabel, data_field) in enumerate(metrics):
+            ax = axes[row, col]
+            mask = data[metric_name]['location'] == location
+            plot_df = data[metric_name][mask]
+            percentile = percentile_filter.get(metric_name, 100) if percentile_filter else 100
+            
+            # Plot each operator+tech combination
+            for op_key, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
+                for t_key, t_conf in sorted(tech_conf.items(), key=lambda x: x[1]['order']):
+                    mask = (plot_df['operator'] == op_key) & (plot_df[XcalField.ACTUAL_TECH] == t_key)
+                    operator_data = plot_df[mask][data_field]
+                    
+                    if percentile < 100:
+                        operator_data = operator_data[operator_data <= np.percentile(operator_data, percentile)]
+                    
+                    data_sorted = np.sort(operator_data)
+                    cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
+                    
+                    ax.plot(
+                        data_sorted,
+                        cdf,
+                        color=t_conf['color'],
+                        linestyle=op_conf['linestyle'],
+                        linewidth=2
+                    )
+            
+            # Set x-axis limits and ticks
+            if max_xlim:
+                ax.set_xlim(col_min_values[col], max_xlim)
+            else:
+                ax.set_xlim(col_min_values[col], col_max_values[col])
+        
+            
+            ax.grid(True, alpha=0.3)
+            ax.set_yticks(np.arange(0, 1.1, 0.25))
+            ax.tick_params(axis='both', labelsize=10)
+            
+            if col == 0:
+                ax.text(-0.25, 0.5, loc_conf[location]['label'],
+                       transform=ax.transAxes,
+                       rotation=0,
+                       verticalalignment='center',
+                       horizontalalignment='right',
+                       fontsize=14,
+                       fontweight='bold')
+                ax.set_ylabel('CDF', fontsize=10)
+            
+            if row == 0:
+                ax.set_title(column_title, fontsize=12, fontweight='bold')
+            
+            if row == n_locations - 1:
+                ax.set_xlabel(xlabel, fontsize=10)
+    
+    if title:
+        fig.suptitle(title, y=1.02, fontsize=14, fontweight='bold')
+    
+    plt.savefig(output_filepath, bbox_inches='tight', dpi=300)
+    plt.close()
+
 def main():
     location_dir = {
         'alaska': AL_DATASET_DIR,
         'hawaii': HI_DATASET_DIR
     }
+
+    tcp_dl_tput_df = aggregate_xcal_tput_data_by_location(
+        locations=['alaska', 'hawaii'],
+        protocol='tcp',
+        direction='downlink'
+    )
+
+    plot_data = {
+        'urban': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'urban'],
+        'rural': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'rural'],
+        'suburban': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'suburban'],
+    }
+    output_filepath = os.path.join(current_dir, 'outputs', 'tech_breakdown_by_area.tcp_dl.png')
+    metrics = [
+        ('urban', 'Urban', 'Throughput (Mbps)', XcalField.TPUT_DL),
+        ('rural', 'Rural', 'Throughput (Mbps)', XcalField.TPUT_DL),
+        ('suburban', 'Suburban', 'Throughput (Mbps)', XcalField.TPUT_DL),
+    ]
+    plot_metric_grid(
+        data=plot_data, 
+        metrics=metrics, 
+        loc_conf=location_conf, 
+        operator_conf=operator_conf, 
+        tech_conf=tech_conf, 
+        output_filepath=output_filepath,
+        max_xlim=400,
+    )
 
     # Throughput relevant plots
     # for location in ['alaska', 'hawaii']:
@@ -732,21 +1021,21 @@ def main():
     #     logger.info(f'-- Finished processing dataset: {location}')
 
     # Latency relevant plots
-    for location in ['alaska', 'hawaii']:
-        logger.info(f'-- Processing dataset: {location}')
-        base_dir = location_dir[location]
-        output_dir = os.path.join(current_dir, 'outputs', location)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+    # for location in ['alaska', 'hawaii']:
+    #     logger.info(f'-- Processing dataset: {location}')
+    #     base_dir = location_dir[location]
+    #     output_dir = os.path.join(current_dir, 'outputs', location)
+    #     if not os.path.exists(output_dir):
+    #         os.makedirs(output_dir)
 
-        for operator in ['att', 'tmobile', 'verizon']:
-            logger.info(f'---- Processing operator: {operator}')
-            input_csv_path = os.path.join(base_dir, 'ping', f'{operator}_ping.csv')
-            df = pd.read_csv(input_csv_path)
-            plot_latency_cdf_by_tech_for_one_operator(df, operator, output_dir)
-            logger.info(f'---- Finished processing operator: {operator}')
+    #     for operator in ['att', 'tmobile', 'verizon']:
+    #         logger.info(f'---- Processing operator: {operator}')
+    #         input_csv_path = os.path.join(base_dir, 'ping', f'{operator}_ping.csv')
+    #         df = pd.read_csv(input_csv_path)
+    #         plot_latency_cdf_by_tech_for_one_operator(df, operator, output_dir)
+    #         logger.info(f'---- Finished processing operator: {operator}')
 
-        logger.info(f'-- Finished processing dataset: {location}')
+    #     logger.info(f'-- Finished processing dataset: {location}')
 
 if __name__ == "__main__":
     main()
