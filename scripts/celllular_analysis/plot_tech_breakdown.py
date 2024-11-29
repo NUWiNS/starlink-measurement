@@ -947,6 +947,68 @@ def plot_metric_grid(
     plt.savefig(output_filepath, bbox_inches='tight', dpi=300)
     plt.close()
 
+def save_stats_to_json(
+        data: Dict[str, pd.DataFrame],
+        metrics: List[tuple],
+        filepath: str,
+    ):
+    """Save hierarchical statistics for each metric.
+    
+    Structure:
+    metric_name:
+        location:
+            operator:
+                area_type:
+                    tech:
+                        stats (min, max, median, percentiles, etc.)
+    """
+    stats = {}
+    
+    for metric_name, _, _, data_field in metrics:
+        stats[metric_name] = {}
+        df = data[metric_name]
+        
+        # First level: Location
+        for location in df['location'].unique():
+            stats[metric_name][location] = {}
+            loc_df = df[df['location'] == location]
+            
+            # Second level: Operator
+            for operator in loc_df['operator'].unique():
+                stats[metric_name][location][operator] = {}
+                op_df = loc_df[loc_df['operator'] == operator]
+                
+                # Fourth level: Technology
+                tech_breakdown = {}
+                for tech in op_df[XcalField.ACTUAL_TECH].unique():
+                    tech_df = op_df[op_df[XcalField.ACTUAL_TECH] == tech]
+                    tech_data = tech_df[data_field]
+                    operator_total = len(op_df)
+                    if len(tech_data) == 0:
+                        continue
+                        
+                    tech_breakdown[tech] = {
+                        'min': float(np.min(tech_data)),
+                        'max': float(np.max(tech_data)),
+                        'median': float(np.median(tech_data)),
+                        'mean': float(np.mean(tech_data)),
+                        'percentile_5': float(np.percentile(tech_data, 5)),
+                        'percentile_25': float(np.percentile(tech_data, 25)),
+                        'percentile_75': float(np.percentile(tech_data, 75)),
+                        'percentile_95': float(np.percentile(tech_data, 95)),
+                        'sample_count': len(tech_data),
+                        'percentage_in_area': float(len(tech_data) / operator_total * 100 if operator_total > 0 else 0)
+                    }
+                
+                stats[metric_name][location][operator] = {
+                    'tech_breakdown': tech_breakdown,
+                    'total_samples': operator_total
+                }
+    
+    # Save to JSON file
+    with open(filepath, 'w') as f:
+        json.dump(stats, f, indent=4)
+
 def main():
     location_dir = {
         'alaska': AL_DATASET_DIR,
@@ -961,14 +1023,14 @@ def main():
 
     plot_data = {
         'urban': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'urban'],
-        'rural': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'rural'],
         'suburban': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'suburban'],
+        'rural': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'rural'],
     }
     output_filepath = os.path.join(current_dir, 'outputs', 'tech_breakdown_by_area.tcp_dl.png')
     metrics = [
         ('urban', 'Urban', 'Throughput (Mbps)', XcalField.TPUT_DL),
-        ('rural', 'Rural', 'Throughput (Mbps)', XcalField.TPUT_DL),
         ('suburban', 'Suburban', 'Throughput (Mbps)', XcalField.TPUT_DL),
+        ('rural', 'Rural', 'Throughput (Mbps)', XcalField.TPUT_DL),
     ]
     plot_metric_grid(
         data=plot_data, 
@@ -978,6 +1040,11 @@ def main():
         tech_conf=tech_conf, 
         output_filepath=output_filepath,
         max_xlim=400,
+    )
+    save_stats_to_json(
+        data=plot_data,
+        metrics=metrics, 
+        filepath=output_filepath.replace('.png', '.json'),
     )
 
     # Throughput relevant plots
