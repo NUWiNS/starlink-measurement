@@ -19,6 +19,59 @@ from scripts.celllular_analysis.configs import tech_config_map
 COORD_ANCHORAGE = [61.2181, -149.9003]
 COORD_MAUI = [20.7943, -156.3319]
 
+ALASKA_LANDMARKS = [
+    # South to North (following the road system)
+    (60.1042, -149.4422, "Exit Glacier", "rural"),
+    (60.4827, -149.8483, "Seward", "suburban"),
+    (60.5366, -149.5469, "Moose Pass", "rural"),
+    (60.6419, -149.3266, "Portage", "rural"),
+    (60.8317, -149.0131, "Whittier", "rural"),
+    (60.9433, -149.1717, "Girdwood", "rural"),
+    (61.1043, -149.8397, "Potter Marsh", "suburban"),
+    (61.1508, -149.9002, "Anchorage International Airport", "urban"),
+    (61.1958, -149.9333, "Midtown Anchorage", "urban"),
+    (61.2181, -149.9003, "Anchorage Downtown", "urban"),
+    (61.2156, -149.8269, "Joint Base Elmendorf-Richardson", "urban"),
+    (61.3707, -149.5347, "Eagle River", "suburban"),
+    (61.4806, -149.2125, "Chugiak", "suburban"),
+    (61.5147, -149.1394, "Palmer", "suburban"),
+    (61.5814, -149.4394, "Big Lake", "rural"),
+    (61.6152, -149.3565, "Wasilla", "suburban"),
+    (61.7320, -148.9108, "Sutton", "rural"),
+    (62.1097, -145.5547, "Glennallen", "rural"),
+    (62.3569, -145.7483, "Gulkana", "rural"),
+    (62.7076, -144.4517, "Chistochina", "rural"),
+    (63.3367, -143.0207, "Tok", "rural"),
+    (63.8857, -145.6522, "Delta Junction", "rural"),
+    (64.5611, -147.1029, "Eielson AFB", "suburban"),
+    (64.7459, -147.3538, "North Pole", "suburban"),
+    (64.8401, -147.7200, "Fairbanks", "urban"),
+    (64.8588, -147.8159, "University of Alaska Fairbanks", "urban"),
+    (64.9029, -147.6898, "Fort Wainwright", "urban")
+]
+
+MAUI_LANDMARKS = [
+    # Clockwise around the island
+    (20.8893, -156.4729, "Lahaina", "urban"),
+    (20.8911, -156.5070, "Kaanapali", "suburban"),
+    (20.9155, -156.6947, "Kapalua", "suburban"),
+    (20.8983, -156.6700, "Kapalua Airport", "rural"),
+    (21.0114, -156.6207, "Honolua Bay", "rural"),
+    (20.9169, -156.2464, "Haiku", "rural"),
+    (20.9280, -156.3366, "Paia", "suburban"),
+    (20.8987, -156.3069, "Spreckelsville", "suburban"),
+    (20.8911, -156.4346, "Wailuku", "urban"),
+    (20.7967, -156.3319, "Kahului", "urban"),
+    (20.7050, -156.2990, "Haleakala Airport", "rural"),
+    (20.7204, -156.1551, "Haleakala National Park", "rural"),
+    (20.6307, -156.3398, "Keokea", "rural"),
+    (20.7544, -156.4561, "Kihei", "suburban"),
+    (20.6899, -156.4422, "Wailea", "suburban"),
+    (20.6328, -156.4445, "Makena", "suburban"),
+    (20.7083, -156.3769, "Pukalani", "suburban"),
+    (20.8871, -156.3345, "Kuau", "suburban")
+]
+
 def plot_driving_route(df: pd.DataFrame, center_coordinates: List[float], output_file_path: str):
     # Create a map centered on Alaska
     m = folium.Map(location=center_coordinates, zoom_start=6)
@@ -233,7 +286,8 @@ def plot_route_in_alaska_within_measurements(operator: str):
     plot_driving_route(
         df_gps_data_in_alaska, 
         center_coordinates=COORD_ANCHORAGE,  # Anchorage coordinates
-        output_file_path=output_alaska_driving_route_file_path
+        output_file_path=output_alaska_driving_route_file_path,
+        landmarks=ALASKA_LANDMARKS  # Add landmarks
     )
 
 def plot_route_in_hawaii_within_measurements(operator: str):
@@ -250,10 +304,17 @@ def plot_route_in_hawaii_within_measurements(operator: str):
     plot_driving_route(
         df_gps_data_in_hawaii, 
         center_coordinates=COORD_MAUI,  # Maui coordinates
-        output_file_path=output_hawaii_driving_route_file_path
+        output_file_path=output_hawaii_driving_route_file_path,
+        landmarks=MAUI_LANDMARKS  # Add landmarks
     )
 
-def plot_route_with_area_type(df: pd.DataFrame, area_field: str, operator: str, output_file_path: str):
+def plot_route_with_area_type(
+    df: pd.DataFrame, 
+    area_field: str, 
+    operator: str, 
+    output_file_path: str,
+    landmarks: List[tuple] = None
+):
     # Create a map centered on the mean coordinates with grayscale tiles
     center_coordinates = [df[XcalField.LAT].mean(), df[XcalField.LON].mean()]
     grayscale_tiles = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png'
@@ -269,9 +330,9 @@ def plot_route_with_area_type(df: pd.DataFrame, area_field: str, operator: str, 
 
     # Define area type colors
     area_config = {
-        'urban': {'color': '#FF0000', 'label': 'Urban'},      # Red
-        'suburban': {'color': '#0000FF', 'label': 'Suburban'}, # Blue
-        'rural': {'color': '#00FF00', 'label': 'Rural'}       # Green
+        'urban': {'color': 'red', 'label': 'Urban'},      # Red
+        'suburban': {'color': 'blue', 'label': 'Suburban'}, # Blue
+        'rural': {'color': 'green', 'label': 'Rural'}       # Green
     }
 
     # sort by time
@@ -290,6 +351,12 @@ def plot_route_with_area_type(df: pd.DataFrame, area_field: str, operator: str, 
             if len(route_coordinates) >= 2:
                 # Get color from area_config
                 color = area_config[area_type]['color']
+                if color == 'green':
+                    color = 'rgba(0,128,0,0.5)'
+                elif color == 'blue':
+                    color = 'rgba(0,0,255,0.5)'
+                elif color == 'red':
+                    color = 'rgba(255,0,0,0.8)'
                 # Create a PolyLine for this area segment
                 folium.PolyLine(
                     route_coordinates,
@@ -314,6 +381,17 @@ def plot_route_with_area_type(df: pd.DataFrame, area_field: str, operator: str, 
         popup="End",
         icon=folium.Icon(color='red', icon='stop')
     ).add_to(m)
+
+    # Add landmarks if provided
+    if landmarks:
+        for lat, lon, label, area_type in landmarks:
+            # Get the color from area_config
+            color = area_config[area_type]['color'].lstrip('#')  # Remove # from hex color
+            folium.Marker(
+                [lat, lon],
+                popup=f"{label} ({area_config[area_type]['label']})",
+                icon=folium.Icon(color=color, icon='info-sign'),
+            ).add_to(m)
 
     # Add a legend
     legend_html = f'''
@@ -343,7 +421,7 @@ def main():
         df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
         dfs_alaska[operator] = df_xcal_data_in_alaska
     
-    # for operator, df_xcal_data_in_alaska in dfs_alaska.items():
+    for operator, df_xcal_data_in_alaska in dfs_alaska.items():
         # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_tech.html")
         # plot_driving_route_with_tech(
         #     df_xcal_data_in_alaska, 
@@ -354,15 +432,16 @@ def main():
         # )
 
         # Use our manually classified area types
-        # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.html")
-        # plot_route_with_area_type(
-        #     df_xcal_data_in_alaska, 
-        #     area_field=XcalField.AREA,
-        #     operator=operator,
-        #     output_file_path=output_file_path
-        # )
+        output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.html")
+        plot_route_with_area_type(
+            df_xcal_data_in_alaska, 
+            area_field=XcalField.AREA,
+            operator=operator,
+            output_file_path=output_file_path,
+            landmarks=ALASKA_LANDMARKS  # Add landmarks
+        )
 
-        # # Use the area_geojson field
+        # Use the area_geojson field
         # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_geojson.html")
         # plot_route_with_area_type(
         #     df_xcal_data_in_alaska, 
@@ -371,44 +450,45 @@ def main():
         #     output_file_path=output_file_path
         # )
 
-    # dfs_hawaii = {}
-    # for operator in ["att", "verizon", "tmobile"]:
-    #     df_xcal_data_in_hawaii = pd.read_csv(os.path.join(HAWAII_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
-    #     dfs_hawaii[operator] = df_xcal_data_in_hawaii
+    dfs_hawaii = {}
+    for operator in ["att", "verizon", "tmobile"]:
+        df_xcal_data_in_hawaii = pd.read_csv(os.path.join(HAWAII_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
+        dfs_hawaii[operator] = df_xcal_data_in_hawaii
 
-    # for operator, df_xcal_data_in_hawaii in dfs_hawaii.items():
-    #     output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_tech.html")
-    #     # plot_driving_route_with_tech(
-    #     #     df_xcal_data_in_hawaii, 
-    #     #     center_coordinates=COORD_MAUI, 
-    #     #     timezone=HAWAII_TIMEZONE, 
-    #     #     operator=operator,
-    #     #     output_file_path=output_file_path
-    #     # )
+    for operator, df_xcal_data_in_hawaii in dfs_hawaii.items():
+        # output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_tech.html")
+        # plot_driving_route_with_tech(
+        #     df_xcal_data_in_hawaii, 
+        #     center_coordinates=COORD_MAUI, 
+        #     timezone=HAWAII_TIMEZONE, 
+        #     operator=operator,
+        #     output_file_path=output_file_path
+        # )
 
-    #     # Use our manually classified area types
-    #     # output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_type.html")
-    #     # plot_route_with_area_type(
-    #     #     df_xcal_data_in_hawaii, 
-    #     #     area_field=XcalField.AREA,
-    #     #     operator=operator,
-    #     #     output_file_path=output_file_path
-    #     # )
+        # Use our manually classified area types
+        output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_type.html")
+        plot_route_with_area_type(
+            df_xcal_data_in_hawaii, 
+            area_field=XcalField.AREA,
+            operator=operator,
+            output_file_path=output_file_path,
+            landmarks=MAUI_LANDMARKS  # Add landmarks
+        )
 
-    #     # Use the area_geojson field
-    #     output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_geojson.html")
-    #     plot_route_with_area_type(
-    #         df_xcal_data_in_hawaii, 
-    #         area_field=XcalField.AREA_GEOJSON,
-    #         operator=operator,
-    #         output_file_path=output_file_path
-    #     )
+        # Use the area_geojson field
+        # output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_geojson.html")
+        # plot_route_with_area_type(
+        #     df_xcal_data_in_hawaii, 
+        #     area_field=XcalField.AREA_GEOJSON,
+        #     operator=operator,
+        #     output_file_path=output_file_path
+        # )
 
-    for operator in ["att", "verizon"]:
-        plot_route_in_alaska_within_measurements(operator)
+    # for operator in ["att", "verizon"]:
+    #     plot_route_in_alaska_within_measurements(operator)
     
-    for operator in ["att", "verizon", 'tmobile']:
-        plot_route_in_hawaii_within_measurements(operator)
+    # for operator in ["att", "verizon", 'tmobile']:
+    #     plot_route_in_hawaii_within_measurements(operator)
     
 
     # Just for cross-validation
