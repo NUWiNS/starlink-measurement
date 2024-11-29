@@ -278,15 +278,20 @@ def save_stats_network_kpi(
                 if operator_label in location_data['operator'].unique():
                     values = location_data[location_data['operator'] == operator_label][data_field]
                     
+                    min_val = np.min(values)
+                    max_val = np.max(values)
+                    min_percentage = (len(values[values == 0]) / len(values)) * 100 if len(values) > 0 else 0
+
                     stats[location][operator] = {
                         'median': float(np.median(values)),
                         'mean': float(np.mean(values)),
-                        'min': float(np.min(values)),
-                        'max': float(np.max(values)),
+                        'min': float(min_val),
+                        'max': float(max_val),
                         'percentile_5': float(np.percentile(values, 5)),
                         'percentile_25': float(np.percentile(values, 25)),
                         'percentile_75': float(np.percentile(values, 75)),
                         'percentile_95': float(np.percentile(values, 95)),
+                        'min_percentage': f'{min_percentage:.2f}%',
                         'sample_count': len(values)
                     }
         
