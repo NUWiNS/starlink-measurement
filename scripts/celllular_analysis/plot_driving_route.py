@@ -341,16 +341,49 @@ def plot_route_with_area_type(
     grouped_df = df.groupby(XcalField.SEGMENT_ID)
     
     for segment_id, segment_data in grouped_df:
-        # For each area type in the segment
-        grouped_by_area = segment_data.groupby(area_field)
-        for area_type, area_segment in grouped_by_area:
+        # Reset index to make it easier to work with consecutive rows
+        area_segments = []
+
+        segment_data = segment_data.reset_index(drop=True)
+        # Initialize variables for tracking area segments
+        current_area = None
+        segment_start_idx = 0
+        # Iterate through the rows to find consecutive segments
+        for idx in range(len(segment_data)):
+            area_type = segment_data.iloc[idx][area_field]
+
+            if current_area == area_type and idx != len(segment_data) - 1:
+                continue
+
+            if current_area is not None:
+                # If it's the last row and same area type, include it
+                end_idx = idx if current_area != area_type else idx + 1
+                area_segment = segment_data.iloc[segment_start_idx:end_idx]
+                area_segments.append(area_segment)
+            
+            # Start new segment
+            current_area = area_type
+            segment_start_idx = idx
+
+        # for each area segment, plot a polyline
+        for area_segment in area_segments:
             # Get coordinates for this area segment
             route_coordinates = area_segment[[XcalField.LAT, XcalField.LON]].values.tolist()
             
             # Only create line if we have at least 2 points
             if len(route_coordinates) >= 2:
                 # Get color from area_config
+                area_type = area_segment[area_field].iloc[0]
                 color = area_config[area_type]['color']
+                if color == 'red':
+                    color = 'rgba(255, 0, 0, 0.5)'
+                elif color == 'blue':
+                    color = 'rgba(0, 0, 255, 0.5)'
+                elif color == 'green':
+                    color = 'rgba(0, 255, 0, 0.5)'
+
+                # For tracking: A segment will be further split into segments with different area types
+                area_segment_id = f'{area_segment[XcalField.SRC_IDX].iloc[0]}:{area_segment[XcalField.SRC_IDX].iloc[-1]}'
                 if color == 'green':
                     color = 'rgba(0,128,0,0.5)'
                 elif color == 'blue':
@@ -363,7 +396,7 @@ def plot_route_with_area_type(
                     color=color,
                     weight=5,
                     opacity=1,
-                    popup=f"{segment_id} - {area_config[area_type]['label']}"
+                    popup=f"{area_config[area_type]['label']}\nSEG_ID: {segment_id}\nAREA_SEG_ID: {area_segment_id}"
                 ).add_to(m)
 
     # Add markers for overall start and end points
@@ -421,6 +454,7 @@ def main():
         df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
         dfs_alaska[operator] = df_xcal_data_in_alaska
     
+    for operator, df_xcal_data_in_alaska in dfs_alaska.items():
     for operator, df_xcal_data_in_alaska in dfs_alaska.items():
         # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_tech.html")
         # plot_driving_route_with_tech(

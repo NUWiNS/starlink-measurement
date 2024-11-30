@@ -26,6 +26,11 @@ def append_timezone(dt: datetime, timezone_str: str, is_dst: bool = True):
     dt_aware = timezone.localize(dt, is_dst=is_dst)  # is_dst=True for daylight saving time
     return dt_aware
 
+def ensure_timezone(dt: datetime, timezone_str: str, is_dst: bool = True):
+    if dt.tzinfo is None:
+        return append_timezone(dt, timezone_str, is_dst)
+    else:
+        return dt.astimezone(pytz.timezone(timezone_str))
 
 class StartEndLogTimeProcessor:
     @staticmethod
@@ -62,6 +67,9 @@ class TimeIntervalQuery:
         :param ts:
         :return:
         """
+        # bisect_right returns the insertion point for ts to maintain sorted order
+        # if ts is in the list, bisect_right returns the index of the next element
+        # if ts is not in the list, bisect_right returns the insertion index
         pos = bisect_right(self.ts_traces, ts)
         if pos == 0:
             return None, 0
@@ -72,10 +80,11 @@ class TimeIntervalQuery:
 
 class Unittest(unittest.TestCase):
     def test_start_end_time_extraction(self):
-        d1 = datetime(2021, 6, 21, 0, 0, 0)
-        d2 = datetime(2021, 6, 21, 0, 0, 1)
-        d3 = datetime(2021, 6, 21, 0, 0, 2)
-        d4 = datetime(2021, 6, 21, 0, 0, 3)
+        utc_timezone = pytz.timezone('UTC')
+        d1 = datetime(2021, 6, 21, 0, 0, 0).astimezone(utc_timezone)
+        d2 = datetime(2021, 6, 21, 0, 0, 1).astimezone(utc_timezone)
+        d3 = datetime(2021, 6, 21, 0, 0, 2).astimezone(utc_timezone)
+        d4 = datetime(2021, 6, 21, 0, 0, 3).astimezone(utc_timezone)
         content = f"""
         Start time: {int(d1.timestamp() * 1000)} 
         End time: {int(d2.timestamp() * 1000)}
