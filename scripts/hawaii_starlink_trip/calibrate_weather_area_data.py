@@ -19,7 +19,7 @@ def main():
     area_calibrator = AreaCalibratorWithXcal(area_df, att_xcal_tput_df)
     data_list = [
         AreaCalibratedData(start_seg_id='32972:33022', end_seg_id='34859:34995', value='urban'),
-        # AreaCalibratedData(start_seg_id='34996:35346', end_seg_id='35347:35473', value='rural'),
+        AreaCalibratedData(start_seg_id='34996:35346', end_seg_id='34996:35346', value='rural'),
         # AreaCalibratedData(start_seg_id='78520:78633', end_seg_id='80678:80744', value='rural'),
         # AreaCalibratedData(start_seg_id='77819:77863', end_seg_id='77980:78075', value='rural'),
         # AreaCalibratedData(start_seg_id='12623:12678', end_seg_id='12679:12715', value='urban'),
