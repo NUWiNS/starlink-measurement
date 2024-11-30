@@ -2,8 +2,11 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+from scripts.constants import CommonField
+from scripts.time_utils import ensure_timezone
 
-from scripts.hawaii_starlink_trip.configs import ROOT_DIR
+
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR, TIMEZONE
 from scripts.hawaii_starlink_trip.labels import DatasetLabel
 from scripts.hawaii_starlink_trip.separate_dataset import read_dataset
 from scripts.logging_utils import create_logger
@@ -37,7 +40,7 @@ def save_data_frame_to_csv(data_frame, output_dir='.'):
     print(f'save all the ping data to csv file: {csv_filepath}')
 
 
-def parse_ping_for_operator(operator: str):
+def parse_ping_for_operator(operator: str, timezone: str):
     print(f'Processing {operator} phone\'s ping data...')
     dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
 
@@ -54,7 +57,8 @@ def parse_ping_for_operator(operator: str):
                 continue
 
             df = pd.DataFrame(extracted_data, columns=['time', 'rtt_ms'])
-
+            df[CommonField.LOCAL_DT] = df['time'].apply(lambda x: x if pd.isna(x) else ensure_timezone(x, timezone))
+            df[CommonField.UTC_TS] = df['time'].apply(lambda x: x if pd.isna(x) else x.timestamp())
             csv_file_path = file.replace('.out', '.csv')
             df.to_csv(csv_file_path, index=False)
             # print(f"Extracted data is saved to {csv_file_path}")
@@ -80,7 +84,7 @@ def main():
 
     operators = ['att', 'verizon', 'starlink', 'tmobile']
     for operator in operators:
-        parse_ping_for_operator(operator)
+        parse_ping_for_operator(operator, timezone=TIMEZONE)
         print('-------')
 
 

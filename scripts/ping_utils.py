@@ -2,17 +2,14 @@ import logging
 import unittest
 from datetime import datetime
 from typing import Tuple, List
-
 import pandas as pd
 import pytz
-
-from scripts.time_utils import StartEndLogTimeProcessor
-from scripts.utils import find_files
-
 import os
 import re
 
-from scripts.common import extract_operator_from_filename
+
+from scripts.time_utils import StartEndLogTimeProcessor, ensure_timezone
+from scripts.utils import find_files
 from scripts.validations.utils import estimate_data_points
 
 
@@ -59,12 +56,12 @@ def match_ping_line(line: str):
         return None
     dt, rtt = match.groups()
     return {
-        "time": format_timestamp(dt),
+        "time": dt,
         "rtt_ms": rtt
     }
 
 
-def parse_ping_result(content: str):
+def parse_ping_result(content: str, timezone: str = None):
     """
     :param content:
     :return: List[Tuple[time, rtt_ms]]
@@ -74,11 +71,18 @@ def parse_ping_result(content: str):
     for line in content.splitlines():
         match = match_ping_line(line)
         if match:
+            match['time'] = pd.to_datetime(match['time'])
+            if timezone:
+                match['time'] = ensure_timezone(match['time'], timezone)
             extracted_data.append(match)
 
     return extracted_data
 
-def extract_ping_data(file_path: str, logger: logging.Logger | None = None):
+def extract_ping_data(
+        file_path: str, 
+        logger: logging.Logger | None = None,
+        timezone: str = None,
+    ):
     INTERVAL_SEC = 0.2
     DURATION_SEC = 30
     EXPECTED_NUM_OF_DATA_POINTS = int(DURATION_SEC / INTERVAL_SEC)
@@ -87,7 +91,7 @@ def extract_ping_data(file_path: str, logger: logging.Logger | None = None):
     with open(file_path, 'r') as f:
         content = f.read()
         total_lines = len(content.splitlines())
-        extracted_data = parse_ping_result(content)
+        extracted_data = parse_ping_result(content, timezone)
         logger.info(f'-- total lines: {total_lines}')
         logger.info(f'-- extracted lines: {len(extracted_data)}')
 
