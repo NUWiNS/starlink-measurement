@@ -93,7 +93,7 @@ def append_weather_area_to_rtt_traces(df: pd.DataFrame, weather_query_util: Type
 def main():
     weather_csv_path = os.path.join(others_dir, 'weather.csv')
     logger.info(f'Loading weather data from {weather_csv_path}')
-    area_csv_path = os.path.join(others_dir, 'area.csv')
+    area_csv_path = os.path.join(others_dir, 'area.calibrated.csv')
     logger.info(f'Loading area data from {area_csv_path}')
     
     weather_df = pd.read_csv(weather_csv_path)

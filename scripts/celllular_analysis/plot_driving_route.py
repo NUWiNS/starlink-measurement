@@ -388,7 +388,7 @@ def main():
         # )
 
         # Use our manually classified area types
-        output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.html")
+        output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.calibrated.html")
         plot_route_with_area_type(
             df_xcal_data_in_alaska, 
             area_field=XcalField.AREA,
