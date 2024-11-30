@@ -45,16 +45,14 @@ def plot_cdf_of_rtt_with_all_operators(
         title='CDF of RTT with all Operators',
         output_file_path=None,
         xscale="linear",
+        max_percentile=100,
 ):
     plt.figure(figsize=(10, 6))
 
     all_operators = ['starlink', 'att', 'verizon', 'tmobile']
     df['operator'] = pd.Categorical(df['operator'], categories=all_operators, ordered=True)
-    # get unique operators with the order of categorical data
     operators = filter(lambda x: x in df['operator'].unique(), df['operator'].cat.categories)
-    # filter unique operators
 
-    # operators = df['operator'].unique()
     color_map = {
         'starlink': 'black',
         'att': 'b',
@@ -62,14 +60,15 @@ def plot_cdf_of_rtt_with_all_operators(
         'tmobile': 'deeppink'
     }
 
+    x_max = float('-inf')
     for index, operator in enumerate(operators):
         operator_data = extract_rtt_df(df, operator)
-        data_sorted = np.sort(operator_data)
+        max_value = np.percentile(operator_data, max_percentile)
+        x_max = max(x_max, max_value)
+        filtered_data = operator_data[operator_data <= max_value]
+        data_sorted = np.sort(filtered_data)
         color = color_map[operator]
-        cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
-
-        # stats = get_statistics(operator_data)
-        # label = f'{operator}\n' + format_statistics(stats, unit='ms')
+        cdf = np.arange(1, len(data_sorted) + 1) / len(operator_data)
 
         plt.plot(
             data_sorted,
@@ -78,19 +77,19 @@ def plot_cdf_of_rtt_with_all_operators(
             label=operator,
             linestyle='-',
         )
+
     plt.yticks(np.arange(0, 1.1, 0.25))
     plt.xscale(xscale)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    # limit the x-axis to 0 to 1000 ms
-    plt.xlim(0, 600)
+
+    plt.xlim(0, x_max)    
     plt.title(title)
     plt.legend()
     plt.grid(True)
     if output_file_path:
         plt.savefig(output_file_path)
     plt.close()
-    # plt.show()
 
 
 def plot_boxplot_of_rtt(df: pd.DataFrame, output_dir='.', yscale='linear'):
@@ -111,7 +110,12 @@ def plot_boxplot_of_rtt(df: pd.DataFrame, output_dir='.', yscale='linear'):
     plt.close(fig)
 
 
-def plot_all_cdf_for_rtt(df: pd.DataFrame, output_dir='.', xscale="linear"):
+def plot_all_cdf_for_rtt(
+        df: pd.DataFrame,
+        output_dir='.',
+        max_percentile=100,
+        xscale="linear"
+):
     operators = df['operator'].unique()
 
     filename_prefix = 'cdf_rtt'
@@ -137,4 +141,5 @@ def plot_all_cdf_for_rtt(df: pd.DataFrame, output_dir='.', xscale="linear"):
         title='CDF of Round-Trip Time (All Operators)',
         output_file_path=os.path.join(output_dir, f'{filename_prefix}_all.png'),
         xscale=xscale,
+        max_percentile=max_percentile,
     )
