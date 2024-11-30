@@ -16,7 +16,7 @@ def create_logger(
         formatter: logging.Formatter | None = None,
         filemode: str = 'a',
         level: int = logging.INFO,
-        console_output: bool = False
+        console_output: bool = True
 ) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)

@@ -455,7 +455,6 @@ def main():
         dfs_alaska[operator] = df_xcal_data_in_alaska
     
     for operator, df_xcal_data_in_alaska in dfs_alaska.items():
-    for operator, df_xcal_data_in_alaska in dfs_alaska.items():
         # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_tech.html")
         # plot_driving_route_with_tech(
         #     df_xcal_data_in_alaska, 

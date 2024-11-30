@@ -12,6 +12,9 @@ xcal_dir = os.path.join(ROOT_DIR, 'xcal')
 others_dir = os.path.join(ROOT_DIR, 'others')
 
 def main():
+    """
+    Based on ATT's xcal data to do the area calibration.
+    """
     area_csv = os.path.join(others_dir, 'area.csv')
     area_df = pd.read_csv(area_csv)
     att_xcal_tput_csv = os.path.join(xcal_dir, 'att_xcal_smart_tput.csv')
@@ -55,7 +58,8 @@ def main():
         ),
     ]
     area_calibrator.calibrate(data_list)
-    area_calibrator.df.to_csv(area_csv.replace('.csv', '.calibrated.csv'), index=False)
+    area_calibrator.df.to_csv(area_csv, index=False)
+    print(f'Saved calibrated area data to {area_csv}')
 
 if __name__ == '__main__':
     main()

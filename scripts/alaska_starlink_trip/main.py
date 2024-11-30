@@ -27,7 +27,7 @@ def parsing():
     # parse_nslookup_data_to_csv_main()
     # parse_xcal_tput_to_csv_main()
 
-    # parse_weather_area_data_to_csv_main()
+    parse_weather_area_data_to_csv_main()
     calibrate_weather_area_data_main()
     append_weather_area_to_tput_dataset_main()
 
