@@ -371,12 +371,13 @@ def main():
         os.makedirs(OUTPUT_DIR)
 
 
-    # dfs_alaska = {}
+    dfs_alaska = {}
+    for operator in ["att"]:
     # for operator in ["att", "verizon"]:
-    #     df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
-    #     dfs_alaska[operator] = df_xcal_data_in_alaska
+        df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
+        dfs_alaska[operator] = df_xcal_data_in_alaska
     
-    # for operator, df_xcal_data_in_alaska in dfs_alaska.items():
+    for operator, df_xcal_data_in_alaska in dfs_alaska.items():
         # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_tech.html")
         # plot_driving_route_with_tech(
         #     df_xcal_data_in_alaska, 
@@ -387,47 +388,47 @@ def main():
         # )
 
         # Use our manually classified area types
-        # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.html")
-        # plot_route_with_area_type(
-        #     df_xcal_data_in_alaska, 
-        #     area_field=XcalField.AREA,
-        #     operator=operator,
-        #     output_file_path=output_file_path
-        # )
+        output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.html")
+        plot_route_with_area_type(
+            df_xcal_data_in_alaska, 
+            area_field=XcalField.AREA,
+            operator=operator,
+            output_file_path=output_file_path
+        )
 
         # # Use the area_geojson field
         # output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_geojson.html")
-        # plot_route_with_area_type(
+        # plot_route_with_area_type
         #     df_xcal_data_in_alaska, 
         #     area_field=XcalField.AREA_GEOJSON,
         #     operator=operator,
         #     output_file_path=output_file_path
         # )
 
-    dfs_hawaii = {}
-    # for operator in ["att", "verizon", "tmobile"]:
-    for operator in ["att"]:
-        df_xcal_data_in_hawaii = pd.read_csv(os.path.join(HAWAII_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
-        dfs_hawaii[operator] = df_xcal_data_in_hawaii
+    # dfs_hawaii = {}
+    # # for operator in ["att", "verizon", "tmobile"]:
+    # for operator in ["att"]:
+    #     df_xcal_data_in_hawaii = pd.read_csv(os.path.join(HAWAII_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
+    #     dfs_hawaii[operator] = df_xcal_data_in_hawaii
 
-    for operator, df_xcal_data_in_hawaii in dfs_hawaii.items():
-        # output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_tech.html")
-        # plot_driving_route_with_tech(
-        #     df_xcal_data_in_hawaii, 
-        #     center_coordinates=COORD_MAUI, 
-        #     timezone=HAWAII_TIMEZONE, 
-        #     operator=operator,
-        #     output_file_path=output_file_path
-        # )
+    # for operator, df_xcal_data_in_hawaii in dfs_hawaii.items():
+    #     # output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_tech.html")
+    #     # plot_driving_route_with_tech(
+    #     #     df_xcal_data_in_hawaii, 
+    #     #     center_coordinates=COORD_MAUI, 
+    #     #     timezone=HAWAII_TIMEZONE, 
+    #     #     operator=operator,
+    #     #     output_file_path=output_file_path
+    #     # )
 
-        # Use our manually classified area types
-        output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_type.calibrated.html")
-        plot_route_with_area_type(
-            df_xcal_data_in_hawaii, 
-            area_field=XcalField.AREA,
-            operator=operator,
-            output_file_path=output_file_path
-        )
+    #     # Use our manually classified area types
+    #     output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_type.calibrated.html")
+    #     plot_route_with_area_type(
+    #         df_xcal_data_in_hawaii, 
+    #         area_field=XcalField.AREA,
+    #         operator=operator,
+    #         output_file_path=output_file_path
+    #     )
 
     #     # Use the area_geojson field
     #     output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_geojson.html")
