@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime
 from typing import List, Tuple, Dict
 
-from scripts.time_utils import TimeIntervalQuery
+from scripts.time_utils import TimeIntervalQuery, ensure_timezone, format_datetime_as_iso_8601
 
 
 def parse_weather_area_type_log_line(line: str) -> Dict | None:
@@ -12,13 +12,13 @@ def parse_weather_area_type_log_line(line: str) -> Dict | None:
     if not match:
         return None
     return {
-        'ts': datetime.fromisoformat(match.group(1)),
+        'ts': match.group(1),
         'type': match.group(2),
         'value': match.group(3)
     }
 
 
-def parse_weather_area_type_log(log_path: str) -> Dict[str, List[Tuple[datetime, str]]]:
+def parse_weather_area_type_log(log_path: str, timezone: str | None = None, is_dst: bool = True) -> Dict[str, List[Tuple[datetime, str]]]:
     """
     Parse weather & area type logs
     :param log_path:
@@ -31,10 +31,18 @@ def parse_weather_area_type_log(log_path: str) -> Dict[str, List[Tuple[datetime,
             result = parse_weather_area_type_log_line(line)
             if not result:
                 continue
+                
+            # Parse timestamp and localize it
+            dt = datetime.fromisoformat(result['ts'])
+            if timezone:
+                dt = ensure_timezone(dt, timezone, is_dst=is_dst)
+            formatted_dt = format_datetime_as_iso_8601(dt)
+            utc_ts = dt.timestamp()
             if result['type'] == 'weather':
-                weather_data.append((result['ts'], result['value']))
+                weather_data.append((formatted_dt, utc_ts, result['value']))
             elif result['type'] == 'area':
-                area_data.append((result['ts'], result['value']))
+                area_data.append((formatted_dt, utc_ts, result['value']))
+                
     return {
         'weather': weather_data,
         'area': area_data

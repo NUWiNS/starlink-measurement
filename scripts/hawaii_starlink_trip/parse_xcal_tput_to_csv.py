@@ -84,6 +84,7 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
         except Exception as e:
             logger.info(f"Failed to read or concatenate xcal data for date {date}: {str(e)}")
     logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) for all dates: {all_dates}")
+    df_xcal_all_logs[XcalField.SRC_IDX] = df_xcal_all_logs.index
     df_xcal_all_logs.to_csv(path.join(output_dir, f'{operator}_xcal_raw_logs_all_dates.csv'), index=False)
 
     logger.info("-- Stage 3: filter xcal logs by app tput periods")
@@ -107,6 +108,7 @@ def process_filtered_xcal_data_for_tput_and_save_to_csv(
     ):
     logger.info("-- Stage 4: rename and add useful columns")
     df_tput_cols = {
+        XcalField.SRC_IDX: filtered_df[XcalField.SRC_IDX],
         XcalField.RUN_ID: filtered_df[XcalField.RUN_ID],
         XcalField.SEGMENT_ID: filtered_df[XcalField.SEGMENT_ID],
         XcalField.CUSTOM_UTC_TIME: filtered_df[XcalField.CUSTOM_UTC_TIME],
@@ -212,10 +214,11 @@ def main():
         if not path.exists(dirs):
             os.makedirs(dirs)
 
-    for operator in ['verizon', 'tmobile', 'att']:
+    # for operator in ['verizon', 'tmobile', 'att']:
+    for operator in ['att']:
         logger.info(f"--- Processing {operator}...")
         filtered_df = process_operator_xcal_tput(operator, location, output_dir)
-        # process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_df, operator, output_dir)
+        process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_df, operator, output_dir)
         # append_tech_to_rtt_data_and_save_to_csv(filtered_df, operator)
         logger.info(f"--- Finished processing {operator}")
 

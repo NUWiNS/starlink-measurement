@@ -22,6 +22,7 @@ class XcalField:
     LON = 'Lon'
     LAT = 'Lat'
     # Custom fields
+    SRC_IDX = 'src_idx'
     RUN_ID = 'run_id'
     SEGMENT_ID = 'segment_id'
     CUSTOM_UTC_TIME = 'utc_dt'
