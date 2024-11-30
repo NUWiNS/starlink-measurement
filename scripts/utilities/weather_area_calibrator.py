@@ -3,8 +3,10 @@ import pandas as pd
 import sys
 import os
 
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from scripts.time_utils import format_datetime_as_iso_8601
 from scripts.constants import XcalField, CommonField
 
 
@@ -23,8 +25,11 @@ class TimedValueCalibrator:
         """Add a period with a specific value, preserving values before and after."""
         from_ts = from_dt.timestamp()
         from_idx = self.df[CommonField.UTC_TS].searchsorted(from_ts)
-            
-        exact_from_match = self.df.iloc[from_idx][CommonField.UTC_TS] == from_ts
+        
+        if from_idx < len(self.df):
+            exact_from_match = self.df.iloc[from_idx][CommonField.UTC_TS] == from_ts
+        else:
+            exact_from_match = False
         prev_value = None
         if exact_from_match:
             prev_value = self.df.iloc[from_idx]['value']
@@ -34,25 +39,36 @@ class TimedValueCalibrator:
             else:
                 prev_value = self.df.iloc[0]['value']
 
-        self.add_point(from_dt, value)
-        self.add_point(to_dt, prev_value)
+        from_idx = self.add_point(from_dt, value)
+        to_idx = self.add_point(to_dt, prev_value)
+        self.check_if_insertion_idx_consecutive(from_idx, to_idx)
+
+    def check_if_insertion_idx_consecutive(self, from_idx: int, to_idx: int):
+        if from_idx + 1 != to_idx:
+            raise ValueError(f"from_idx {from_idx} and to_idx {to_idx} are not consecutive, which will greatly change the interpretation of the weather area data")
+
+    def get_insertion_idx(self, dt: datetime):
+        ts = dt.timestamp()
+        idx = self.df[CommonField.UTC_TS].searchsorted(ts)
+        return idx
 
     def add_point(self, dt: datetime, value: str):
         ts = dt.timestamp()
-        idx = self.df[CommonField.UTC_TS].searchsorted(ts)
+        idx = self.get_insertion_idx(dt)
+        formatted_dt = format_datetime_as_iso_8601(dt)
         if idx >= len(self.df):
             # append a new row
-            self.df = pd.concat([self.df, pd.DataFrame([{CommonField.LOCAL_DT: dt, CommonField.UTC_TS: ts, 'value': value}])]).reset_index(drop=True)
+            self.df = pd.concat([self.df, pd.DataFrame([{CommonField.LOCAL_DT: formatted_dt, CommonField.UTC_TS: ts, 'value': value}])]).reset_index(drop=True)
         else:
             exact_match = self.df.iloc[idx][CommonField.UTC_TS] == ts
-            row = {CommonField.LOCAL_DT: dt, CommonField.UTC_TS: ts, 'value': value}
+            row = {CommonField.LOCAL_DT: formatted_dt, CommonField.UTC_TS: ts, 'value': value}
             if exact_match:
               # replace the existing row
                 self.df.iloc[idx] = row
             else:
                 # insert a new row  
                 self.df = pd.concat([self.df.iloc[:idx], pd.DataFrame([row]), self.df.iloc[idx:]]).reset_index(drop=True)
-        
+        return idx
 
 
 
@@ -82,7 +98,7 @@ class AreaCalibratorWithXcal(TimedValueCalibrator):
             self.add_period(from_dt, to_dt, data.value)
 
     def index_overflow(self, seg_df: pd.DataFrame, idx: int):
-        return idx < seg_df[XcalField.SRC_IDX].iloc[0] or idx >= seg_df[XcalField.SRC_IDX].iloc[-1]
+        return idx < seg_df[XcalField.SRC_IDX].iloc[0] or idx > seg_df[XcalField.SRC_IDX].iloc[-1]
 
     def get_dt_range_from_df(self, data: AreaCalibratedData):
         start_seg_df = self.xcal_tput_df[self.xcal_tput_df[XcalField.SEGMENT_ID] == data.start_seg_id]
@@ -107,7 +123,7 @@ class AreaCalibratorWithXcal(TimedValueCalibrator):
             end_idx = data.end_idx
         
         # Get the timestamps from the rows matching the src_idx
-        start_time = self.xcal_tput_df[self.xcal_tput_df[XcalField.SRC_IDX] == start_idx][XcalField.LOCAL_TIME].iloc[0]
-        end_time = self.xcal_tput_df[self.xcal_tput_df[XcalField.SRC_IDX] == end_idx][XcalField.LOCAL_TIME].iloc[0]
+        start_time = start_seg_df[start_seg_df[XcalField.SRC_IDX] == start_idx][XcalField.LOCAL_TIME].iloc[0]
+        end_time = end_seg_df[end_seg_df[XcalField.SRC_IDX] == end_idx][XcalField.LOCAL_TIME].iloc[0]
         
         return datetime.fromisoformat(start_time), datetime.fromisoformat(end_time)
