@@ -81,8 +81,8 @@ class AreaCalibratorWithXcal(TimedValueCalibrator):
             from_dt, to_dt = self.get_dt_range_from_df(data)
             self.add_period(from_dt, to_dt, data.value)
 
-    def index_overflow(self, idx: int):
-        return idx < 0 or idx >= len(self.df)
+    def index_overflow(self, seg_df: pd.DataFrame, idx: int):
+        return idx < seg_df[XcalField.SRC_IDX].iloc[0] or idx >= seg_df[XcalField.SRC_IDX].iloc[-1]
 
     def get_dt_range_from_df(self, data: AreaCalibratedData):
         start_seg_df = self.xcal_tput_df[self.xcal_tput_df[XcalField.SEGMENT_ID] == data.start_seg_id]
@@ -94,7 +94,7 @@ class AreaCalibratorWithXcal(TimedValueCalibrator):
         if data.start_idx is None:
             start_idx = start_seg_df.iloc[0][XcalField.SRC_IDX]
         else:
-            if self.index_overflow(data.start_idx):
+            if self.index_overflow(start_seg_df, data.start_idx):
                 raise ValueError(f"start_idx {data.start_idx} is out of range")
             start_idx = data.start_idx
         
@@ -102,6 +102,8 @@ class AreaCalibratorWithXcal(TimedValueCalibrator):
         if data.end_idx is None:
             end_idx = end_seg_df.iloc[-1][XcalField.SRC_IDX]
         else:
+            if self.index_overflow(end_seg_df, data.end_idx):
+                raise ValueError(f"end_idx {data.end_idx} is out of range")
             end_idx = data.end_idx
         
         # Get the timestamps from the rows matching the src_idx

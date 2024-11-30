@@ -329,7 +329,7 @@ def plot_route_with_area_type(df: pd.DataFrame, area_field: str, operator: str, 
                     color=color,
                     weight=5,
                     opacity=1,
-                    popup=f"{area_segment_id} - {area_config[area_type]['label']}"
+                    popup=f"{area_config[area_type]['label']}\nSEG_ID: {segment_id}\nAREA_SEG_ID: {area_segment_id}"
                 ).add_to(m)
 
     # Add markers for overall start and end points
