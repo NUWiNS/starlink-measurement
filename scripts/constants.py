@@ -5,6 +5,10 @@ PROJ_ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
 DATASET_DIR = os.path.abspath(os.path.join(PROJ_ROOT_DIR, 'datasets'))
 OUTPUT_DIR = os.path.abspath(os.path.join(PROJ_ROOT_DIR, 'outputs'))
 
+class CommonField:
+    UTC_TS = 'utc_ts'
+    LOCAL_DT = 'local_dt'
+
 class XcalField:
     TIMESTAMP = 'TIME_STAMP'
     TECH = 'Event Technology'
