@@ -93,11 +93,11 @@ def main():
     logger.info(f'Loading area data from {area_csv_path}')
     
     weather_df = pd.read_csv(weather_csv_path)
-    weather_df[CommonField.LOCAL_DT] = pd.to_datetime(weather_df[CommonField.UTC_TS])
+    weather_df[CommonField.LOCAL_DT] = pd.to_datetime(weather_df[CommonField.LOCAL_DT], format="ISO8601")
     weather_query_util = TypeIntervalQueryUtil(weather_df[[CommonField.LOCAL_DT, 'value']].values.tolist())
 
     area_df = pd.read_csv(area_csv_path)
-    area_df[CommonField.LOCAL_DT] = pd.to_datetime(area_df[CommonField.UTC_TS])
+    area_df[CommonField.LOCAL_DT] = pd.to_datetime(area_df[CommonField.LOCAL_DT], format="ISO8601")
     area_query_util = TypeIntervalQueryUtil(area_df[[CommonField.LOCAL_DT, 'value']].values.tolist())
 
     append_weather_area_to_app_tput_traces(
