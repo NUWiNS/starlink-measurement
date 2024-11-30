@@ -12,11 +12,10 @@ xcal_dir = os.path.join(ROOT_DIR, 'xcal')
 others_dir = os.path.join(ROOT_DIR, 'others')
 
 def main():
-    """
-    Based on ATT's xcal data to do the area calibration.
-    """
+    # Based on ATT's xcal data for area calibration.
     area_csv = os.path.join(others_dir, 'area.csv')
     area_df = pd.read_csv(area_csv)
+    
     att_xcal_tput_csv = os.path.join(xcal_dir, 'att_xcal_smart_tput.csv')
     att_xcal_tput_df = pd.read_csv(att_xcal_tput_csv)
     area_calibrator = AreaCalibratorWithXcal(area_df, att_xcal_tput_df)
@@ -74,7 +73,25 @@ def main():
     ]
     area_calibrator.calibrate(data_list)
     area_calibrator.df.to_csv(area_csv, index=False)
-    print(f'Saved calibrated area data to {area_csv}')
+    print('calibrated area data based on ATT')
+
+    # Based on Tmobile's xcal data for area calibration.
+    area_df = pd.read_csv(area_csv)
+    tmobile_xcal_tput_csv = os.path.join(xcal_dir, 'tmobile_xcal_smart_tput.csv')
+    tmobile_xcal_tput_df = pd.read_csv(tmobile_xcal_tput_csv)
+    area_calibrator = AreaCalibratorWithXcal(area_df, tmobile_xcal_tput_df)
+    data_list = [
+        AreaCalibratedData(
+            start_seg_id='74648:75147', 
+            start_idx=74648,
+            end_seg_id='74648:75147', 
+            end_idx=74663,
+            value='rural'
+        ),
+    ]
+    area_calibrator.calibrate(data_list)
+    area_calibrator.df.to_csv(area_csv, index=False)
+    print('calibrated area data based on Tmobile')
 
 if __name__ == '__main__':
     main()
