@@ -797,6 +797,7 @@ def plot_metric_grid(
         title: str = None,
         percentile_filter: Dict[str, float] = None,
         max_xlim: float = None,
+        data_sample_threshold: int = 240, # one round data
     ):
     n_locations = len(loc_conf)
     n_metrics = len(metrics)
@@ -899,6 +900,11 @@ def plot_metric_grid(
                 for t_key, t_conf in sorted(tech_conf.items(), key=lambda x: x[1]['order']):
                     mask = (plot_df['operator'] == op_key) & (plot_df[XcalField.ACTUAL_TECH] == t_key)
                     operator_data = plot_df[mask][data_field]
+
+                    # NOTE: IF DATA SAMPLE IS LESS THAN THRESHOLD, DO NOT PLOT IT!
+                    if len(operator_data) < data_sample_threshold:
+                        logger.warn(f'{location}-{op_key}-{t_key} data sample is less than required threshold, skip plotting: {len(operator_data)} < {data_sample_threshold}')
+                        continue
                     
                     if percentile < 100:
                         operator_data = operator_data[operator_data <= np.percentile(operator_data, percentile)]
@@ -906,6 +912,7 @@ def plot_metric_grid(
                     data_sorted = np.sort(operator_data)
                     cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
                     
+
                     ax.plot(
                         data_sorted,
                         cdf,
@@ -1009,28 +1016,36 @@ def save_stats_to_json(
     with open(filepath, 'w') as f:
         json.dump(stats, f, indent=4)
 
-def main():
-    location_dir = {
-        'alaska': AL_DATASET_DIR,
-        'hawaii': HI_DATASET_DIR
-    }
-
-    tcp_dl_tput_df = aggregate_xcal_tput_data_by_location(
-        locations=['alaska', 'hawaii'],
-        protocol='tcp',
-        direction='downlink'
+def plot_tech_breakdown_by_area_by_operator(
+        locations: List[str], 
+        protocol: str, 
+        direction: str,
+        max_xlim: float = None,
+        data_sample_threshold: int = 240, # 1 rounds data (~2min)
+    ):
+    tput_df = aggregate_xcal_tput_data_by_location(
+        locations=locations,
+        protocol=protocol,
+        direction=direction
     )
 
     plot_data = {
-        'urban': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'urban'],
-        'suburban': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'suburban'],
-        'rural': tcp_dl_tput_df[tcp_dl_tput_df[XcalField.AREA] == 'rural'],
+        'urban': tput_df[tput_df[XcalField.AREA] == 'urban'],
+        'suburban': tput_df[tput_df[XcalField.AREA] == 'suburban'],
+        'rural': tput_df[tput_df[XcalField.AREA] == 'rural'],
     }
-    output_filepath = os.path.join(current_dir, 'outputs', 'tech_breakdown_by_area.tcp_dl.png')
+    output_filepath = os.path.join(current_dir, 'outputs', f'tech_breakdown_by_area.{protocol}_{direction}.png')
+
+    tput_field_map = {
+        'downlink': XcalField.TPUT_DL,
+        'uplink': XcalField.TPUT_UL,
+    }
+
+    tput_field = tput_field_map[direction]
     metrics = [
-        ('urban', 'Urban', 'Throughput (Mbps)', XcalField.TPUT_DL),
-        ('suburban', 'Suburban', 'Throughput (Mbps)', XcalField.TPUT_DL),
-        ('rural', 'Rural', 'Throughput (Mbps)', XcalField.TPUT_DL),
+        ('urban', 'Urban', 'Throughput (Mbps)', tput_field),
+        ('suburban', 'Suburban', 'Throughput (Mbps)', tput_field),
+        ('rural', 'Rural', 'Throughput (Mbps)', tput_field),
     ]
     plot_metric_grid(
         data=plot_data, 
@@ -1039,12 +1054,35 @@ def main():
         operator_conf=operator_conf, 
         tech_conf=tech_conf, 
         output_filepath=output_filepath,
-        max_xlim=400,
+        max_xlim=max_xlim,
+        data_sample_threshold=data_sample_threshold,
     )
     save_stats_to_json(
         data=plot_data,
         metrics=metrics, 
         filepath=output_filepath.replace('.png', '.json'),
+    )
+
+def main():
+    location_dir = {
+        'alaska': AL_DATASET_DIR,
+        'hawaii': HI_DATASET_DIR
+    }
+
+    plot_tech_breakdown_by_area_by_operator(
+        locations=['alaska', 'hawaii'],
+        protocol='tcp',
+        direction='downlink',
+        max_xlim=400,
+        data_sample_threshold=480, # 2 rounds data (~4min)
+    )
+
+    plot_tech_breakdown_by_area_by_operator(
+        locations=['alaska', 'hawaii'],
+        protocol='tcp',
+        direction='uplink',
+        max_xlim=150,
+        data_sample_threshold=240, # 1 rounds data (~2min)
     )
 
     # Throughput relevant plots
