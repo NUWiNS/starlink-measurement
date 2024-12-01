@@ -333,7 +333,7 @@ def plot_metric_grid(
             ax.tick_params(axis='both', labelsize=10)
             
             if col == 0:
-                ax.text(-0.25, 0.5, area_type.capitalize(),
+                ax.text(-0.2, 0.5, area_type.capitalize(),
                        transform=ax.transAxes,
                        rotation=0,
                        verticalalignment='center',
@@ -412,30 +412,27 @@ def save_stats_to_json(
     with open(filepath, 'w') as f:
         json.dump(stats, f, indent=4)
 
-def main():
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
-    tcp_dl_tput_df = aggregate_tput_data_by_location(
+def plot_tput_direction_by_area(direction: str, direction_label: str):
+    tcp_tput_df = aggregate_tput_data_by_location(
         locations=['alaska', 'hawaii'],
         protocol='tcp',
-        direction='downlink'
+        direction=direction
     )
-    udp_dl_tput_df = aggregate_tput_data_by_location(
+    udp_tput_df = aggregate_tput_data_by_location(
         locations=['alaska', 'hawaii'],
         protocol='udp',
-        direction='downlink'
+        direction=direction
     )
-    dl_tput_df = pd.concat([tcp_dl_tput_df, udp_dl_tput_df])
+    tput_df = pd.concat([tcp_tput_df, udp_tput_df])
     plot_data = {
-        'downlink': dl_tput_df
+        direction: tput_df
     }
     metrics = [
-        ('downlink', 'Downlink', 'Throughput (Mbps)', CommonField.TPUT_MBPS),
+        (direction, direction_label, 'Throughput (Mbps)', CommonField.TPUT_MBPS),
     ]
     output_filepath = os.path.join(
         output_dir,
-        'starlink_dl_tput_by_area.png',
+        f'starlink_{direction}_tput_by_area.png',
     )
     plot_metric_grid(
         data=plot_data,
@@ -450,8 +447,15 @@ def main():
         data=plot_data,
         metrics=metrics,
         area_conf=area_conf,
-        filepath=os.path.join(output_dir, 'starlink_dl_tput_by_area.json'),
+        filepath=os.path.join(output_dir, f'starlink_{direction}_tput_by_area.json'),
     )
+
+def main():
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    plot_tput_direction_by_area(direction='downlink', direction_label='Downlink')
+    plot_tput_direction_by_area(direction='uplink', direction_label='Uplink')
 
 if __name__ == '__main__':
     main()
