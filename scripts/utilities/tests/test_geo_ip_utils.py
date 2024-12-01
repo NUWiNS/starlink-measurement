@@ -8,7 +8,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 GEOLITE2_DB_PATH = os.path.join(current_dir, "../../../datasets/others/GeoLite2-City_20241129/GeoLite2-City.mmdb")
 
 # Set this to True to run tests with real database instead of mocks
-USE_REAL_DB = True
+USE_REAL_DB = False
 # USE_REAL_DB = False
 
 
@@ -39,23 +39,6 @@ class TestGeoIpUtils(unittest.TestCase):
         geo_ip = GeoIpUtils(db_path)
         mock_exists.assert_called_once_with(db_path)
         mock_reader.assert_called_once_with(db_path)
-
-    @unittest.skipIf(USE_REAL_DB, "Using real database")
-    @patch('geoip2.database.Reader')
-    @patch('os.path.exists')
-    def test_init_with_env_var(self, mock_exists, mock_reader):
-        mock_exists.return_value = True
-        db_path = "/env/path/to/GeoLite2-City.mmdb"
-        with patch.dict(os.environ, {'GEOLITE2_DB_PATH': db_path}):
-            geo_ip = GeoIpUtils()
-            mock_exists.assert_called_once_with(db_path)
-            mock_reader.assert_called_once_with(db_path)
-
-    @unittest.skipIf(USE_REAL_DB, "Using real database")
-    def test_init_no_db_path(self):
-        with patch.dict(os.environ, clear=True):
-            with self.assertRaises(ValueError):
-                GeoIpUtils()
 
     @unittest.skipIf(USE_REAL_DB, "Using real database")
     @patch('os.path.exists')

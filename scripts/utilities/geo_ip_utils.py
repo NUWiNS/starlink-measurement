@@ -4,18 +4,13 @@ import os
 
 
 class GeoIpUtils:
-    def __init__(self, db_path: str = None):
+    def __init__(self, db_path: str):
         """Initialize GeoIP utility with path to MaxMind GeoLite2 database.
         
         Args:
             db_path: Path to GeoLite2-City.mmdb file. If None, will look for 
                     GEOLITE2_DB_PATH environment variable.
         """
-        if db_path is None:
-            db_path = os.getenv('GEOLITE2_DB_PATH')
-            if db_path is None:
-                raise ValueError("Database path not provided and GEOLITE2_DB_PATH env var not set")
-        
         if not os.path.exists(db_path):
             raise FileNotFoundError(f"GeoLite2 database not found at: {db_path}")
             
