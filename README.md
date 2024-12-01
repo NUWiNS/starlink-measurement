@@ -49,3 +49,8 @@ python3 <trip_name>/main.py
 ```
 
 The plots will be saved in the `outputs` folder.
+
+## GeoIP Utilities
+
+Download from Maxmind's GeoLite2 database, put in `datasets/others/` and unzip.
+- https://www.maxmind.com/
