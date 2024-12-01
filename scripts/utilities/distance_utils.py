@@ -10,6 +10,22 @@ class DistanceUtils:
         return miles * 1609.34
         
     @staticmethod
+    def km_to_mile(km: float) -> float:
+        return km * 0.621371
+    
+    @staticmethod
+    def mile_to_km(miles: float) -> float:
+        return miles * 1.60934
+    
+    @staticmethod
+    def meter_to_km(meters: float) -> float:
+        return meters * 0.001
+    
+    @staticmethod
+    def km_to_meter(km: float) -> float:
+        return km * 1000
+
+    @staticmethod
     def calculate_cumulative_meters(lons: List[float], lats: List[float]) -> float:
         if len(lons) == 0 or len(lats) == 0:
             return 0
