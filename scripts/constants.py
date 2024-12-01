@@ -15,6 +15,8 @@ class CommonField:
     AREA_TYPE = 'area'
     LOCATION = 'location'
     OPERATOR = 'operator'
+    RTT_MS = 'rtt_ms'
+
 class XcalField:
     TIMESTAMP = 'TIME_STAMP'
     TECH = 'Event Technology'
