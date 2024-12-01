@@ -8,7 +8,13 @@ OUTPUT_DIR = os.path.abspath(os.path.join(PROJ_ROOT_DIR, 'outputs'))
 class CommonField:
     UTC_TS = 'utc_ts'
     LOCAL_DT = 'local_dt'
-
+    APP_TPUT_PROTOCOL = 'app_tput_protocol'
+    APP_TPUT_DIRECTION = 'app_tput_direction'
+    TPUT_MBPS = 'throughput_mbps'
+    WEATHER_TYPE = 'weather'
+    AREA_TYPE = 'area'
+    LOCATION = 'location'
+    OPERATOR = 'operator'
 class XcalField:
     TIMESTAMP = 'TIME_STAMP'
     TECH = 'Event Technology'
@@ -30,8 +36,8 @@ class XcalField:
     ACTUAL_TECH = 'actual_tech'
     TPUT_DL = 'tput_dl'
     TPUT_UL = 'tput_ul'
-    APP_TPUT_PROTOCOL = 'app_tput_protocol'
-    APP_TPUT_DIRECTION = 'app_tput_direction'
+    APP_TPUT_PROTOCOL = CommonField.APP_TPUT_PROTOCOL
+    APP_TPUT_DIRECTION = CommonField.APP_TPUT_DIRECTION
     WEATHER = 'weather'
     AREA = 'area'
     AREA_GEOJSON = 'area_geojson'
