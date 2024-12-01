@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import unittest
@@ -10,8 +11,9 @@ from matplotlib.patches import Rectangle
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-DATA_DIR = os.path.join(os.getcwd(), '../../datasets')
-OUTPUT_DIR = os.path.join(os.getcwd(), '../../outputs/overall')
+current_dir = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(current_dir, '../../datasets')
+OUTPUT_DIR = os.path.join(current_dir, './outputs')
 
 
 def get_rtt_diff_series_between_hops(df: pd.DataFrame, hop1: int, hop2: int):
@@ -195,18 +197,21 @@ config = {
 
 
 def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], config: dict,
-                                      output_path: str = 'swimlane.png'):
+                                      output_path: str = 'swimlane.png', x_step: int = None):
     """
-    Plot the swimlane chart of RTT breakdown
+    Plot the swimlane chart of RTT breakdown and return statistics for each boxplot
     :param datasource:
     :param directions: can be ['pop_to_endpoint', 'gs_to_pop'] or ['pop_to_endpoint', 'gs_to_pop', 'dishy_to_gs']
     :param config:
     :param output_path:
-    :return:
+    :param x_step: Step size for x-axis grid lines
+    :return: Dictionary containing statistics for each location and direction
     """
     group_colors = ['#f0f0f0', '#e0e0e0']
     fig, ax = plt.subplots(figsize=(5, 3.5))
 
+    stats = {}  # Dictionary to store statistics
+    
     group_idx = 0
     idx = 0
     position = 0
@@ -216,8 +221,10 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], c
     group_item_count = len(directions)
 
     for name, val in datasource.items():
+        stats[name] = {}  # Initialize stats for this location
         group_start = position
-        # Add a background rectangle for the group
+        
+        # Add background rectangle for the group
         group_height = group_item_count * 1.38
         rect = Rectangle((-25, position - 0.5),
                          200,
@@ -240,6 +247,21 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], c
                              zorder=3,
                              showfliers=False,
                              )  # Ensure boxplots are drawn on top
+            
+            # Calculate and store statistics
+            stats[name][direction] = {
+                'median': np.median(series),
+                'min': np.min(series),
+                'max': np.max(series),
+                'mean': np.mean(series),
+                'std': np.std(series),
+                'p5': np.percentile(series, 5),
+                'p25': np.percentile(series, 25),
+                'p75': np.percentile(series, 75),
+                'p95': np.percentile(series, 95),
+                'count': len(series)
+            }
+            
             conf = config[f'{name}-{direction}']
             ylabels.append(conf['label'])
 
@@ -252,15 +274,22 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], c
         group_idx += 1
     # Customize the plot
     ax.set_ylim(-0.5, position - 0.5)
-    # ax.set_xlim(0, 260)
+    
+    # Set both grid lines and x-axis ticks using x_step
+    if x_step:
+        # Set vertical grid lines
+        for x in range(-25, 175 + 1, x_step):
+            ax.axvline(x=x, color='gray', linestyle='--', alpha=0.5)
+        
+        # Set x-axis ticks
+        xticks = np.arange(-25, 175 + 1, x_step)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels([str(x) for x in xticks])
+    
     ax.set_yticks(np.arange(0, position, 1.5))
     ax.set_yticklabels(ylabels)
     ax.set_xlabel('RTT (ms)')
     ax.set_title('Bent-Pipe Latency Breakdown')
-
-    # Add vertical lines
-    for x in range(-25, 175 + 1, 25):
-        ax.axvline(x=x, color='gray', linestyle='--', alpha=0.5)
 
     for i, (start, end) in enumerate(group_positions):
         # mid = (start + end) / 2
@@ -274,29 +303,46 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], c
     plt.tight_layout()
     # plt.show()
     plt.savefig(output_path)
+    
+    return stats
 
+def save_stats_to_json(stats: dict, output_path: str, indent: int = 4):
+    with open(output_path, 'w') as f:
+        json.dump(stats, f, indent=indent)
 
-def plot_bent_pipe_rtt_breakdown():
+def plot_bent_pipe_rtt_breakdown(x_step: int = 25):
     data = get_datasource_of_bent_pipe_rtt_breakdown()
-    plot_rtt_breakdown_swimlane_chart(data,
-                                      directions=['dishy_to_gs', 'gs_to_pop'],
-                                      config=config,
-                                      output_path=os.path.join(OUTPUT_DIR, 'bent_pipe_latency_breakdown.png'))
+    output_filepath = os.path.join(OUTPUT_DIR, 'bent_pipe_latency_breakdown.png')
+    stats = plot_rtt_breakdown_swimlane_chart(data,
+                                              directions=['dishy_to_gs', 'gs_to_pop'],
+                                              config=config,
+                                              output_path=output_filepath,
+                                              x_step=x_step)
+    save_stats_to_json(stats, output_filepath.replace('.png', '.json'))
+    return stats
 
 
-def plot_overall_rtt_breakdown():
+def plot_overall_rtt_breakdown(x_step: int = 25):
     data = get_datasource_of_overall_rtt_breakdown()
-    plot_rtt_breakdown_swimlane_chart(data,
-                                      directions=['dishy_to_gs', 'gs_to_pop', 'pop_to_endpoint'],
-                                      config=config,
-                                      output_path=os.path.join(OUTPUT_DIR, 'overall_latency_breakdown.png'))
+    output_filepath = os.path.join(OUTPUT_DIR, 'overall_latency_breakdown.png')
+    stats = plot_rtt_breakdown_swimlane_chart(data,
+                                              directions=['dishy_to_gs', 'gs_to_pop', 'pop_to_endpoint'],
+                                              config=config,
+                                              output_path=output_filepath,
+                                              x_step=x_step)
+    save_stats_to_json(stats, output_filepath.replace('.png', '.json'))
+    return stats
 
 
 def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
-    plot_bent_pipe_rtt_breakdown()
-    plot_overall_rtt_breakdown()
+    bent_pipe_stats = plot_bent_pipe_rtt_breakdown()
+    overall_stats = plot_overall_rtt_breakdown()
+    
+    # You can now use these stats as needed
+    # Example of accessing stats:
+    # print(bent_pipe_stats['alaska']['dishy_to_gs']['median'])
 
 
 if __name__ == '__main__':
