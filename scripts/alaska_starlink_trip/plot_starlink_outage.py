@@ -77,6 +77,12 @@ def filter_metric_data_by_periods(metric_df: pd.DataFrame, periods: List[Tuple[d
         start_ts = start_time.timestamp()
         end_ts = end_time.timestamp()
         period_row_df = metric_df[res_utc_ts_series.between(start_ts, end_ts)].copy()
+
+        if len(period_row_df) == 0:
+            continue
+
+        segment_id = f'{period_row_df.index[0]}:{period_row_df.index[-1]}'
+        period_row_df[CommonField.SEGMENT_ID] = segment_id
         period_row_df[CommonField.SRC_IDX] = period_row_df.index
         period_row_df[CommonField.APP_TPUT_PROTOCOL] = protocol
         period_row_df[CommonField.APP_TPUT_DIRECTION] = direction
@@ -86,6 +92,9 @@ def filter_metric_data_by_periods(metric_df: pd.DataFrame, periods: List[Tuple[d
     else:
         filtered_df = pd.DataFrame()
     return filtered_df
+
+def plot_starlink_outage(metric_df: pd.DataFrame):
+    pass
 
 def main():
     app_tput_periods_csv = os.path.join(starlink_metric_dir, 'starlink_app_tput_periods.csv')
@@ -113,6 +122,8 @@ def main():
     filtered_metric_csv = os.path.join(starlink_metric_dir, 'starlink_metric.app_tput_filtered.csv')
     filtered_df.to_csv(filtered_metric_csv, index=False)
     logger.info(f"Saved filtered metric data to {filtered_metric_csv}")
+
+    plot_starlink_outage(metric_df=filtered_df)
 
 
 

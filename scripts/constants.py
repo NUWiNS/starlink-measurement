@@ -9,6 +9,7 @@ class CommonField:
     UTC_TS = 'utc_ts'
     LOCAL_DT = 'local_dt'
     SRC_IDX = 'src_idx'
+    SEGMENT_ID = 'segment_id'
     APP_TPUT_PROTOCOL = 'app_tput_protocol'
     APP_TPUT_DIRECTION = 'app_tput_direction'
     TPUT_MBPS = 'throughput_mbps'
