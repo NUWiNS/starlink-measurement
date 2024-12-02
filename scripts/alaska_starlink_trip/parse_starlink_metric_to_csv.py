@@ -11,7 +11,7 @@ from scripts.starlink_metric_utils import find_starlink_metric_files, parse_star
 base_dir = os.path.join(ROOT_DIR, 'raw/dish_metrics')
 output_dir = os.path.join(ROOT_DIR, 'starlink')
 
-def main():
+def parse_starlink_metric_to_csv():
     all_metric_files = find_starlink_metric_files(base_dir)
     print(f"Found {len(all_metric_files)} metric files.")
 
@@ -44,6 +44,10 @@ def main():
     total_csv_file = os.path.join(output_dir, 'starlink_metric.csv')
     total_df.to_csv(total_csv_file, index=False)
     print(f'Saved all the metric data to csv file: {output_dir}')
+    return total_df
+
+def main():
+    parse_starlink_metric_to_csv()
 
 
 if __name__ == '__main__':

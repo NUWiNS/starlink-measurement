@@ -6,9 +6,9 @@ from typing import Dict
 import sys
 import os
 
-import pandas as pd
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))        
 
+from scripts.constants import CommonField
 from scripts.time_utils import format_datetime_as_iso_8601
 from scripts.utils import find_files
 
@@ -45,6 +45,8 @@ def parse_starlink_metric_logs(content: str):
             extracted_data.append({
                 "req_time": format_datetime_as_iso_8601(req_time),
                 "res_time": format_datetime_as_iso_8601(res_time),
+                CommonField.LOCAL_DT: format_datetime_as_iso_8601(res_time), # Use res_time as local time
+                CommonField.UTC_TS: res_time.timestamp(),
                 **metric.get_useful_metrics()
             })
 
