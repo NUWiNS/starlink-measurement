@@ -1,3 +1,4 @@
+from abc import ABC
 from datetime import datetime
 import json
 import os
@@ -9,14 +10,12 @@ from scripts.time_utils import ensure_timezone
 from scripts.alaska_starlink_trip.labels import DatasetLabel
 from scripts.utilities.xcal_processing_utils import collect_periods_of_tput_measurements
 
-class AppTputPeriodExtractor:
-    def __init__(self, tmp_data_path: str):
-        self.tmp_data_path = tmp_data_path
+class AppTputPeriodExtractor(ABC):
+    def __init__(self, operator: str):
+        self.operator = operator
 
-    def read_dataset(self, category: str, label: str):
-        # read merged datasets
-        datasets = json.load(open(os.path.join(self.tmp_data_path, f'{category}_merged_datasets.json')))
-        return datasets[label]
+    def get_all_data_dirs(self):
+        raise NotImplementedError
 
     def get_app_tput_periods(self, dir_list: List[str], timezone: str):
         all_tput_periods = []
@@ -40,12 +39,8 @@ class AppTputPeriodExtractor:
         transformed_periods = list(map(transform_period, all_tput_periods))
         return transformed_periods
 
-    def extract_app_tput_periods(self, operator: str, timezone: str) -> List[Tuple[datetime, datetime, str, str]]:
-        dir_list = self.read_dataset(operator, label=DatasetLabel.NORMAL.value)
-        bbr_testing_data_dir_list = self.read_dataset(operator, label=DatasetLabel.BBR_TESTING_DATA.value)
-        # add bbr testing data into the final dataset
-        dir_list.extend(bbr_testing_data_dir_list)
-
+    def extract_app_tput_periods(self, timezone: str) -> List[Tuple[datetime, datetime, str, str]]:
+        dir_list = self.get_all_data_dirs()
         all_tput_periods = self.get_app_tput_periods(dir_list, timezone=timezone)
         return all_tput_periods
 

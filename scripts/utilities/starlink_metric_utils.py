@@ -10,19 +10,17 @@ from scripts.weather_area_type_query_utils import TypeIntervalQueryUtil
 from scripts.constants import CommonField
 
 class StarlinkMetricProcessor:
-    def __init__(self, root_dir: str, timezone: str, logger: logging.Logger):
+    def __init__(self, root_dir: str, timezone: str, app_tput_extractor: AppTputPeriodExtractor, logger: logging.Logger):
         self.operator = 'starlink'
         self.starlink_metric_dir = os.path.join(root_dir, 'starlink')
-        self.tmp_dir = os.path.join(root_dir, 'tmp')
         self.others_dir = os.path.join(root_dir, 'others')
 
+        self.app_tput_extractor: AppTputPeriodExtractor = app_tput_extractor
         self.timezone = timezone
-        self.app_tput_extractor: AppTputPeriodExtractor | None = None
         self.logger = logger
 
     def process(self):
-        self.app_tput_extractor = AppTputPeriodExtractor(tmp_data_path=self.tmp_dir)
-        all_periods = self.app_tput_extractor.extract_app_tput_periods(operator=self.operator, timezone=self.timezone)
+        all_periods = self.app_tput_extractor.extract_app_tput_periods(timezone=self.timezone)
         starlink_metric_csv = os.path.join(self.starlink_metric_dir, 'starlink_metric.csv')
         metric_df = pd.read_csv(starlink_metric_csv)
 
