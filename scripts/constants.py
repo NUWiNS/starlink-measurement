@@ -8,6 +8,7 @@ OUTPUT_DIR = os.path.abspath(os.path.join(PROJ_ROOT_DIR, 'outputs'))
 class CommonField:
     UTC_TS = 'utc_ts'
     LOCAL_DT = 'local_dt'
+    SRC_IDX = 'src_idx'
     APP_TPUT_PROTOCOL = 'app_tput_protocol'
     APP_TPUT_DIRECTION = 'app_tput_direction'
     TPUT_MBPS = 'throughput_mbps'
