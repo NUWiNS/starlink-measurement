@@ -5,12 +5,11 @@ import pandas as pd
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from scripts.constants import DATASET_DIR
-
+from scripts.alaska_starlink_trip.configs import ROOT_DIR
 from scripts.starlink_metric_utils import find_starlink_metric_files, parse_starlink_metric_logs
 
-base_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/raw/dish_metrics')
-
+base_dir = os.path.join(ROOT_DIR, 'raw/dish_metrics')
+output_dir = os.path.join(ROOT_DIR, 'starlink')
 
 def main():
     all_metric_files = find_starlink_metric_files(base_dir)
@@ -40,7 +39,6 @@ def main():
             print(f"Error reading {file}: {e}")
 
     print('Total files:', len(all_metric_files))
-    output_dir = os.path.join(DATASET_DIR, 'alaska_starlink_trip/starlink')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
     total_csv_file = os.path.join(output_dir, 'starlink_metric.csv')

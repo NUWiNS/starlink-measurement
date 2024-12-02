@@ -3,10 +3,9 @@ import sys
 
 import pandas as pd
 
-from scripts.hawaii_starlink_trip.configs import ROOT_DIR
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR
 from scripts.starlink_metric_utils import find_starlink_metric_files, parse_starlink_metric_logs
 
 base_dir = os.path.join(ROOT_DIR, 'raw/dish_metrics')
