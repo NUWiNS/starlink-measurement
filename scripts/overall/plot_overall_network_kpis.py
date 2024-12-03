@@ -29,6 +29,42 @@ location_conf = {
     }
 }
 
+cellular_location_conf = {
+    'alaska': {
+        'label': 'AK',
+        'root_dir': ALASKA_ROOT_DIR,
+        'operators': ['verizon', 'att'],
+        'order': 1
+    },
+    'hawaii': {
+        'label': 'HI',
+        'root_dir': HAWAII_ROOT_DIR,
+        'operators': ['verizon', 'att', 'tmobile'],
+        'order': 2
+    }
+}
+
+cellular_operator_conf = {
+    'att': {
+        'label': 'AT&T',
+        'order': 1,
+        'color': operator_color_map['att'],
+        'linestyle': '-'
+    },
+    'verizon': {
+        'label': 'Verizon',
+        'order': 2,
+        'color': operator_color_map['verizon'],
+        'linestyle': '--'
+    },
+    'tmobile': {
+        'label': 'T-Mobile',
+        'order': 3,
+        'color': operator_color_map['tmobile'],
+        'linestyle': ':'
+    },
+}
+
 operator_conf = {
     'att': {
         'label': 'AT&T',
@@ -150,6 +186,10 @@ def plot_metric_grid(
         
         for location in locations_sorted:
             plot_df = data[metric_name][data[metric_name]['location'] == location]
+
+            needed_operators = list(map(lambda op: operator_conf[op]['label'], loc_conf[location]['operators']))
+            plot_df = plot_df[plot_df['operator'].isin(needed_operators)]
+
             for op_label in plot_df['operator'].unique():
                 op_data = plot_df[plot_df['operator'] == op_label][data_field]
                 if percentile < 100:
@@ -175,6 +215,10 @@ def plot_metric_grid(
         for col, (metric_name, column_title, xlabel, data_field) in enumerate(metrics):
             ax = axes[row, col]
             plot_df = data[metric_name][data[metric_name]['location'] == location]
+
+            needed_operators = list(map(lambda op: operator_conf[op]['label'], loc_conf[location]['operators']))
+            plot_df = plot_df[plot_df['operator'].isin(needed_operators)]
+
             percentile = percentile_filter.get(metric_name, 100) if percentile_filter else 100
             
             for _, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
@@ -324,45 +368,76 @@ def main():
         ('tcp_downlink', 'TCP DL', 'Throughput (Mbps)', 'throughput_mbps'),
         ('tcp_uplink', 'TCP UL', 'Throughput (Mbps)', 'throughput_mbps'),
     ]
+    # Cellular Only
     plot_metric_grid(
         data={
             'tcp_downlink': tput_data['tcp']['downlink'],
             'tcp_uplink': tput_data['tcp']['uplink']
         },
-        loc_conf=location_conf,
-        operator_conf=operator_conf,
+        loc_conf=cellular_location_conf,
+        operator_conf=cellular_operator_conf,
         metrics=tcp_metrics,
-        output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_tcp_tput.png'),
+        output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_tcp_tput.png'),
     )
+    # plot_metric_grid(
+    #     data={
+    #         'tcp_downlink': tput_data['tcp']['downlink'],
+    #         'tcp_uplink': tput_data['tcp']['uplink']
+    #     },
+    #     loc_conf=location_conf,
+    #     operator_conf=operator_conf,
+    #     metrics=tcp_metrics,
+    #     output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_tcp_tput.png'),
+    # )
     
     # Plot UDP throughput
     udp_metrics = [
         ('udp_downlink', 'UDP DL', 'Throughput (Mbps)', 'throughput_mbps'),
         ('udp_uplink', 'UDP UL', 'Throughput (Mbps)', 'throughput_mbps'),
     ]
+    # Cellular Only
     plot_metric_grid(
         data={
             'udp_downlink': tput_data['udp']['downlink'],
             'udp_uplink': tput_data['udp']['uplink']
         },
-        loc_conf=location_conf,
-        operator_conf=operator_conf,
+        loc_conf=cellular_location_conf,
+        operator_conf=cellular_operator_conf,
         metrics=udp_metrics,
-        output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_udp_tput.png'),
+        output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_udp_tput.png'),
     )
+    # plot_metric_grid(
+    #     data={
+    #         'udp_downlink': tput_data['udp']['downlink'],
+    #         'udp_uplink': tput_data['udp']['uplink']
+    #     },
+    #     loc_conf=location_conf,
+    #     operator_conf=operator_conf,
+    #     metrics=udp_metrics,
+    #     output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_udp_tput.png'),
+    # )
     
     # Plot latency
     latency_metrics = [
         ('latency', 'Latency (95th percentile)', 'RTT (ms)', 'rtt_ms'),
     ]
+    # Cellular Only
     plot_metric_grid(
         data={'latency': latency_data},
-        loc_conf=location_conf,
-        operator_conf=operator_conf,
+        loc_conf=cellular_location_conf,
+        operator_conf=cellular_operator_conf,
         metrics=latency_metrics,
-        output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_latency.png'),
+        output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_latency.png'),
         percentile_filter={'latency': 95}
     )
+    # plot_metric_grid(
+    #     data={'latency': latency_data},
+    #     loc_conf=location_conf,
+    #     operator_conf=operator_conf,
+    #     metrics=latency_metrics,
+    #     output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_latency.png'),
+    #     percentile_filter={'latency': 95}
+    # )
 
     save_stats_network_kpi(tput_data, latency_data, location_conf, operator_conf, output_dir)
 
