@@ -235,15 +235,21 @@ def plot_tech_with_all_operators(
         output_dir (str): Directory to save the plot
         location (str): Location name (e.g., 'alaska' or 'hawaii')
     """
-    # Set up the plot
-    fig, ax = plt.subplots(figsize=(12, 8))
+    # Sort operators by the order of Verizon, T-Mobile, ATT
+    operators = sorted(list(dfs.keys()), key=lambda x: operator_conf[x]['order'])
+    
+    # Dynamically adjust figure width based on number of operators while maintaining bar width consistency
+    bar_width = 0.35  # Desired bar width
+    spacing_factor = 3  # Space between bars relative to bar width
+    total_width_needed = len(operators) * bar_width * spacing_factor
+    fig_width = max(6, total_width_needed + 2)  # Add padding for margins
+    
+    fig, ax = plt.subplots(figsize=(fig_width, 4))
     
     # Colors for different technologies - from grey (NO SERVICE) to rainbow gradient
-    colors = ['#808080', '#326f21', '#86c84d', '#f5ff61', '#f4b550', '#eb553a', '#ba281c']
-    tech_order = ['NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']
+    colors = ['#808080', '#326f21', '#86c84d', '#f5ff61', '#f4b550']
+    tech_order = ['NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid']
     
-    # Sort operators by the order of Verizon, T-Mobile, ATT
-    operators = sorted(list(dfs.keys()), key=lambda x: {'verizon': 0, 'tmobile': 1, 'att': 2}.get(x.lower(), 999))
     tech_fractions = []
     stats = {}
 
@@ -272,28 +278,45 @@ def plot_tech_with_all_operators(
             
         stats[operator] = sub_stats
     
-    # Plot stacked bars
-    x = range(len(operators))
-    bottom = np.zeros(len(operators))
-    bar_width = 0.5
+    # Find which technologies are actually present in the data
+    present_techs = set()
+    for fractions in tech_fractions:
+        for tech, fraction in fractions.items():
+            if fraction > 0:
+                present_techs.add(tech)
     
-    for i, tech in enumerate(tech_order):
+    # Sort present_techs according to tech_order
+    present_techs = sorted(list(present_techs), key=lambda x: tech_order.index(x))
+    
+    # Plot stacked bars with consistent width
+    x = np.arange(len(operators)) * spacing_factor * bar_width  # Evenly space the bars
+    bottom = np.zeros(len(operators))
+    
+    # Only plot technologies that are present
+    for i, tech in enumerate(present_techs):
         values = [f[tech] if tech in f else 0 for f in tech_fractions]
-        ax.bar(x, values, bottom=bottom, label=tech, color=colors[i], 
+        ax.bar(x, values, bottom=bottom, label=tech, color=colors[tech_order.index(tech)], 
                width=bar_width)
         bottom += values
     
     ax.set_title(title)
     ax.set_xlabel('Operator')
-    ax.set_ylabel('Fraction of Total Distance (Miles)')
+    ax.set_ylabel('Fraction of Miles')
     ax.set_xticks(x)
-    ax.set_xticklabels(operators)
-    ax.legend(title='Technology', bbox_to_anchor=(1.05, 1), loc='upper left')
-    ax.grid(True, axis='y')
+    ax.set_xticklabels(map(lambda x: operator_conf[x]['label'], operators))
     
+    # Set x-axis limits to maintain consistent spacing
+    ax.set_xlim(x[0] - bar_width * 1.5, x[-1] + bar_width * 1.5)
+    
+    # Adjust legend position and size
+    ax.legend(title='Technology', bbox_to_anchor=(1.02, 1), loc='upper left', fontsize='small')
+    
+    ax.grid(True, axis='y', alpha=0.3)  # Reduced grid line opacity
+    
+    # Adjust layout to be more compact
     plt.tight_layout()
     figure_path = os.path.join(output_dir, f'{fig_name}.png')
-    plt.savefig(figure_path, bbox_inches='tight')
+    plt.savefig(figure_path, bbox_inches='tight', dpi=300)
     plt.close()
     
     # Save stats to json
@@ -787,6 +810,47 @@ def aggregate_xcal_tput_data_by_location(
         data = pd.concat([data, df])
     return data
 
+
+def read_latency_data(root_dir: str, operator: str, protocol: str = 'icmp'):
+    if protocol == 'icmp':
+        input_csv_path = os.path.join(root_dir, 'ping', f'{operator}_ping.csv')
+    else:
+        raise ValueError(f'Unsupported protocol: {protocol}')
+
+    df = pd.read_csv(input_csv_path)
+    return df
+
+def aggregate_latency_data_by_operator(
+        root_dir: str,
+        operators: List[str], 
+        protocol: str = 'icmp',
+    ):
+    data = pd.DataFrame()
+    for operator in operators:
+        df = read_latency_data(
+            root_dir=root_dir, 
+            operator=operator, 
+            protocol=protocol
+        )
+        df['operator'] = operator
+        data = pd.concat([data, df])
+    return data
+
+def aggregate_latency_data_by_location(
+        locations: List[str], 
+        protocol: str = 'icmp',
+    ):
+    data = pd.DataFrame()
+    for location in locations:
+        df = aggregate_latency_data_by_operator(
+            root_dir=location_conf[location]['root_dir'],
+            operators=location_conf[location]['operators'], 
+            protocol=protocol
+        )
+        df['location'] = location
+        data = pd.concat([data, df])
+    return data
+
 def plot_metric_grid(
         data: Dict[str, pd.DataFrame],
         metrics: List[tuple],
@@ -1016,7 +1080,7 @@ def save_stats_to_json(
     with open(filepath, 'w') as f:
         json.dump(stats, f, indent=4)
 
-def plot_tech_breakdown_by_area_by_operator(
+def plot_tput_tech_breakdown_by_area_by_operator(
         locations: List[str], 
         protocol: str, 
         direction: str,
@@ -1030,8 +1094,9 @@ def plot_tech_breakdown_by_area_by_operator(
     )
 
     plot_data = {
-        'urban': tput_df[tput_df[XcalField.AREA] == 'urban'],
-        'suburban': tput_df[tput_df[XcalField.AREA] == 'suburban'],
+        'urban': tput_df[
+            (tput_df[XcalField.AREA] == 'urban') | (tput_df[XcalField.AREA] == 'suburban')
+        ],
         'rural': tput_df[tput_df[XcalField.AREA] == 'rural'],
     }
     output_filepath = os.path.join(current_dir, 'outputs', f'tech_breakdown_by_area.{protocol}_{direction}.png')
@@ -1044,7 +1109,6 @@ def plot_tech_breakdown_by_area_by_operator(
     tput_field = tput_field_map[direction]
     metrics = [
         ('urban', 'Urban', 'Throughput (Mbps)', tput_field),
-        ('suburban', 'Suburban', 'Throughput (Mbps)', tput_field),
         ('rural', 'Rural', 'Throughput (Mbps)', tput_field),
     ]
     plot_metric_grid(
@@ -1063,27 +1127,116 @@ def plot_tech_breakdown_by_area_by_operator(
         filepath=output_filepath.replace('.png', '.json'),
     )
 
-def main():
-    location_dir = {
-        'alaska': AL_DATASET_DIR,
-        'hawaii': HI_DATASET_DIR
+def plot_latency_tech_breakdown_by_area_by_operator(
+        locations: List[str], 
+        protocol: str = 'icmp', 
+        max_xlim: float = None,
+        data_sample_threshold: int = 240, # 1 rounds data (~2min)
+    ):
+
+    latency_df = aggregate_latency_data_by_location(
+        locations=locations,
+        protocol=protocol,
+    )
+
+    plot_data = {
+        'urban': latency_df[
+            (latency_df[XcalField.AREA] == 'urban') | (latency_df[XcalField.AREA] == 'suburban')
+        ],
+        'rural': latency_df[latency_df[XcalField.AREA] == 'rural'],
     }
 
-    plot_tech_breakdown_by_area_by_operator(
-        locations=['alaska', 'hawaii'],
-        protocol='tcp',
-        direction='downlink',
-        max_xlim=400,
-        data_sample_threshold=480, # 2 rounds data (~4min)
+    # Set output filepath for the plot
+    output_filepath = os.path.join(current_dir, 'outputs', f'latency_tech_breakdown_by_area.{protocol}.png')
+
+    latency_field = 'rtt_ms'
+    
+    # Define metrics for plotting - similar structure but with latency labels
+    metrics = [
+        ('urban', 'Urban', 'Round-Trip Time (ms)', latency_field),
+        ('rural', 'Rural', 'Round-Trip Time (ms)', latency_field),
+    ]
+
+    # Generate the plot using the same plotting function
+    plot_metric_grid(
+        data=plot_data, 
+        metrics=metrics, 
+        loc_conf=location_conf, 
+        operator_conf=operator_conf, 
+        tech_conf=tech_conf, 
+        output_filepath=output_filepath,
+        max_xlim=max_xlim,
+        data_sample_threshold=data_sample_threshold,
     )
 
-    plot_tech_breakdown_by_area_by_operator(
-        locations=['alaska', 'hawaii'],
-        protocol='tcp',
-        direction='uplink',
-        max_xlim=150,
-        data_sample_threshold=240, # 1 rounds data (~2min)
+    # Save statistics to JSON file
+    save_stats_to_json(
+        data=plot_data,
+        metrics=metrics, 
+        filepath=output_filepath.replace('.png', '.json'),
     )
+
+def main():
+    # plot_tput_tech_breakdown_by_area_by_operator(
+    #     locations=['alaska', 'hawaii'],
+    #     protocol='tcp',
+    #     direction='downlink',
+    #     max_xlim=400,
+    #     data_sample_threshold=480, # 2 rounds data (~4min)
+    # )
+
+    # plot_tput_tech_breakdown_by_area_by_operator(
+    #     locations=['alaska', 'hawaii'],
+    #     protocol='tcp',
+    #     direction='uplink',
+    #     max_xlim=150,
+    #     data_sample_threshold=480, # 2 rounds data (~4min)
+    # )
+
+    # plot_latency_tech_breakdown_by_area_by_operator(
+    #     locations=['alaska', 'hawaii'],
+    #     protocol='icmp',
+    #     # max_xlim=100,
+    #     # data_sample_threshold=480, # 2 rounds data (~4min)
+    # )
+
+    for location in ['alaska', 'hawaii']:
+        logger.info(f'-- Processing dataset: {location}')
+        base_dir = location_conf[location]['root_dir']
+        output_dir = os.path.join(current_dir, 'outputs', location)
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        # Store dataframes for all operators
+        operator_dfs = {}
+
+        for operator in sorted(location_conf[location]['operators'], key=lambda x: operator_conf[x]['order']):
+            logger.info(f'---- Processing operator: {operator}')
+            input_csv_path = os.path.join(base_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+            df = pd.read_csv(input_csv_path)
+            operator_dfs[operator] = df
+
+        loc_label = location_conf[location]['label']
+
+        # Urban + suburban tech breakdown
+        plot_tech_with_all_operators(
+            dfs=operator_dfs, 
+            df_mask=lambda df: (df[XcalField.AREA] == 'urban') | (df[XcalField.AREA] == 'suburban'), 
+            output_dir=output_dir, 
+            title=f'Technology Distribution ({loc_label}-Urban)',
+            fig_name=f'tech_breakdown_by_urban_area',
+        )
+
+        # Plot location-wide tech breakdown by area
+        plot_tech_with_all_operators(
+            dfs=operator_dfs, 
+            df_mask=lambda df: df[XcalField.AREA] == 'rural', 
+            output_dir=output_dir, 
+            title=f'Technology Distribution ({loc_label}-Rural)',
+            fig_name=f'tech_breakdown_by_rural_area',
+        )
+
 
     # Throughput relevant plots
     # for location in ['alaska', 'hawaii']:
