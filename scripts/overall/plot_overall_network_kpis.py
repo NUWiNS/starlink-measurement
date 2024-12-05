@@ -361,24 +361,39 @@ def main():
                 direction=direction
             )
     
-    latency_data = aggregate_latency_data_by_location(locations=['alaska', 'hawaii'])
-    
-    # Plot TCP throughput
-    tcp_metrics = [
+    # Plot Downlink Performance
+    downlink_metrics = [
         ('tcp_downlink', 'TCP DL', 'Throughput (Mbps)', 'throughput_mbps'),
-        ('tcp_uplink', 'TCP UL', 'Throughput (Mbps)', 'throughput_mbps'),
+        ('udp_downlink', 'UDP DL', 'Throughput (Mbps)', 'throughput_mbps'),
     ]
-    # Cellular Only
     plot_metric_grid(
         data={
             'tcp_downlink': tput_data['tcp']['downlink'],
-            'tcp_uplink': tput_data['tcp']['uplink']
+            'udp_downlink': tput_data['udp']['downlink']
         },
         loc_conf=cellular_location_conf,
         operator_conf=cellular_operator_conf,
-        metrics=tcp_metrics,
-        output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_tcp_tput.png'),
+        metrics=downlink_metrics,
+        output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators.downlink_tput.png'),
     )
+
+    
+    # Plot TCP throughput
+    # tcp_metrics = [
+    #     ('tcp_downlink', 'TCP DL', 'Throughput (Mbps)', 'throughput_mbps'),
+    #     ('tcp_uplink', 'TCP UL', 'Throughput (Mbps)', 'throughput_mbps'),
+    # ]
+    # # Cellular Only
+    # plot_metric_grid(
+    #     data={
+    #         'tcp_downlink': tput_data['tcp']['downlink'],
+    #         'tcp_uplink': tput_data['tcp']['uplink']
+    #     },
+    #     loc_conf=cellular_location_conf,
+    #     operator_conf=cellular_operator_conf,
+    #     metrics=tcp_metrics,
+    #     output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_tcp_tput.png'),
+    # )
     # plot_metric_grid(
     #     data={
     #         'tcp_downlink': tput_data['tcp']['downlink'],
@@ -391,21 +406,21 @@ def main():
     # )
     
     # Plot UDP throughput
-    udp_metrics = [
-        ('udp_downlink', 'UDP DL', 'Throughput (Mbps)', 'throughput_mbps'),
-        ('udp_uplink', 'UDP UL', 'Throughput (Mbps)', 'throughput_mbps'),
-    ]
-    # Cellular Only
-    plot_metric_grid(
-        data={
-            'udp_downlink': tput_data['udp']['downlink'],
-            'udp_uplink': tput_data['udp']['uplink']
-        },
-        loc_conf=cellular_location_conf,
-        operator_conf=cellular_operator_conf,
-        metrics=udp_metrics,
-        output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_udp_tput.png'),
-    )
+    # udp_metrics = [
+    #     ('udp_downlink', 'UDP DL', 'Throughput (Mbps)', 'throughput_mbps'),
+    #     ('udp_uplink', 'UDP UL', 'Throughput (Mbps)', 'throughput_mbps'),
+    # ]
+    # # Cellular Only
+    # plot_metric_grid(
+    #     data={
+    #         'udp_downlink': tput_data['udp']['downlink'],
+    #         'udp_uplink': tput_data['udp']['uplink']
+    #     },
+    #     loc_conf=cellular_location_conf,
+    #     operator_conf=cellular_operator_conf,
+    #     metrics=udp_metrics,
+    #     output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_udp_tput.png'),
+    # )
     # plot_metric_grid(
     #     data={
     #         'udp_downlink': tput_data['udp']['downlink'],
@@ -417,29 +432,31 @@ def main():
     #     output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_udp_tput.png'),
     # )
     
-    # Plot latency
-    latency_metrics = [
-        ('latency', 'Latency (95th percentile)', 'RTT (ms)', 'rtt_ms'),
-    ]
-    # Cellular Only
-    plot_metric_grid(
-        data={'latency': latency_data},
-        loc_conf=cellular_location_conf,
-        operator_conf=cellular_operator_conf,
-        metrics=latency_metrics,
-        output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_latency.png'),
-        percentile_filter={'latency': 95}
-    )
+    # latency_data = aggregate_latency_data_by_location(locations=['alaska', 'hawaii'])
+
+    # # Plot latency
+    # latency_metrics = [
+    #     ('latency', 'Latency (95th percentile)', 'RTT (ms)', 'rtt_ms'),
+    # ]
+    # # Cellular Only
     # plot_metric_grid(
     #     data={'latency': latency_data},
-    #     loc_conf=location_conf,
-    #     operator_conf=operator_conf,
+    #     loc_conf=cellular_location_conf,
+    #     operator_conf=cellular_operator_conf,
     #     metrics=latency_metrics,
-    #     output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_latency.png'),
+    #     output_filepath=os.path.join(output_dir, 'ak_hi_cellular_operators_latency.png'),
     #     percentile_filter={'latency': 95}
     # )
+    # # plot_metric_grid(
+    # #     data={'latency': latency_data},
+    # #     loc_conf=location_conf,
+    # #     operator_conf=operator_conf,
+    # #     metrics=latency_metrics,
+    # #     output_filepath=os.path.join(output_dir, 'ak_hi_all_operators_latency.png'),
+    # #     percentile_filter={'latency': 95}
+    # # )
 
-    save_stats_network_kpi(tput_data, latency_data, location_conf, operator_conf, output_dir)
+    # save_stats_network_kpi(tput_data, latency_data, location_conf, operator_conf, output_dir)
 
 
 if __name__ == '__main__':
