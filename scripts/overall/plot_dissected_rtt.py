@@ -15,6 +15,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(current_dir, '../../datasets')
 OUTPUT_DIR = os.path.join(current_dir, './outputs')
 
+def get_last_hop_rtt_series(df: pd.DataFrame):
+    _df = df[df['rtt_ms'].notna() & df['exception'].isna()]
+    hop_df = _df.groupby(['start_time', 'hop_number']).agg({'rtt_ms': 'mean'}).reset_index()
+    res = []
+    for _, group in hop_df.groupby('start_time'):
+        res.append(group[group['hop_number'] == group['hop_number'].max()]['rtt_ms'].values[0])
+    return pd.Series(res).dropna().astype(float)
 
 def get_rtt_diff_series_between_hops(df: pd.DataFrame, hop1: int, hop2: int):
     """
@@ -30,7 +37,7 @@ def get_rtt_diff_series_between_hops(df: pd.DataFrame, hop1: int, hop2: int):
         raise ValueError('hop2 must be greater than hop1')
 
     _df = df[df['rtt_ms'].notna() & df['exception'].isna()]
-    hop_df = _df.groupby(['start_time', 'hop_number']).agg({'rtt_ms': 'mean'}).reset_index()
+    hop_df = _df.groupby(['start_time', 'hop_number']).agg({'rtt_ms': 'min'}).reset_index()
     result = []
     for _, group in hop_df.groupby('start_time'):
         if hop2 == -1:
@@ -83,17 +90,17 @@ def get_datasource_of_bent_pipe_rtt_breakdown() -> dict:
     # ALASKA
     ak_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'alaska_starlink_trip/traceroute/starlink_traceroute.csv'))
     ak_d2g = get_rtt_diff_series_between_hops(ak_tr_df, hop1=1, hop2=2)
-    ak_g2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=2, hop2=3)
+    ak_g2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=2, hop2=4)
 
     # HAWAII
     hi_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'hawaii_starlink_trip/traceroute/starlink_traceroute.csv'))
     hi_d2g = get_rtt_diff_series_between_hops(hi_tr_df, hop1=1, hop2=2)
-    hi_g2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=2, hop2=3)
+    hi_g2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=2, hop2=4)
 
     # MAINE
     me_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'maine_starlink_trip/traceroute/starlink_traceroute.csv'))
     me_d2g = get_rtt_diff_series_between_hops(me_tr_df, hop1=1, hop2=2)
-    me_g2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=2, hop2=3)
+    me_g2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=2, hop2=4)
 
     return {
         'alaska': {
@@ -122,36 +129,40 @@ def get_datasource_of_overall_rtt_breakdown() -> dict:
     # ALASKA
     ak_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'alaska_starlink_trip/traceroute/starlink_traceroute.csv'))
     ak_d2g = get_rtt_diff_series_between_hops(ak_tr_df, hop1=1, hop2=2)
-    ak_g2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=2, hop2=3)
-    ak_p2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=3, hop2=-1)
+    ak_g2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=2, hop2=4)
+    ak_p2p = get_rtt_diff_series_between_hops(ak_tr_df, hop1=4, hop2=-1)
+    ak_last_hop_rtt = get_last_hop_rtt_series(ak_tr_df)
 
     # HAWAII
     hi_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'hawaii_starlink_trip/traceroute/starlink_traceroute.csv'))
     hi_d2g = get_rtt_diff_series_between_hops(hi_tr_df, hop1=1, hop2=2)
-    hi_g2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=2, hop2=3)
-    hi_p2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=3, hop2=-1)
-
+    hi_g2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=2, hop2=4)
+    hi_p2p = get_rtt_diff_series_between_hops(hi_tr_df, hop1=4, hop2=-1)
+    hi_last_hop_rtt = get_last_hop_rtt_series(hi_tr_df)
     # MAINE
     me_tr_df = pd.read_csv(os.path.join(DATA_DIR, 'maine_starlink_trip/traceroute/starlink_traceroute.csv'))
     me_d2g = get_rtt_diff_series_between_hops(me_tr_df, hop1=1, hop2=2)
-    me_g2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=2, hop2=3)
-    me_p2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=3, hop2=-1)
-
+    me_g2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=2, hop2=4)
+    me_p2p = get_rtt_diff_series_between_hops(me_tr_df, hop1=4, hop2=-1)
+    me_last_hop_rtt = get_last_hop_rtt_series(me_tr_df)
     return {
         'alaska': {
             'dishy_to_gs': ak_d2g,
             'gs_to_pop': ak_g2p,
-            'pop_to_endpoint': ak_p2p
+            'pop_to_endpoint': ak_p2p,
+            'dishy_to_endpoint': ak_last_hop_rtt
         },
         'hawaii': {
             'dishy_to_gs': hi_d2g,
             'gs_to_pop': hi_g2p,
-            'pop_to_endpoint': hi_p2p
+            'pop_to_endpoint': hi_p2p,
+            'dishy_to_endpoint': hi_last_hop_rtt
         },
         'maine': {
             'dishy_to_gs': me_d2g,
             'gs_to_pop': me_g2p,
-            'pop_to_endpoint': me_p2p
+            'pop_to_endpoint': me_p2p,
+            'dishy_to_endpoint': me_last_hop_rtt
         },
     }
 
@@ -169,6 +180,10 @@ config = {
         'label': 'PoP<->Endpoint',
         'color': 'purple',
     },
+    'alaska-dishy_to_endpoint': {
+        'label': 'Dishy<->Endpoint',
+        'color': 'red',
+    },
     'hawaii-dishy_to_gs': {
         'label': 'Dishy<->GS',
         'color': 'g',
@@ -181,6 +196,10 @@ config = {
         'label': 'PoP<->Endpoint',
         'color': 'purple',
     },
+    'hawaii-dishy_to_endpoint': {
+        'label': 'Dishy<->Endpoint',
+        'color': 'red',
+    },
     'maine-dishy_to_gs': {
         'label': 'Dishy<->GS',
         'color': 'g',
@@ -192,6 +211,10 @@ config = {
     'maine-pop_to_endpoint': {
         'label': 'PoP<->Endpoint',
         'color': 'purple',
+    },
+    'maine-dishy_to_endpoint': {
+        'label': 'Dishy<->Endpoint',
+        'color': 'red',
     },
 }
 
@@ -208,7 +231,8 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], c
     :return: Dictionary containing statistics for each location and direction
     """
     group_colors = ['#f0f0f0', '#e0e0e0']
-    fig, ax = plt.subplots(figsize=(5, 3.5))
+    # fig, ax = plt.subplots(figsize=(5, 3.5))
+    fig, ax = plt.subplots(figsize=(10, 8))
 
     stats = {}  # Dictionary to store statistics
     
@@ -289,7 +313,7 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], c
     ax.set_yticks(np.arange(0, position, 1.5))
     ax.set_yticklabels(ylabels)
     ax.set_xlabel('RTT (ms)')
-    ax.set_title('Bent-Pipe Latency Breakdown')
+    # ax.set_title('Bent-Pipe Latency Breakdown')
 
     for i, (start, end) in enumerate(group_positions):
         # mid = (start + end) / 2
@@ -312,7 +336,7 @@ def save_stats_to_json(stats: dict, output_path: str, indent: int = 4):
 
 def plot_bent_pipe_rtt_breakdown(x_step: int = 25):
     data = get_datasource_of_bent_pipe_rtt_breakdown()
-    output_filepath = os.path.join(OUTPUT_DIR, 'bent_pipe_latency_breakdown.png')
+    output_filepath = os.path.join(OUTPUT_DIR, 'bent_pipe_latency_breakdown.agg_min.png')
     stats = plot_rtt_breakdown_swimlane_chart(data,
                                               directions=['dishy_to_gs', 'gs_to_pop'],
                                               config=config,
@@ -324,9 +348,9 @@ def plot_bent_pipe_rtt_breakdown(x_step: int = 25):
 
 def plot_overall_rtt_breakdown(x_step: int = 25):
     data = get_datasource_of_overall_rtt_breakdown()
-    output_filepath = os.path.join(OUTPUT_DIR, 'overall_latency_breakdown.png')
+    output_filepath = os.path.join(OUTPUT_DIR, 'overall_latency_breakdown.agg_min.png')
     stats = plot_rtt_breakdown_swimlane_chart(data,
-                                              directions=['dishy_to_gs', 'gs_to_pop', 'pop_to_endpoint'],
+                                              directions=['dishy_to_gs', 'gs_to_pop', 'pop_to_endpoint', 'dishy_to_endpoint'],
                                               config=config,
                                               output_path=output_filepath,
                                               x_step=x_step)
