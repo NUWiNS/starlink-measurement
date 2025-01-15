@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from scripts.cell_leo_in_remote_us.common import aggregate_xcal_tput_data_by_location, location_conf, operator_conf, tech_conf
-from scripts.constants import XcalField
+from scripts.constants import CommonField, XcalField
 from scripts.logging_utils import create_logger
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -274,18 +274,17 @@ def plot_tech_breakdown_cdfs_in_a_row(
         operators: List[str],
         operator_conf: Dict[str, Dict],
         tech_conf: Dict[str, Dict],
-        category: str | None = None,
-        title: str | None = None,
+        title: str = '',
+        max_xlim: float | None = None,
+        interval_x: float | None = None,
+        data_sample_threshold: int = 240, # 1 rounds data (~2min)
     ):
     # Create figure with horizontal subplots (one per operator)
     n_operators = len(operators)
-
-    show_category = category is not None
-    show_title = title is not None
     
-    # Adjust figure size and left margin based on whether we're showing category
-    left_margin = 0.1 if show_category else 0.05
-    fig = plt.figure(figsize=(4.8 * n_operators, 4))
+    left_margin = 0.12 if n_operators > 2 else 0.12
+    y_label_pos = 0
+    fig = plt.figure(figsize=(2.5 * 3, 3.5))  # Fixed size for 3 operators (2.5 * 3)
     gs = fig.add_gridspec(1, n_operators, left=left_margin, bottom=0.2, top=0.85)
     axes = [fig.add_subplot(gs[0, i]) for i in range(n_operators)]
     
@@ -294,23 +293,16 @@ def plot_tech_breakdown_cdfs_in_a_row(
         axes = np.array([axes])
     
     # Adjust spacing between subplots
-    plt.subplots_adjust(wspace=0.2)
-    
-    # Add category text to the left middle of the entire figure if requested
-    if show_category:
-        fig.text(0.02, 0.5, category, 
-                rotation=0,
-                verticalalignment='center',
-                horizontalalignment='right',
-                size=16,
-                weight='bold')
+    if n_operators > 2:
+        plt.subplots_adjust(wspace=0.15)
+    else:
+        plt.subplots_adjust(wspace=0.1)
     
     # Add title at the top middle of the figure if requested
-    if show_title:
-        fig.suptitle(title, y=0.98, size=16, weight='bold')
+    # fig.suptitle(title, y=0.98, size=16, weight='bold')
     
     # Set up common y-axis label for all subplots
-    fig.text(0.035, 0.5, 'CDF', 
+    fig.text(y_label_pos, 0.5, 'CDF', 
              rotation=90,
              verticalalignment='center',
              size=14,
@@ -321,20 +313,65 @@ def plot_tech_breakdown_cdfs_in_a_row(
              horizontalalignment='center',
              size=14,
              weight='bold')
-    
-    # TODO: Implement subplot content for each operator
+
+    # Plot content for each operator
     for idx, operator in enumerate(operators):
         ax = axes[idx]
+        # Filter data for this operator
+        operator_df = df[df['operator'] == operator]
+
+        # Plot each technology's CDF
+        for tech, tech_cfg in tech_conf.items():
+            # Filter data for this technology
+            operator_tech_data = operator_df[operator_df[XcalField.ACTUAL_TECH] == tech][data_field]
+            
+            if len(operator_tech_data) < data_sample_threshold:
+                logger.warn(f'{operator}-{tech} data sample is less than required threshold, skip plotting: {len(operator_tech_data)} < {data_sample_threshold}')
+                continue
+            
+            # Sort data and compute CDF
+            data_sorted = np.sort(operator_tech_data)
+            cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
+            
+            # Plot CDF line with tech color
+            ax.plot(data_sorted, cdf, 
+                    color=tech_cfg['color'],
+                    label=tech_cfg['label'])
+        
         # Set operator name as subplot title
         ax.set_title(operator_conf[operator]['label'])
         
         # Basic axis setup
         ax.grid(True, alpha=0.3)
-        ax.set_yticks(np.arange(0, 1.1, 0.25))
         ax.tick_params(axis='both')
+        
+        # Only show y ticks for the first subplot
+        if idx > 0:
+            ax.set_yticklabels([])
+        
+        if max_xlim is not None:
+            ax.set_xlim(0, max_xlim)
+            if interval_x:
+                ax.set_xticks(np.arange(0, max_xlim + 1, interval_x))
+        else:
+            # Find global max x value
+            actual_max_x_value = 0
+            for operator in operators:
+                operator_df = df[df['operator'] == operator]
+                for tech, tech_cfg in tech_conf.items():
+                    operator_tech_data = operator_df[operator_df[XcalField.ACTUAL_TECH] == tech][data_field]
+                    if len(operator_tech_data) < data_sample_threshold:
+                        continue
+                    actual_max_x_value = max(actual_max_x_value, np.max(operator_tech_data))
+            ax.set_xlim(0, actual_max_x_value)
+            if interval_x:
+                ax.set_xticks(np.arange(0, actual_max_x_value + 1, interval_x))
+        
+        # Add legend to the first subplot only
+        ax.legend(loc='lower right')
     
     # Save the figure
-    plt.savefig(output_filepath, bbox_inches='tight', dpi=300)
+    plt.savefig(output_filepath, dpi=600)
     logger.info(f'Saved plot to {output_filepath}')
     plt.close()
 
@@ -347,14 +384,11 @@ def plot_tput_tech_breakdown_by_area_by_operator(
         percentile_filter: Dict[str, float] = None,
         data_sample_threshold: int = 240, # 1 rounds data (~2min)
     ):
-    # tput_df = aggregate_xcal_tput_data_by_location(
-    #     locations=locations,
-    #     protocol=protocol,
-    #     direction=direction
-    # )
-    tput_df = pd.DataFrame()
-
-    output_filepath = os.path.join(current_dir, 'outputs', f'tech_breakdown_by_area.{protocol}_{direction}.png')
+    tput_df = aggregate_xcal_tput_data_by_location(
+        locations=locations,
+        protocol=protocol,
+        direction=direction
+    )
 
     tput_field_map = {
         'downlink': XcalField.TPUT_DL,
@@ -367,15 +401,62 @@ def plot_tput_tech_breakdown_by_area_by_operator(
         ('rural', 'Rural', 'Throughput (Mbps)', tput_field),
     ]
 
+    ak_df = tput_df[tput_df[CommonField.LOCATION] == 'alaska']
+    ak_urban_df = ak_df[ak_df[CommonField.AREA_TYPE] == 'urban']
     plot_tech_breakdown_cdfs_in_a_row(
-        category='AK',
-        title='Urban',
-        df=tput_df,
+        title='AK Urban',
+        df=ak_urban_df,
         data_field=tput_field,
-        output_filepath=output_filepath,
+        data_sample_threshold=data_sample_threshold,
+        operators=['att', 'verizon'],
+        operator_conf=operator_conf,
+        tech_conf=tech_conf,
+        interval_x=100,
+        output_filepath=os.path.join(
+            current_dir, 'outputs', f'{protocol}_{direction}.ak_urban.png'),
+    )
+
+    ak_rural_df = ak_df[ak_df[CommonField.AREA_TYPE] == 'rural']
+    plot_tech_breakdown_cdfs_in_a_row(
+        title='AK Rural',
+        df=ak_rural_df,
+        data_field=tput_field,
+        data_sample_threshold=data_sample_threshold,
+        operators=['att', 'verizon'],
+        operator_conf=operator_conf,
+        tech_conf=tech_conf,
+        interval_x=100,
+        output_filepath=os.path.join(
+            current_dir, 'outputs', f'{protocol}_{direction}.ak_rural.png'),
+    )
+
+    hi_df = tput_df[tput_df[CommonField.LOCATION] == 'hawaii']
+    hi_urban_df = hi_df[hi_df[CommonField.AREA_TYPE] == 'urban']
+    plot_tech_breakdown_cdfs_in_a_row(
+        title='HI Urban',
+        df=hi_urban_df,
+        data_field=tput_field,
+        data_sample_threshold=data_sample_threshold,
         operators=['att', 'verizon', 'tmobile'],
         operator_conf=operator_conf,
         tech_conf=tech_conf,
+        interval_x=300,
+        output_filepath=os.path.join(
+            current_dir, 'outputs', f'{protocol}_{direction}.hi_urban.png'),
+    )
+
+    hi_rural_df = hi_df[hi_df[CommonField.AREA_TYPE] == 'rural']
+    plot_tech_breakdown_cdfs_in_a_row(
+        title='HI Rural',
+        df=hi_rural_df,
+        data_field=tput_field,
+        data_sample_threshold=data_sample_threshold,
+        operators=['att', 'verizon', 'tmobile'],
+        operator_conf=operator_conf,
+        tech_conf=tech_conf,
+        interval_x=300,
+        output_filepath=os.path.join(
+            current_dir, 'outputs', f'{protocol}_{direction}.hi_rural.png'),
     )
 
     # plot_metric_grid(
@@ -404,6 +485,7 @@ def main():
         locations=['alaska', 'hawaii'],
         protocol='tcp',
         direction='downlink',
+        data_sample_threshold=480,
     )
 
 if __name__ == '__main__':
