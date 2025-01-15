@@ -1,7 +1,9 @@
 import os
 import pandas as pd
 import sys
-from typing import List
+from typing import List, Tuple
+
+from scripts.utilities.distance_utils import DistanceUtils
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -116,3 +118,25 @@ def aggregate_xcal_tput_data_by_location(
         df['location'] = location
         data = pd.concat([data, df])
     return data
+
+
+def calculate_tech_coverage_in_miles(grouped_df: pd.DataFrame) -> Tuple[dict, float]:
+    # Initialize mile fractions for each tech
+    tech_distance_mile_map = {}
+    for tech in tech_order:
+        tech_distance_mile_map[tech] = 0
+
+    # calculate cumulative distance for each segment
+    for segment_id, segment_df in grouped_df:
+        unique_techs = segment_df[XcalField.ACTUAL_TECH].unique()
+        if len(unique_techs) > 1:
+            raise ValueError(f"Segment ({segment_id}) should only have one tech: {unique_techs}")
+        tech = unique_techs[0]
+
+        tech_distance_miles = DistanceUtils.calculate_cumulative_miles(segment_df[XcalField.LON].tolist(), segment_df[XcalField.LAT].tolist())
+        # add to total distance for this tech
+        tech_distance_mile_map[tech] += tech_distance_miles
+
+    total_distance_miles = sum(tech_distance_mile_map.values())
+
+    return tech_distance_mile_map, total_distance_miles
