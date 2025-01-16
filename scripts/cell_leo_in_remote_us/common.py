@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import sys
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from scripts.utilities.distance_utils import DistanceUtils
 
@@ -12,11 +12,43 @@ from scripts.alaska_starlink_trip.configs import ROOT_DIR as AL_DATASET_DIR
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR as HI_DATASET_DIR
 
 
-location_conf = {
+cellular_location_conf = {
     'alaska': {
         'label': 'AK',
         'root_dir': AL_DATASET_DIR,
         'operators': ['verizon', 'att'],
+        'order': 1,
+        'tcp_downlink': {
+            'interval_x': 100,
+            'max_xlim': 300,
+        },
+        'tcp_uplink': {
+            'interval_x': 50,
+            'max_xlim': 100,
+        },
+    },
+    'hawaii': {
+        'label': 'HI',
+        'root_dir': HI_DATASET_DIR,
+        'operators': ['verizon', 'att', 'tmobile'],
+        'order': 2,
+        'tcp_downlink': {
+            'interval_x': 300,
+            'max_xlim': 900,
+        },
+        'tcp_uplink': {
+            'interval_x': 50,
+            'max_xlim': 150,
+        },
+    }
+}
+
+
+location_conf = {
+    'alaska': {
+        'label': 'AK',
+        'root_dir': AL_DATASET_DIR,
+        'operators': ['starlink', 'verizon', 'att'],
         'tcp_downlink': {
             'interval_x': 100,
             'max_xlim': 300,
@@ -30,7 +62,7 @@ location_conf = {
     'hawaii': {
         'label': 'HI',
         'root_dir': HI_DATASET_DIR,
-        'operators': ['verizon', 'att', 'tmobile'],
+        'operators': ['starlink', 'verizon', 'att', 'tmobile'],
         'tcp_downlink': {
             'interval_x': 300,
             'max_xlim': 900,
@@ -43,22 +75,7 @@ location_conf = {
     }
 }
 
-cellular_location_conf = {
-    'alaska': {
-        'label': 'AK',
-        'root_dir': AL_DATASET_DIR,
-        'operators': ['verizon', 'att'],
-        'order': 1
-    },
-    'hawaii': {
-        'label': 'HI',
-        'root_dir': HI_DATASET_DIR,
-        'operators': ['verizon', 'att', 'tmobile'],
-        'order': 2
-    }
-}
-
-operator_conf = {
+cellular_operator_conf = {
     'att': {
         'label': 'AT&T',
         'order': 1,
@@ -79,24 +96,13 @@ operator_conf = {
     },
 }
 
-cellular_operator_conf = {
-    'att': {
-        'label': 'AT&T',
-        'order': 1,
-        'color': operator_color_map['att'],
-        'linestyle': '-'
-    },
-    'verizon': {
-        'label': 'Verizon',
-        'order': 2,
-        'color': operator_color_map['verizon'],
-        'linestyle': '--'
-    },
-    'tmobile': {
-        'label': 'T-Mobile',
-        'order': 3,
-        'color': operator_color_map['tmobile'],
-        'linestyle': ':'
+operator_conf = {
+    **cellular_operator_conf,
+    'starlink': {
+        'label': 'Starlink',
+        'order': 4,
+        'color': operator_color_map['starlink'],
+        'linestyle': '-.',
     },
 }
 
@@ -157,9 +163,9 @@ def aggregate_xcal_tput_data(
 
 def aggregate_xcal_tput_data_by_location(
         locations: List[str], 
+        location_conf: Dict[str, Dict],
         protocol: str = None, 
         direction: str = None, 
-
     ):
     data = pd.DataFrame()
     for location in locations:

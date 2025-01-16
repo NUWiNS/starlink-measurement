@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 
-from scripts.cell_leo_in_remote_us.common import location_conf, operator_conf, tech_conf
+from scripts.cell_leo_in_remote_us.common import cellular_location_conf, cellular_operator_conf, tech_conf
 from scripts.constants import CommonField, XcalField
 from scripts.logging_utils import create_logger
 
@@ -45,6 +45,7 @@ def aggregate_latency_data_by_operator(
 
 def aggregate_latency_data_by_location(
         locations: List[str], 
+        location_conf: Dict[str, Dict],
         protocol: str = 'icmp',
     ):
     """Aggregate latency data from multiple locations.
@@ -67,80 +68,13 @@ def aggregate_latency_data_by_location(
         data = pd.concat([data, df])
     return data
 
-def save_stats_to_json(
-        data: Dict[str, pd.DataFrame],
-        metrics: List[tuple],
-        filepath: str,
-    ):
-    """Save hierarchical statistics for each metric.
-    
-    Structure:
-    metric_name:
-        location:
-            operator:
-                area_type:
-                    tech:
-                        stats (min, max, median, percentiles, etc.)
-    """
-    stats = {}
-    
-    for metric_name, _, _, data_field in metrics:
-        stats[metric_name] = {}
-        df = data[metric_name]
-        
-        # First level: Location
-        for location in df['location'].unique():
-            stats[metric_name][location] = {}
-            loc_df = df[df['location'] == location]
-            
-            # Second level: Operator
-            for operator in loc_df['operator'].unique():
-                stats[metric_name][location][operator] = {}
-                op_df = loc_df[loc_df['operator'] == operator]
-
-                if XcalField.SEGMENT_ID in op_df.columns:
-                    grouped_df = op_df.groupby([XcalField.SEGMENT_ID])
-                    tech_distance_mile_map, total_distance_miles = calculate_tech_coverage_in_miles(grouped_df)
-                
-                # Fourth level: Technology
-                tech_breakdown = {}
-                for tech in op_df[XcalField.ACTUAL_TECH].unique():
-                    tech_df = op_df[op_df[XcalField.ACTUAL_TECH] == tech]
-                    tech_data = tech_df[data_field]
-                    operator_total = len(op_df)
-                    if len(tech_data) == 0:
-                        continue
-                        
-                    tech_breakdown[tech] = {
-                        'min': float(np.min(tech_data)),
-                        'max': float(np.max(tech_data)),
-                        'median': float(np.median(tech_data)),
-                        'mean': float(np.mean(tech_data)),
-                        'percentile_5': float(np.percentile(tech_data, 5)),
-                        'percentile_25': float(np.percentile(tech_data, 25)),
-                        'percentile_75': float(np.percentile(tech_data, 75)),
-                        'percentile_95': float(np.percentile(tech_data, 95)),
-                        'sample_count': len(tech_data),
-                        'percentage_occurence': float(len(tech_data) / operator_total * 100 if operator_total > 0 else 0),
-                    }
-                    if XcalField.SEGMENT_ID in op_df.columns:
-                        tech_breakdown[tech]['percentage_miles'] = float(tech_distance_mile_map[tech] / total_distance_miles * 100 if total_distance_miles > 0 else 0)
-                
-                stats[metric_name][location][operator] = {
-                    'tech_breakdown': tech_breakdown,
-                    'total_samples': operator_total
-                }
-    
-    # Save to JSON file
-    with open(filepath, 'w') as f:
-        json.dump(stats, f, indent=4)
-
 def plot_tech_breakdown_cdfs_in_a_row(
         df: pd.DataFrame,
         data_field: str,
         output_filepath: str,
         operators: List[str],
         operator_conf: Dict[str, Dict],
+        location_conf: Dict[str, Dict],
         tech_conf: Dict[str, Dict],
         title: str = '',
         max_xlim: float | None = None,
@@ -248,14 +182,15 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         protocol: str,
         data_sample_threshold: int = 240, # 1 rounds data (~2min)
     ):
-    tput_df = aggregate_latency_data_by_location(
+    latency_df = aggregate_latency_data_by_location(
         locations=locations,
         protocol=protocol,
+        location_conf=cellular_location_conf,
     )
 
     data_field = 'rtt_ms'
 
-    ak_df = tput_df[tput_df[CommonField.LOCATION] == 'alaska']
+    ak_df = latency_df[latency_df[CommonField.LOCATION] == 'alaska']
     ak_urban_df = ak_df[(ak_df[CommonField.AREA_TYPE] == 'urban') | (ak_df[CommonField.AREA_TYPE] == 'suburban')]
     plot_tech_breakdown_cdfs_in_a_row(
         title='AK Urban',
@@ -263,7 +198,8 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         data_field=data_field,
         data_sample_threshold=data_sample_threshold,
         operators=['att', 'verizon'],
-        operator_conf=operator_conf,
+        operator_conf=cellular_operator_conf,
+        location_conf=cellular_location_conf,
         tech_conf=tech_conf,
         max_xlim=200,
         output_filepath=os.path.join(
@@ -277,14 +213,15 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         data_field=data_field,
         data_sample_threshold=data_sample_threshold,
         operators=['att', 'verizon'],
-        operator_conf=operator_conf,
+        operator_conf=cellular_operator_conf,
+        location_conf=cellular_location_conf,
         tech_conf=tech_conf,
         max_xlim=200,
         output_filepath=os.path.join(
             current_dir, 'outputs', f'{protocol}_latency.ak_rural.png'),
     )
 
-    hi_df = tput_df[tput_df[CommonField.LOCATION] == 'hawaii']
+    hi_df = latency_df[latency_df[CommonField.LOCATION] == 'hawaii']
     hi_urban_df = hi_df[(hi_df[CommonField.AREA_TYPE] == 'urban') | (hi_df[CommonField.AREA_TYPE] == 'suburban')]
     plot_tech_breakdown_cdfs_in_a_row(
         title='HI Urban',
@@ -292,7 +229,8 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         data_field=data_field,
         data_sample_threshold=data_sample_threshold,
         operators=['att', 'verizon', 'tmobile'],
-        operator_conf=operator_conf,
+        operator_conf=cellular_operator_conf,
+        location_conf=cellular_location_conf,
         tech_conf=tech_conf,
         max_xlim=200,
         output_filepath=os.path.join(
@@ -306,17 +244,13 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         data_field=data_field,
         data_sample_threshold=data_sample_threshold,
         operators=['att', 'verizon', 'tmobile'],
-        operator_conf=operator_conf,
+        operator_conf=cellular_operator_conf,
+        location_conf=cellular_location_conf,
         tech_conf=tech_conf,
         max_xlim=200,
         output_filepath=os.path.join(
             current_dir, 'outputs', f'{protocol}_latency.hi_rural.png'),
     )
-    # save_stats_to_json(
-    #     data=plot_data,
-    #     metrics=metrics, 
-    #     filepath=output_filepath.replace('.png', '.json'),
-    # )
 
 
 def main():

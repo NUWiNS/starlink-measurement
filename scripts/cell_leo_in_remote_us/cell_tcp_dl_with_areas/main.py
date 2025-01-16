@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 
-from scripts.cell_leo_in_remote_us.common import aggregate_xcal_tput_data_by_location, location_conf, operator_conf, tech_conf
+from scripts.cell_leo_in_remote_us.common import aggregate_xcal_tput_data_by_location, cellular_location_conf, cellular_operator_conf, tech_conf
 from scripts.constants import CommonField, XcalField
 from scripts.logging_utils import create_logger
 
@@ -163,6 +163,10 @@ def plot_tech_breakdown_cdfs_in_a_row(
         ax.grid(True, alpha=0.3)
         ax.tick_params(axis='both')
         
+        # Set y-axis ticks from 0 to 1 with steps of 0.2
+        ax.set_ylim(0, 1)
+        ax.set_yticks(np.arange(0, 1.2, 0.2))
+        
         # Only show y ticks for the first subplot
         if idx > 0:
             ax.set_yticklabels([])
@@ -198,6 +202,8 @@ def plot_tput_tech_breakdown_by_area_by_operator(
         locations: List[str], 
         protocol: str, 
         direction: str,
+        location_conf: Dict[str, Dict],
+        operator_conf: Dict[str, Dict],
         max_xlim: float = None,
         percentile_filter: Dict[str, float] = None,
         data_sample_threshold: int = 480,
@@ -295,6 +301,9 @@ def main():
         locations=['alaska', 'hawaii'],
         protocol='tcp',
         direction='downlink',
+        location_conf=cellular_location_conf,
+        operator_conf=cellular_operator_conf,
+        tech_conf=tech_conf,
         data_sample_threshold=480,
         output_dir=os.path.join(current_dir, 'outputs'),
     )

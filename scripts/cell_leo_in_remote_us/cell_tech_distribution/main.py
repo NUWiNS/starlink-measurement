@@ -2,14 +2,14 @@ import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Callable
+from typing import Callable, Dict
 import sys
 
 import pandas as pd
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
-from scripts.cell_leo_in_remote_us.common import calculate_tech_coverage_in_miles, operator_conf, location_conf
+from scripts.cell_leo_in_remote_us.common import calculate_tech_coverage_in_miles, cellular_operator_conf, cellular_location_conf
 from scripts.constants import XcalField
 from scripts.logging_utils import create_logger
 
@@ -20,6 +20,8 @@ logger = create_logger('cell_tech_distribution', filename=os.path.join(current_d
 def plot_tech_dist_stack(
         dfs: dict, 
         output_dir: str, 
+        location_conf: Dict[str, Dict],
+        operator_conf: Dict[str, Dict],
         title: str = 'Technology Distribution by Operator',
         fig_name: str = 'fig',
         df_mask: Callable | None = None, 
@@ -131,7 +133,7 @@ def plot_tech_dist_stack(
 def main():
     for location in ['alaska', 'hawaii']:
         logger.info(f'-- Processing dataset: {location}')
-        base_dir = location_conf[location]['root_dir']
+        base_dir = cellular_location_conf[location]['root_dir']
         output_dir = os.path.join(current_dir, 'outputs', location)
 
         if not os.path.exists(output_dir):
@@ -140,19 +142,21 @@ def main():
         # Store dataframes for all operators
         operator_dfs = {}
 
-        for operator in sorted(location_conf[location]['operators'], key=lambda x: operator_conf[x]['order']):
+        for operator in sorted(cellular_location_conf[location]['operators'], key=lambda x: cellular_operator_conf[x]['order']):
             logger.info(f'---- Processing operator: {operator}')
             input_csv_path = os.path.join(base_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
             df = pd.read_csv(input_csv_path)
             operator_dfs[operator] = df
 
-        loc_label = location_conf[location]['label']
+        loc_label = cellular_location_conf[location]['label']
 
         # Urban (Urban + suburban)
         plot_tech_dist_stack(
             dfs=operator_dfs, 
             df_mask=lambda df: (df[XcalField.AREA] == 'urban') | (df[XcalField.AREA] == 'suburban'), 
             output_dir=output_dir, 
+            location_conf=cellular_location_conf,
+            operator_conf=cellular_operator_conf,
             title=f'Technology Distribution ({loc_label}-Urban)',
             fig_name=f'tech_dist_stack_urban.{location}',
         )
@@ -162,6 +166,8 @@ def main():
             dfs=operator_dfs, 
             df_mask=lambda df: df[XcalField.AREA] == 'rural', 
             output_dir=output_dir, 
+            location_conf=cellular_location_conf,
+            operator_conf=cellular_operator_conf,
             title=f'Technology Distribution ({loc_label}-Rural)',
             fig_name=f'tech_dist_stack_rural.{location}',
         )

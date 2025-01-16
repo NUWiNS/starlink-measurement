@@ -3,7 +3,6 @@ import os
 from typing import Dict, List, Tuple
 import sys
 
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
 from matplotlib import pyplot as plt
@@ -31,6 +30,7 @@ def plot_metric_grid(
         inset_x_max: float = 50,
         inset_x_step: float = 10,
         legend_loc: str = 'upper right',
+        inset_bbox_to_anchor: Tuple[float, float, float, float] = (0.5, 0, 0.45, 0.65),
         percentile_filter: Dict[str, float] = None,  # e.g., {'latency': 95}
     ):
     """Generic function to plot grid of CDF plots.
@@ -105,7 +105,7 @@ def plot_metric_grid(
             axins = inset_axes(ax, 
                              width="60%",  # increased width
                              height="85%",  # increased height
-                             bbox_to_anchor=(0.5, 0, 0.45, 0.65),  # (x, y, width, height) - adjusted size and position
+                             bbox_to_anchor=inset_bbox_to_anchor,  # (x, y, width, height) - adjusted size and position
                              bbox_transform=ax.transAxes,
                              borderpad=0)
             
@@ -136,19 +136,19 @@ def plot_metric_grid(
                     )
             
             # Set x-axis limits and ticks for main plot
-            x_min = col_min_values[col] - 5
             if max_xlim:
                 x_max = max_xlim
             else:
                 x_max = col_max_values[col]
-            ax.set_xlim(x_min, x_max)
+            ax.set_xlim(0, x_max)
 
             # Configure inset axes
             axins.set_xlim(inset_x_min, inset_x_max)  # Focus on 0-50 Mbps range
             axins.set_ylim(0.0, 1.0)  # Show full CDF range
             axins.grid(True, alpha=0.3)
-            axins.tick_params(axis='both', labelsize=8)
+            axins.tick_params(axis='both', labelsize=10)
             axins.set_xticks(np.arange(0, inset_x_max + 1, inset_x_step))
+            axins.set_yticks(np.arange(0, 1.1, 0.2))
             
             # Add frame around the inset
             for spine in axins.spines.values():
@@ -163,21 +163,23 @@ def plot_metric_grid(
                 if metric_name == 'latency':
                     x_step = 50
                 elif 'downlink' in metric_name:
-                    x_step = 100
+                    x_step = 200
                 elif 'uplink' in metric_name:
                     x_step = 25
 
             # round to the nearest x_step
             ax.set_xticks(np.arange(
-                round(x_min / x_step) * x_step, 
+                0, 
                 round(x_max / x_step) * x_step + 1, 
                 x_step
             ))
         
             
             ax.grid(True, alpha=0.3)
-            # ax.set_yticks(np.arange(0, 1.1, 0.25))
-            ax.tick_params(axis='both', labelsize=10)
+            # Set axis limits and ticks
+            ax.set_ylim(0, 1)
+            ax.set_yticks(np.arange(0, 1.1, 0.2))
+            ax.tick_params(axis='both')
             
             if col == 0:
                 ax.text(-0.2, 0.5, loc_conf[location]['label'],
@@ -185,26 +187,23 @@ def plot_metric_grid(
                        rotation=0,
                        verticalalignment='center',
                        horizontalalignment='right',
-                       fontsize=14,
-                       fontweight='bold')
-                ax.set_ylabel('CDF', fontsize=10)
+                       fontsize=14)
+                ax.set_ylabel('CDF')
             
             if row == 0:
-                ax.set_title(column_title, fontsize=12, fontweight='bold')
+                ax.set_title(column_title)
             
             if row == 0 and col == 0:
-                legend = ax.legend(fontsize=10, 
-                                 loc='upper right',
+                legend = ax.legend(loc=legend_loc,
                                  framealpha=0.5,
-                                 edgecolor='black')
-                for text in legend.get_texts():
-                    text.set_fontweight('bold')
+                                 edgecolor='black',
+                                 fontsize=10)
             
             if row == n_locations - 1:
-                ax.set_xlabel(xlabel, fontsize=10)
+                ax.set_xlabel(xlabel)
     
     # Adjust layout to prevent overlapping - increase spacing further
-    plt.subplots_adjust(wspace=0.5, hspace=0.2)  # Increased wspace more to accommodate larger insets
+    plt.subplots_adjust(wspace=0.5, hspace=0)  # Increased wspace more to accommodate larger insets
 
     if title:
         fig.suptitle(title, y=1.02, fontsize=14, fontweight='bold')
@@ -244,6 +243,9 @@ def main():
         operator_conf=cellular_operator_conf,
         metrics=downlink_metrics,
         max_xlim=1000,
+        inset_x_min=0,
+        inset_x_max=30,
+        inset_x_step=10,
         output_filepath=os.path.join(output_dir, 'cellular.downlink.ak_hi.png'),
     )
 

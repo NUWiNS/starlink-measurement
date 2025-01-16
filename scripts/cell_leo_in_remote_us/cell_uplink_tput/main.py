@@ -52,7 +52,7 @@ def main():
         inset_x_min=0,
         inset_x_max=15,
         inset_x_step=5,
-        legend_loc='center',
+        legend_loc=(0, 1),
         output_filepath=os.path.join(output_dir, 'cellular.uplink.ak_hi.png'),
     )
 
