@@ -49,6 +49,7 @@ def main():
         operator_conf=cellular_operator_conf,
         metrics=uplink_metrics,
         max_xlim=175,
+        enable_inset=True,
         inset_x_min=0,
         inset_x_max=15,
         inset_x_step=5,

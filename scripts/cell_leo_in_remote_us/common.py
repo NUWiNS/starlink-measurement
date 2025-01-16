@@ -57,7 +57,8 @@ location_conf = {
             'interval_x': 50,
             'max_xlim': 100,
         },
-        'order': 1
+        'order': 1,
+        'color': 'b',
     },
     'hawaii': {
         'label': 'HI',
@@ -71,7 +72,8 @@ location_conf = {
             'interval_x': 50,
             'max_xlim': 150,
         },
-        'order': 2
+        'order': 2,
+        'color': 'r',
     }
 }
 

@@ -26,6 +26,7 @@ def plot_metric_grid(
         title: str = None,
         max_xlim: float = None,
         x_step: float = None,
+        enable_inset: bool = False,
         inset_x_min: float = 0,
         inset_x_max: float = 50,
         inset_x_step: float = 10,
@@ -101,13 +102,14 @@ def plot_metric_grid(
 
             percentile = percentile_filter.get(metric_name, 100) if percentile_filter else 100
             
-            # Create inset axes - tall rectangle in lower right
-            axins = inset_axes(ax, 
-                             width="60%",  # increased width
-                             height="85%",  # increased height
-                             bbox_to_anchor=inset_bbox_to_anchor,  # (x, y, width, height) - adjusted size and position
-                             bbox_transform=ax.transAxes,
-                             borderpad=0)
+            if enable_inset:
+                # Create inset axes - tall rectangle in lower right
+                axins = inset_axes(ax, 
+                                 width="60%",  # increased width
+                                 height="85%",  # increased height
+                                 bbox_to_anchor=inset_bbox_to_anchor,  # (x, y, width, height) - adjusted size and position
+                                 bbox_transform=ax.transAxes,
+                                 borderpad=0)
             
             for op_key, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
                 if op_key in plot_df['operator'].unique():
@@ -126,10 +128,10 @@ def plot_metric_grid(
                         color=op_conf['color'],
                         linewidth=2
                     )
-                    
-                    # Inset plot
-                    axins.plot(
-                        data_sorted,
+                    if axins:
+                        # Inset plot
+                        axins.plot(
+                            data_sorted,
                         cdf,
                         color=op_conf['color'],
                         linewidth=2
@@ -142,22 +144,23 @@ def plot_metric_grid(
                 x_max = col_max_values[col]
             ax.set_xlim(0, x_max)
 
-            # Configure inset axes
-            axins.set_xlim(inset_x_min, inset_x_max)  # Focus on 0-50 Mbps range
-            axins.set_ylim(0.0, 1.0)  # Show full CDF range
-            axins.grid(True, alpha=0.3)
-            axins.tick_params(axis='both', labelsize=10)
-            axins.set_xticks(np.arange(0, inset_x_max + 1, inset_x_step))
-            axins.set_yticks(np.arange(0, 1.1, 0.2))
-            
-            # Add frame around the inset
-            for spine in axins.spines.values():
-                spine.set_color('black')
-                spine.set_linewidth(1.0)
-            
-            # Update connecting lines positions for lower right placement
-            from mpl_toolkits.axes_grid1.inset_locator import mark_inset
-            mark_inset(ax, axins, loc1=1, loc2=4, fc="none", ec="0.5")
+            if axins:
+                # Configure inset axes
+                axins.set_xlim(inset_x_min, inset_x_max)  # Focus on 0-50 Mbps range
+                axins.set_ylim(0.0, 1.0)  # Show full CDF range
+                axins.grid(True, alpha=0.3)
+                axins.tick_params(axis='both', labelsize=10)
+                axins.set_xticks(np.arange(0, inset_x_max + 1, inset_x_step))
+                axins.set_yticks(np.arange(0, 1.1, 0.2))
+                
+                # Add frame around the inset
+                for spine in axins.spines.values():
+                    spine.set_color('black')
+                    spine.set_linewidth(1.0)
+                
+                # Update connecting lines positions for lower right placement
+                from mpl_toolkits.axes_grid1.inset_locator import mark_inset
+                mark_inset(ax, axins, loc1=1, loc2=4, fc="none", ec="0.5")
 
             if not x_step:
                 if metric_name == 'latency':
@@ -243,6 +246,7 @@ def main():
         operator_conf=cellular_operator_conf,
         metrics=downlink_metrics,
         max_xlim=1000,
+        enable_inset=True,
         inset_x_min=0,
         inset_x_max=30,
         inset_x_step=10,

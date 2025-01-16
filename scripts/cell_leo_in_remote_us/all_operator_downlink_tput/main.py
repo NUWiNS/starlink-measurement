@@ -3,9 +3,6 @@ import os
 from typing import Dict, List
 import sys
 
-
-
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
 from matplotlib import pyplot as plt
@@ -19,7 +16,7 @@ from scripts.logging_utils import create_logger
 from scripts.utilities.DatasetHelper import DatasetHelper
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-logger = create_logger('tcp_ul_with_areas', filename=os.path.join(current_dir, 'outputs', 'tcp_ul_with_areas.log'))
+logger = create_logger('dl_with_areas', filename=os.path.join(current_dir, 'outputs', 'dl_with_areas.log'))
 
 
 def get_tput_data_for_alaska_and_hawaii(protocol: str, direction: str):
@@ -42,11 +39,10 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Collect all data
     tput_data = {}
     for protocol in ['tcp', 'udp']:
         tput_data[protocol] = {}
-        for direction in ['uplink']:
+        for direction in ['downlink']:
             cellular_df = aggregate_xcal_tput_data_by_location(
                 locations=['alaska', 'hawaii'],
                 location_conf=cellular_location_conf,
@@ -56,7 +52,7 @@ def main():
             starlink_df = get_tput_data_for_alaska_and_hawaii(protocol, direction)
             
             # Rename cellular_df column to match starlink_df
-            cellular_df = cellular_df.rename(columns={XcalField.TPUT_UL: CommonField.TPUT_MBPS})
+            cellular_df = cellular_df.rename(columns={XcalField.TPUT_DL: CommonField.TPUT_MBPS})
             
             # Keep only the columns we need for the analysis
             columns_to_keep = [CommonField.OPERATOR, CommonField.LOCATION, CommonField.TPUT_MBPS]
@@ -69,26 +65,26 @@ def main():
             # Store in the tput_data dictionary
             tput_data[protocol][direction] = combined_df
 
-    uplink_metrics = [
-        ('tcp_uplink', 'TCP Uplink', 'Throughput (Mbps)', CommonField.TPUT_MBPS),
-        ('udp_uplink', 'UDP Uplink', 'Throughput (Mbps)', CommonField.TPUT_MBPS),
+    metrics = [
+        ('tcp_downlink', 'TCP Downlink', 'Throughput (Mbps)', CommonField.TPUT_MBPS),
+        ('udp_downlink', 'UDP Downlink', 'Throughput (Mbps)', CommonField.TPUT_MBPS),
     ]
     plot_metric_grid(
         data={
-            'tcp_uplink': tput_data['tcp']['uplink'],
-            'udp_uplink': tput_data['udp']['uplink']
+            'tcp_downlink': tput_data['tcp']['downlink'],
+            'udp_downlink': tput_data['udp']['downlink']
         },
         loc_conf=location_conf,
         operator_conf=operator_conf,
-        metrics=uplink_metrics,
-        max_xlim=175,
+        metrics=metrics,
+        # max_xlim=175,
         enable_inset=True,
         inset_x_min=0,
-        inset_x_max=15,
-        inset_x_step=5,
+        inset_x_max=30,
+        inset_x_step=10,
         inset_bbox_to_anchor=(0.5, 0, 0.45, 0.65),
         legend_loc=(0.2, 0.2),
-        output_filepath=os.path.join(output_dir, 'all_operators.uplink.ak_hi.png'),
+        output_filepath=os.path.join(output_dir, 'all_operators.downlink.ak_hi.png'),
     )
 
     # save_stats_network_kpi(tput_data, latency_data, location_conf, operator_conf, output_dir)
