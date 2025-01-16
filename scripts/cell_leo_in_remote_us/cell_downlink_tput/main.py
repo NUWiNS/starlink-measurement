@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import sys
 
 
@@ -27,6 +27,10 @@ def plot_metric_grid(
         title: str = None,
         max_xlim: float = None,
         x_step: float = None,
+        inset_x_min: float = 0,
+        inset_x_max: float = 50,
+        inset_x_step: float = 10,
+        legend_loc: str = 'upper right',
         percentile_filter: Dict[str, float] = None,  # e.g., {'latency': 95}
     ):
     """Generic function to plot grid of CDF plots.
@@ -140,11 +144,11 @@ def plot_metric_grid(
             ax.set_xlim(x_min, x_max)
 
             # Configure inset axes
-            axins.set_xlim(0, 50)  # Focus on 0-50 Mbps range
+            axins.set_xlim(inset_x_min, inset_x_max)  # Focus on 0-50 Mbps range
             axins.set_ylim(0.0, 1.0)  # Show full CDF range
             axins.grid(True, alpha=0.3)
             axins.tick_params(axis='both', labelsize=8)
-            axins.set_xticks(np.arange(0, 51, 10))
+            axins.set_xticks(np.arange(0, inset_x_max + 1, inset_x_step))
             
             # Add frame around the inset
             for spine in axins.spines.values():
@@ -190,8 +194,8 @@ def plot_metric_grid(
             
             if row == 0 and col == 0:
                 legend = ax.legend(fontsize=10, 
-                                 loc='best',
-                                 framealpha=0.9,
+                                 loc='upper right',
+                                 framealpha=0.5,
                                  edgecolor='black')
                 for text in legend.get_texts():
                     text.set_fontweight('bold')
@@ -219,7 +223,7 @@ def main():
     tput_data = {}
     for protocol in ['tcp', 'udp']:
         tput_data[protocol] = {}
-        for direction in ['downlink', 'uplink']:
+        for direction in ['downlink']:
             tput_data[protocol][direction] = aggregate_xcal_tput_data_by_location(
                 locations=['alaska', 'hawaii'],
                 protocol=protocol,
