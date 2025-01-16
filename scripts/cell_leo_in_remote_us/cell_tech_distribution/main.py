@@ -148,7 +148,7 @@ def main():
 
         loc_label = location_conf[location]['label']
 
-        # Urban + suburban tech breakdown
+        # Urban (Urban + suburban)
         plot_tech_dist_stack(
             dfs=operator_dfs, 
             df_mask=lambda df: (df[XcalField.AREA] == 'urban') | (df[XcalField.AREA] == 'suburban'), 
@@ -157,7 +157,7 @@ def main():
             fig_name=f'tech_dist_stack_urban.{location}',
         )
 
-        # Plot location-wide tech breakdown by area
+        # Rural
         plot_tech_dist_stack(
             dfs=operator_dfs, 
             df_mask=lambda df: df[XcalField.AREA] == 'rural', 

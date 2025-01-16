@@ -1,0 +1,33 @@
+import json
+import os
+from typing import Dict, List
+import sys
+
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
+
+from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
+
+from scripts.logging_utils import create_logger
+from scripts.cell_leo_in_remote_us.cell_tcp_dl_with_areas.main import plot_tput_tech_breakdown_by_area_by_operator
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+logger = create_logger('tcp_ul_with_areas', filename=os.path.join(current_dir, 'outputs', 'tcp_ul_with_areas.log'))
+
+
+def main():
+    if not os.path.exists(os.path.join(current_dir, 'outputs')):
+        os.makedirs(os.path.join(current_dir, 'outputs'))
+
+    plot_tput_tech_breakdown_by_area_by_operator(
+        locations=['alaska', 'hawaii'],
+        protocol='tcp',
+        direction='uplink',
+        data_sample_threshold=480,
+        output_dir=os.path.join(current_dir, 'outputs'),
+    )
+
+if __name__ == '__main__':
+    main()

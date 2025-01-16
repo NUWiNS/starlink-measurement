@@ -17,12 +17,28 @@ location_conf = {
         'label': 'AK',
         'root_dir': AL_DATASET_DIR,
         'operators': ['verizon', 'att'],
+        'tcp_downlink': {
+            'interval_x': 100,
+            'max_xlim': 300,
+        },
+        'tcp_uplink': {
+            'interval_x': 50,
+            'max_xlim': 100,
+        },
         'order': 1
     },
     'hawaii': {
         'label': 'HI',
         'root_dir': HI_DATASET_DIR,
         'operators': ['verizon', 'att', 'tmobile'],
+        'tcp_downlink': {
+            'interval_x': 300,
+            'max_xlim': 900,
+        },
+        'tcp_uplink': {
+            'interval_x': 50,
+            'max_xlim': 150,
+        },
         'order': 2
     }
 }
