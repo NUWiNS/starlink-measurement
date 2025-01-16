@@ -7,7 +7,7 @@ from scripts.utilities.distance_utils import DistanceUtils
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from scripts.constants import XcalField
+from scripts.constants import XcalField, operator_color_map
 from scripts.alaska_starlink_trip.configs import ROOT_DIR as AL_DATASET_DIR
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR as HI_DATASET_DIR
 
@@ -43,21 +43,60 @@ location_conf = {
     }
 }
 
+cellular_location_conf = {
+    'alaska': {
+        'label': 'AK',
+        'root_dir': AL_DATASET_DIR,
+        'operators': ['verizon', 'att'],
+        'order': 1
+    },
+    'hawaii': {
+        'label': 'HI',
+        'root_dir': HI_DATASET_DIR,
+        'operators': ['verizon', 'att', 'tmobile'],
+        'order': 2
+    }
+}
+
 operator_conf = {
     'att': {
         'label': 'AT&T',
         'order': 1,
-        'linestyle': 'solid'
+        'color': operator_color_map['att'],
+        'linestyle': '-'
     },
     'verizon': {
         'label': 'Verizon',
         'order': 2,
+        'color': operator_color_map['verizon'],
         'linestyle': 'dashed'
     },
     'tmobile': {
         'label': 'T-Mobile',
         'order': 3,
+        'color': operator_color_map['tmobile'],
         'linestyle': 'dotted'
+    },
+}
+
+cellular_operator_conf = {
+    'att': {
+        'label': 'AT&T',
+        'order': 1,
+        'color': operator_color_map['att'],
+        'linestyle': '-'
+    },
+    'verizon': {
+        'label': 'Verizon',
+        'order': 2,
+        'color': operator_color_map['verizon'],
+        'linestyle': '--'
+    },
+    'tmobile': {
+        'label': 'T-Mobile',
+        'order': 3,
+        'color': operator_color_map['tmobile'],
+        'linestyle': ':'
     },
 }
 
