@@ -220,7 +220,7 @@ config = {
 
 
 def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], config: dict,
-                                      output_path: str = 'swimlane.png', x_step: int = None):
+                                      output_path: str = 'swimlane.png', x_step: int = None, figsize: tuple = (5, 3.5)):
     """
     Plot the swimlane chart of RTT breakdown and return statistics for each boxplot
     :param datasource:
@@ -231,8 +231,7 @@ def plot_rtt_breakdown_swimlane_chart(datasource: dict, directions: List[str], c
     :return: Dictionary containing statistics for each location and direction
     """
     group_colors = ['#f0f0f0', '#e0e0e0']
-    # fig, ax = plt.subplots(figsize=(5, 3.5))
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=figsize)
 
     stats = {}  # Dictionary to store statistics
     
@@ -353,7 +352,8 @@ def plot_overall_rtt_breakdown(x_step: int = 25):
                                               directions=['dishy_to_gs', 'gs_to_pop', 'pop_to_endpoint', 'dishy_to_endpoint'],
                                               config=config,
                                               output_path=output_filepath,
-                                              x_step=x_step)
+                                              x_step=x_step,
+                                              figsize=(10, 8))
     save_stats_to_json(stats, output_filepath.replace('.png', '.json'))
     return stats
 

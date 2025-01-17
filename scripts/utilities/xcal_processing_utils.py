@@ -23,6 +23,20 @@ def extract_period_from_file(file: str) -> tuple[datetime, datetime, str]:
             return (start_time, end_time, f'{protocol}_{direction}')
         else:
             raise ValueError(f'Failed to extract start and end time from {file}')
+        
+def extract_period_from_ping_file(file: str) -> tuple[datetime, datetime, str]:
+    with open(file, 'r') as f:
+        # file name is like ping_142919618.out
+        protocol = 'icmp'
+        direction = 'uplink'
+        lines = f.readlines()
+        start_match, end_match = extract_start_end_timestamps(lines)
+        if start_match and end_match:
+            start_time = pd.to_datetime(pd.to_numeric(start_match.group(1)), unit='ms', utc=True)
+            end_time = pd.to_datetime(pd.to_numeric(end_match.group(1)), unit='ms', utc=True)
+            return (start_time, end_time, f'{protocol}_{direction}')
+        else:
+            raise ValueError(f'Failed to extract start and end time from {file}')
 
 def extract_start_end_timestamps(lines):
     start_time_row = lines[0].strip()
@@ -44,6 +58,21 @@ def collect_periods_of_tput_measurements(base_dir: str, protocol: str, direction
     for file in files:
         try:
             period = extract_period_from_file(file)
+            periods.append(period)
+        except ValueError as e:
+            print(f"Warning: {str(e)}")
+
+    return periods
+
+
+def collect_periods_of_ping_measurements(base_dir: str) -> list[tuple[datetime, datetime, str]]:
+    pattern = path.join(base_dir, f'**/ping_*.out')
+    files = glob.glob(pattern, recursive=True)
+    periods = []
+    # read each file and extract the first and last line as the start and end timestamp
+    for file in files:
+        try:
+            period = extract_period_from_ping_file(file)
             periods.append(period)
         except ValueError as e:
             print(f"Warning: {str(e)}")
@@ -83,13 +112,13 @@ def filter_xcal_logs(
     """
     # Create a temporary datetime column (from Eastern time) for filtering, and convert to UTC
 
-    df_xcal_logs[XcalField.CUSTOM_UTC_TIME] = pd.to_datetime(
-        df_xcal_logs[XcalField.TIMESTAMP],
-        errors='coerce').dt.tz_localize(
-            xcal_timezone, 
-            ambiguous='raise', 
-            nonexistent='raise'
-        ).dt.tz_convert('UTC')
+    # df_xcal_logs[XcalField.CUSTOM_UTC_TIME] = pd.to_datetime(
+    #     df_xcal_logs[XcalField.TIMESTAMP],
+    #     errors='coerce').dt.tz_localize(
+    #         xcal_timezone, 
+    #         ambiguous='raise', 
+    #         nonexistent='raise'
+    #     ).dt.tz_convert('UTC')
 
     # drop rows with empty utc_dt
     df_xcal_logs = df_xcal_logs.dropna(subset=[XcalField.CUSTOM_UTC_TIME])

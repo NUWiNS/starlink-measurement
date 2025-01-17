@@ -18,6 +18,7 @@ def print_distance_between_ip(from_ip, from_gps, to_ip, to_gps):
   speed_of_light_m_per_s = 299792458
   time_of_flight_ms = distance_meters / speed_of_light_m_per_s * 1000
   print(f'Time of flight: {time_of_flight_ms:.2f} ms')
+  print(f'Round trip time: {time_of_flight_ms * 2:.2f} ms')
 
 def main():
   oregon_ip = '50.112.93.113'
@@ -27,7 +28,8 @@ def main():
   alaska_pop_gps = (47.6043, -122.3298, 'Seattle, WA')
 
   hawaii_pop_ip = '206.224.66.2'
-  hawaii_pop_gps = (33.9192, -118.4166, 'El Segundo, CA')
+  # hawaii_pop_gps = (33.9192, -118.4166, 'El Segundo, CA')
+  hawaii_pop_gps = (33.9540, -118.4016, 'Los Angeles, CA')
 
   maui_ip = 'unknown'
   maui_gps = (20.7955, -156.3313, 'Maui, HI')

@@ -5,10 +5,10 @@ import re
 import sys
 from typing import List
 
-from scripts.hawaii_starlink_trip.configs import ROOT_DIR, DatasetLabel
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from scripts.hawaii_starlink_trip.configs import ROOT_DIR, DatasetLabel
 from scripts.constants import DATASET_DIR
 import unittest
 from datetime import datetime

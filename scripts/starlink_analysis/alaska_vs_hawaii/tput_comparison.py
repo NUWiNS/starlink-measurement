@@ -5,6 +5,7 @@ import json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
+from scripts.logging_utils import create_logger
 from scripts.math_utils import get_cdf
 from scripts.alaska_starlink_trip.configs import ROOT_DIR as ALASKA_ROOT_DIR
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR as HAWAII_ROOT_DIR
@@ -21,8 +22,7 @@ MAINE_TPUT_DIR = os.path.join(MAINE_ROOT_DIR, 'throughput')
 OUTPUT_DIR = os.path.join(CURR_DIR, 'outputs')
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__, console_output=True)
 
 def save_plot_statistics(data, title, output_filename):
     logger.info(f"Saving statistics for {title}")
@@ -58,7 +58,7 @@ def save_plot_statistics(data, title, output_filename):
         json.dump(stats, f, indent=4)
     logger.info(f"Statistics saved as {output_filename}")
 
-def create_cdf_plot(data, title, output_filename):
+def create_cdf_plot(data, title, output_filename, x_step: float = None):
     logger.info(f"Creating CDF plot for {title}")
     protocols = ['tcp', 'udp']
     locations = ['alaska', 'hawaii', 'maine']
@@ -84,6 +84,18 @@ def create_cdf_plot(data, title, output_filename):
     ax.set_ylabel('CDF')
     ax.set_ylim(0, 1)
     ax.set_yticks(np.arange(0, 1.25, 0.25))
+    min_val = np.min(sorted_data)
+    max_val = np.max(sorted_data)
+    if x_step:
+        min_val = round(min_val / x_step) * x_step
+        max_val = round(max_val / x_step) * x_step + 1
+    ax.set_xlim(min_val, max_val)
+    if x_step:
+        ax.set_xticks(np.arange(
+            round(min_val / x_step) * x_step, 
+            round(max_val / x_step) * x_step + 1, 
+            x_step
+        ))
     ax.grid(True, linestyle='--', alpha=0.7)
     ax.tick_params(axis='both', which='major')
 
@@ -145,6 +157,7 @@ def plot_overall_tput_comparison(df: pd.DataFrame, base_dir: str):
     logger.info("Creating uplink throughput plot")
     create_cdf_plot(df[df['direction'] == 'uplink'], 
                     title='Uplink Throughput', 
+                    x_step=10,
                     output_filename=os.path.join(base_dir, 'starlink_ul_tput_cdf_al_vs_hi.png'))
 
     logger.info("Saving comparison statistics")

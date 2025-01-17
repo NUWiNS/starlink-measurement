@@ -57,6 +57,7 @@ def create_cdf_plot(
         title, 
         output_filename,
         xlim: tuple[float, float] = None,
+        x_step: float = None,
       ):
     logger.info(f"Creating CDF plot for {title}")
     locations = ['alaska', 'hawaii', 'maine']
@@ -78,8 +79,20 @@ def create_cdf_plot(
     ax.set_xlabel('RTT (ms)')
     ax.set_ylabel('CDF')
     ax.set_ylim(0, 1)
+
+    min_val = np.min(sorted_data)
+    max_val = np.max(sorted_data)
     if xlim:
-        ax.set_xlim(xlim)
+        min_val = xlim[0]
+        max_val = xlim[1]   
+    ax.set_xlim(min_val, max_val)
+    if x_step:
+        ax.set_xticks(np.arange(
+            round(min_val / x_step) * x_step, 
+            round(max_val / x_step) * x_step + 1, 
+            x_step
+        ))
+        
     ax.set_yticks(np.arange(0, 1.25, 0.25))
     ax.grid(True, linestyle='--', alpha=0.7)
     ax.tick_params(axis='both', which='major')
@@ -220,14 +233,15 @@ def get_latency_data_for_alaska_and_hawaii():
 
 def plot_overall_latency_comparison(df: pd.DataFrame, output_file_path: str = None):
     logger.info("Creating latency plot")
-    create_cdf_plot(df, 
-                    title='CDF ofStarlink Round-Trip Time', 
-                    output_filename=os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi.png'))
+    # create_cdf_plot(df, 
+    #                 title='CDF ofStarlink Round-Trip Time', 
+    #                 output_filename=os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi.png'))
     
 
     create_cdf_plot(df, 
-                    title='CDF of Starlink Round-Trip Time (Zoomed)', 
+                    title='Latency', 
                     xlim=(0, 200),
+                    x_step=25,
                     output_filename=os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi_zoomed.png'),
                     )
 

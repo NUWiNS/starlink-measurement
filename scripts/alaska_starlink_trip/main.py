@@ -12,6 +12,7 @@ from parse_traceroute_data_to_csv import main as parse_traceroute_data_to_csv_ma
 from parse_nslookup_data_to_csv import main as parse_nslookup_data_to_csv_main
 from parse_xcal_tput_to_csv import main as parse_xcal_tput_to_csv_main
 from append_weather_area_to_tput_dataset import main as append_weather_area_to_tput_dataset_main
+from append_weather_area_to_latency_dataset import main as append_weather_area_to_latency_dataset_main
 from calibrate_weather_area_data import main as calibrate_weather_area_data_main
 
 from plot_cdf_thoughput import main as plot_cdf_throughput_main
@@ -22,14 +23,17 @@ from plot_traceroute import main as plot_traceroute_main
 def parsing():
     # parse_nuttcp_data_to_csv_main()
     # parse_iperf_data_to_csv_main()
-    # parse_ping_result_to_csv_main()
+    parse_ping_result_to_csv_main()
     # parse_traceroute_data_to_csv_main()
     # parse_nslookup_data_to_csv_main()
     # parse_xcal_tput_to_csv_main()
 
-    parse_weather_area_data_to_csv_main()
-    calibrate_weather_area_data_main()
+    # parse_weather_area_data_to_csv_main()
+    # calibrate_weather_area_data_main()
     append_weather_area_to_tput_dataset_main()
+    append_weather_area_to_latency_dataset_main()
+
+    
 
 
 

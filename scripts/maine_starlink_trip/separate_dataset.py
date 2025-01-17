@@ -5,16 +5,16 @@ import re
 import sys
 from typing import List
 
-from scripts.maine_starlink_trip.labels import DatasetLabel
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from scripts.constants import DATASET_DIR
+from scripts.maine_starlink_trip.labels import DatasetLabel
+from scripts.maine_starlink_trip.configs import ROOT_DIR
 import unittest
 from datetime import datetime
 
-raw_data_path = os.path.join(DATASET_DIR, 'maine_starlink_trip/raw')
-tmp_data_path = os.path.join(DATASET_DIR, 'maine_starlink_trip/tmp')
+raw_data_path = os.path.join(ROOT_DIR, 'raw')
+tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
 
 
 def get_datetime_from_path(path_str: str) -> datetime:

@@ -1,4 +1,5 @@
 import json
+import math
 import os
 from matplotlib import pyplot as plt
 import numpy as np
@@ -11,7 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from scripts.utilities.distance_utils import DistanceUtils
 from scripts.celllular_analysis.TechBreakdown import Segment, TechBreakdown
 from scripts.utilities.list_utils import replace_with_elements
-from scripts.constants import XcalField, XcallHandoverEvent
+from scripts.constants import CommonField, XcalField, XcallHandoverEvent
 from scripts.logging_utils import create_logger
 from scripts.alaska_starlink_trip.configs import ROOT_DIR as AL_DATASET_DIR
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR as HI_DATASET_DIR
@@ -271,6 +272,8 @@ def plot_tech_with_all_operators(
         
         sub_stats['tech_distance_miles'] = tech_distance_mile_map
         sub_stats['total_distance_miles'] = total_distance_miles
+        sub_stats['tech_fractions'] = {tech: tech_distance_mile_map[tech] / total_distance_miles 
+                                      for tech in tech_order}
         
         if total_distance_miles > 0:
             tech_fractions.append({tech: tech_distance_mile_map[tech] / total_distance_miles 
@@ -813,7 +816,7 @@ def aggregate_xcal_tput_data_by_location(
 
 def read_latency_data(root_dir: str, operator: str, protocol: str = 'icmp'):
     if protocol == 'icmp':
-        input_csv_path = os.path.join(root_dir, 'ping', f'{operator}_ping.csv')
+        input_csv_path = os.path.join(root_dir, 'ping', f'{operator}_ping_with_tech.csv')
     else:
         raise ValueError(f'Unsupported protocol: {protocol}')
 
@@ -840,6 +843,15 @@ def aggregate_latency_data_by_location(
         locations: List[str], 
         protocol: str = 'icmp',
     ):
+    """Aggregate latency data from multiple locations.
+    
+    Args:
+        locations (List[str]): List of locations to process
+        protocol (str): Protocol used for latency measurements
+        
+    Returns:
+        pd.DataFrame: Combined DataFrame with latency data
+    """
     data = pd.DataFrame()
     for location in locations:
         df = aggregate_latency_data_by_operator(
@@ -861,20 +873,19 @@ def plot_metric_grid(
         title: str = None,
         percentile_filter: Dict[str, float] = None,
         max_xlim: float = None,
+        x_step: int = None,
         data_sample_threshold: int = 240, # one round data
     ):
     n_locations = len(loc_conf)
     n_metrics = len(metrics)
     
-    # Increased figure width to accommodate legends
     fig, axes = plt.subplots(n_locations, n_metrics, figsize=(4.8*n_metrics, 3*n_locations))
     if n_locations == 1:
         axes = axes.reshape(1, -1)
     if n_metrics == 1:
         axes = axes.reshape(-1, 1)
     
-    # Adjusted right margin to leave more space for legends
-    plt.subplots_adjust(wspace=0.2, hspace=0.2, right=0.85)  # Reduced right margin from 0.8 to 0.75
+    plt.subplots_adjust(wspace=0.2, hspace=0.2, right=0.85)
     
     locations_sorted = sorted(loc_conf.keys(), key=lambda x: loc_conf[x]['order'])
     
@@ -884,7 +895,6 @@ def plot_metric_grid(
     for col, (metric_name, _, _, data_field) in enumerate(metrics):
         max_val = 0
         min_val = float('inf')
-        percentile = percentile_filter.get(metric_name, 100) if percentile_filter else 100
         
         for location in locations_sorted:
             plot_df = data[metric_name][data[metric_name]['location'] == location]
@@ -893,16 +903,24 @@ def plot_metric_grid(
                     (plot_df['operator'] == op_tech.operator) & 
                     (plot_df[XcalField.ACTUAL_TECH] == op_tech.actual_tech)
                 ][data_field]
+
+                max_val = np.max(op_data)
+                if max_val > 1000:
+                    pass
                 
-                if percentile < 100:
-                    max_val = max(max_val, np.percentile(op_data, percentile))
-                else:
+                # Apply percentile filter if specified
+                if percentile_filter and metric_name in percentile_filter:
+                    percentile = percentile_filter[metric_name]
+                    op_data = op_data[op_data <= np.percentile(op_data, percentile)]
+                
+                if len(op_data) > 0:  # Only update if we have data after filtering
                     max_val = max(max_val, np.max(op_data))
-                min_val = min(min_val, np.min(op_data))
+                    if max_val > 1000:
+                        pass
+                    min_val = min(min_val, np.min(op_data))
         
-        padding = (max_val - min_val) * 0.05
-        col_max_values.append(max_val + padding)
-        col_min_values.append(min_val - padding)
+        col_max_values.append(max_val)
+        col_min_values.append(min_val)
     
     operator_lines = []
     for _, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
@@ -957,7 +975,6 @@ def plot_metric_grid(
             ax = axes[row, col]
             mask = data[metric_name]['location'] == location
             plot_df = data[metric_name][mask]
-            percentile = percentile_filter.get(metric_name, 100) if percentile_filter else 100
             
             # Plot each operator+tech combination
             for op_key, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
@@ -965,18 +982,19 @@ def plot_metric_grid(
                     mask = (plot_df['operator'] == op_key) & (plot_df[XcalField.ACTUAL_TECH] == t_key)
                     operator_data = plot_df[mask][data_field]
 
-                    # NOTE: IF DATA SAMPLE IS LESS THAN THRESHOLD, DO NOT PLOT IT!
+                    # Skip if not enough samples
                     if len(operator_data) < data_sample_threshold:
                         logger.warn(f'{location}-{op_key}-{t_key} data sample is less than required threshold, skip plotting: {len(operator_data)} < {data_sample_threshold}')
                         continue
                     
-                    if percentile < 100:
+                    # Apply percentile filter if specified
+                    if percentile_filter and metric_name in percentile_filter:
+                        percentile = percentile_filter[metric_name]
                         operator_data = operator_data[operator_data <= np.percentile(operator_data, percentile)]
                     
                     data_sorted = np.sort(operator_data)
                     cdf = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
                     
-
                     ax.plot(
                         data_sorted,
                         cdf,
@@ -986,11 +1004,19 @@ def plot_metric_grid(
                     )
             
             # Set x-axis limits and ticks
+            x_min = col_min_values[col] - 5
             if max_xlim:
-                ax.set_xlim(col_min_values[col], max_xlim)
+                x_max = max_xlim
             else:
-                ax.set_xlim(col_min_values[col], col_max_values[col])
-        
+                x_max = col_max_values[col]
+            ax.set_xlim(x_min, x_max)
+            if x_step:
+                # round to the nearest x_step
+                ax.set_xticks(np.arange(
+                    round(x_min / x_step) * x_step, 
+                    round(x_max / x_step) * x_step + 1, 
+                    x_step
+                ))
             
             ax.grid(True, alpha=0.3)
             ax.set_yticks(np.arange(0, 1.1, 0.25))
@@ -1016,6 +1042,7 @@ def plot_metric_grid(
         fig.suptitle(title, y=1.02, fontsize=14, fontweight='bold')
     
     plt.savefig(output_filepath, bbox_inches='tight', dpi=300)
+    logger.info(f'Saved plot to {output_filepath}')
     plt.close()
 
 def save_stats_to_json(
@@ -1048,6 +1075,10 @@ def save_stats_to_json(
             for operator in loc_df['operator'].unique():
                 stats[metric_name][location][operator] = {}
                 op_df = loc_df[loc_df['operator'] == operator]
+
+                if XcalField.SEGMENT_ID in op_df.columns:
+                    grouped_df = op_df.groupby([XcalField.SEGMENT_ID])
+                    tech_distance_mile_map, total_distance_miles = calculate_tech_coverage_in_miles(grouped_df)
                 
                 # Fourth level: Technology
                 tech_breakdown = {}
@@ -1068,8 +1099,10 @@ def save_stats_to_json(
                         'percentile_75': float(np.percentile(tech_data, 75)),
                         'percentile_95': float(np.percentile(tech_data, 95)),
                         'sample_count': len(tech_data),
-                        'percentage_in_area': float(len(tech_data) / operator_total * 100 if operator_total > 0 else 0)
+                        'percentage_occurence': float(len(tech_data) / operator_total * 100 if operator_total > 0 else 0),
                     }
+                    if XcalField.SEGMENT_ID in op_df.columns:
+                        tech_breakdown[tech]['percentage_miles'] = float(tech_distance_mile_map[tech] / total_distance_miles * 100 if total_distance_miles > 0 else 0)
                 
                 stats[metric_name][location][operator] = {
                     'tech_breakdown': tech_breakdown,
@@ -1085,6 +1118,7 @@ def plot_tput_tech_breakdown_by_area_by_operator(
         protocol: str, 
         direction: str,
         max_xlim: float = None,
+        percentile_filter: Dict[str, float] = None,
         data_sample_threshold: int = 240, # 1 rounds data (~2min)
     ):
     tput_df = aggregate_xcal_tput_data_by_location(
@@ -1119,6 +1153,7 @@ def plot_tput_tech_breakdown_by_area_by_operator(
         tech_conf=tech_conf, 
         output_filepath=output_filepath,
         max_xlim=max_xlim,
+        percentile_filter=percentile_filter,
         data_sample_threshold=data_sample_threshold,
     )
     save_stats_to_json(
@@ -1132,18 +1167,28 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         protocol: str = 'icmp', 
         max_xlim: float = None,
         data_sample_threshold: int = 240, # 1 rounds data (~2min)
+        x_step: int = None,
     ):
-
+    """Plot latency (RTT) CDF breakdown by technology and area for each operator.
+    
+    Args:
+        locations (List[str]): List of locations to process (e.g., ['alaska', 'hawaii'])
+        protocol (str): Protocol used for latency measurements (default: 'icmp')
+        max_xlim (float, optional): Maximum x-axis limit for the plots
+        data_sample_threshold (int): Minimum number of samples required to plot a line
+    """
+    # Aggregate latency data from all locations
     latency_df = aggregate_latency_data_by_location(
         locations=locations,
         protocol=protocol,
     )
 
+    # Split data into urban/suburban and rural areas
     plot_data = {
         'urban': latency_df[
-            (latency_df[XcalField.AREA] == 'urban') | (latency_df[XcalField.AREA] == 'suburban')
+            (latency_df[CommonField.AREA_TYPE] == 'urban') | (latency_df[CommonField.AREA_TYPE] == 'suburban')
         ],
-        'rural': latency_df[latency_df[XcalField.AREA] == 'rural'],
+        'rural': latency_df[latency_df[CommonField.AREA_TYPE] == 'rural'],
     }
 
     # Set output filepath for the plot
@@ -1166,6 +1211,8 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         tech_conf=tech_conf, 
         output_filepath=output_filepath,
         max_xlim=max_xlim,
+        x_step=x_step,
+        # percentile_filter=percentile_filter,
         data_sample_threshold=data_sample_threshold,
     )
 
@@ -1200,42 +1247,42 @@ def main():
     #     # data_sample_threshold=480, # 2 rounds data (~4min)
     # )
 
-    for location in ['alaska', 'hawaii']:
-        logger.info(f'-- Processing dataset: {location}')
-        base_dir = location_conf[location]['root_dir']
-        output_dir = os.path.join(current_dir, 'outputs', location)
+    # for location in ['alaska', 'hawaii']:
+    #     logger.info(f'-- Processing dataset: {location}')
+    #     base_dir = location_conf[location]['root_dir']
+    #     output_dir = os.path.join(current_dir, 'outputs', location)
 
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+    #     if not os.path.exists(output_dir):
+    #         os.makedirs(output_dir)
 
-        # Store dataframes for all operators
-        operator_dfs = {}
+    #     # Store dataframes for all operators
+    #     operator_dfs = {}
 
-        for operator in sorted(location_conf[location]['operators'], key=lambda x: operator_conf[x]['order']):
-            logger.info(f'---- Processing operator: {operator}')
-            input_csv_path = os.path.join(base_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
-            df = pd.read_csv(input_csv_path)
-            operator_dfs[operator] = df
+    #     for operator in sorted(location_conf[location]['operators'], key=lambda x: operator_conf[x]['order']):
+    #         logger.info(f'---- Processing operator: {operator}')
+    #         input_csv_path = os.path.join(base_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+    #         df = pd.read_csv(input_csv_path)
+    #         operator_dfs[operator] = df
 
-        loc_label = location_conf[location]['label']
+    #     loc_label = location_conf[location]['label']
 
-        # Urban + suburban tech breakdown
-        plot_tech_with_all_operators(
-            dfs=operator_dfs, 
-            df_mask=lambda df: (df[XcalField.AREA] == 'urban') | (df[XcalField.AREA] == 'suburban'), 
-            output_dir=output_dir, 
-            title=f'Technology Distribution ({loc_label}-Urban)',
-            fig_name=f'tech_breakdown_by_urban_area',
-        )
+    #     # Urban + suburban tech breakdown
+    #     plot_tech_with_all_operators(
+    #         dfs=operator_dfs, 
+    #         df_mask=lambda df: (df[XcalField.AREA] == 'urban') | (df[XcalField.AREA] == 'suburban'), 
+    #         output_dir=output_dir, 
+    #         title=f'Technology Distribution ({loc_label}-Urban)',
+    #         fig_name=f'tech_breakdown_by_urban_area',
+    #     )
 
-        # Plot location-wide tech breakdown by area
-        plot_tech_with_all_operators(
-            dfs=operator_dfs, 
-            df_mask=lambda df: df[XcalField.AREA] == 'rural', 
-            output_dir=output_dir, 
-            title=f'Technology Distribution ({loc_label}-Rural)',
-            fig_name=f'tech_breakdown_by_rural_area',
-        )
+    #     # Plot location-wide tech breakdown by area
+    #     plot_tech_with_all_operators(
+    #         dfs=operator_dfs, 
+    #         df_mask=lambda df: df[XcalField.AREA] == 'rural', 
+    #         output_dir=output_dir, 
+    #         title=f'Technology Distribution ({loc_label}-Rural)',
+    #         fig_name=f'tech_breakdown_by_rural_area',
+    #     )
 
 
     # Throughput relevant plots
@@ -1279,21 +1326,13 @@ def main():
     #     logger.info(f'-- Finished processing dataset: {location}')
 
     # Latency relevant plots
-    # for location in ['alaska', 'hawaii']:
-    #     logger.info(f'-- Processing dataset: {location}')
-    #     base_dir = location_dir[location]
-    #     output_dir = os.path.join(current_dir, 'outputs', location)
-    #     if not os.path.exists(output_dir):
-    #         os.makedirs(output_dir)
-
-    #     for operator in ['att', 'tmobile', 'verizon']:
-    #         logger.info(f'---- Processing operator: {operator}')
-    #         input_csv_path = os.path.join(base_dir, 'ping', f'{operator}_ping.csv')
-    #         df = pd.read_csv(input_csv_path)
-    #         plot_latency_cdf_by_tech_for_one_operator(df, operator, output_dir)
-    #         logger.info(f'---- Finished processing operator: {operator}')
-
-    #     logger.info(f'-- Finished processing dataset: {location}')
+    plot_latency_tech_breakdown_by_area_by_operator(
+        locations=['alaska', 'hawaii'],
+        protocol='icmp',
+        max_xlim=250,  # Uncomment and adjust if you want to limit the x-axis
+        x_step=25,
+        data_sample_threshold=480, # 1 round of data (~2min)
+    )
 
 if __name__ == "__main__":
     main()

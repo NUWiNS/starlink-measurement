@@ -82,7 +82,7 @@ class XcallHandoverEvent:
     
 operator_color_map = {
     'starlink': 'black',
-    'att': 'b',
-    'verizon': 'r',
-    'tmobile': 'darkviolet'
+    'att': 'deepskyblue',
+    'verizon': 'red',
+    'tmobile': 'magenta'
 }

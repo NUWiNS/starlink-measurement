@@ -1,17 +1,15 @@
 import logging
 import os
 import sys
-import json
 import folium
-from folium import plugins
 import pandas as pd
-import numpy as np
-from collections import defaultdict
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+import json
+from datetime import datetime
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
+from scripts.utilities.geo_ip_utils import IGeoIPQuery, JsonGeoIPQuery
+from scripts.utilities.geo_ip_utils import MaxMindGeoIPQuery
 from scripts.logging_utils import create_logger
 from scripts.constants import DATASET_DIR, OUTPUT_DIR
 
@@ -110,17 +108,21 @@ def add_colorbar_to_map(m, max_hops):
     # Add to map
     colormap.add_to(m)
 
-def plot_hop_points_on_map():
+def plot_hop_points_on_map(geo_ip_query: IGeoIPQuery):
+    """Plot hop points on map using provided GeoIP query interface
+    
+    Args:
+        geo_ip_query: Implementation of IGeoIPQuery interface for IP geolocation
+    """
     # Read data
     df = pd.read_csv(os.path.join(base_dir, 'starlink_traceroute.csv'))
-    with open(os.path.join(base_dir, 'ip_info_map.json'), 'r') as f:
-        ip_info = json.load(f)
     
     # Statistics tracking
     total_ips = set()
     private_ips = set()
     public_unmapped_ips = set()
     public_mapped_ips = set()
+    ip_info_map = {}  # Store IP to location mapping
 
     grayscale_tiles = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png'
     attr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -130,14 +132,14 @@ def plot_hop_points_on_map():
     
     # Create feature groups
     all_points = folium.FeatureGroup(name="All Points")
-    base_group = folium.FeatureGroup(name="Base Layer")  # New group for permanent labels
-    path_groups = {}  # Store feature groups by start_time
+    base_group = folium.FeatureGroup(name="Base Layer")
+    path_groups = {}
     
     # Find global max hop number for consistent color scaling
     global_max_hops = df['hop_number'].max()
     
     # Create a dictionary to store unique IP locations and their hop numbers
-    ip_locations = {}  # {ip: {'lat': lat, 'lon': lon, 'hops': set(), 'data': ip_data}}
+    ip_locations = {}  # {ip: {'lat': lat, 'lon': lon, 'hops': set(), 'data': location_info}}
     
     # First pass: collect all unique IPs and their hop numbers
     for _, row in df.iterrows():
@@ -145,29 +147,43 @@ def plot_hop_points_on_map():
             continue
             
         total_ips.add(row['ip'])
+        ip = row['ip']
         
-        if is_private_ip(row['ip']):
-            private_ips.add(row['ip'])
+        if is_private_ip(ip):
+            private_ips.add(ip)
             continue
             
-        if row['ip'] not in ip_info:
-            public_unmapped_ips.add(row['ip'])
+        # Get and store location info for this IP
+        location = geo_ip_query.get_location(ip)
+        if location is None:
+            public_unmapped_ips.add(ip)
             continue
             
-        ip_data = ip_info[row['ip']]
-        if ip_data.get('status') == 'success':
-            public_mapped_ips.add(row['ip'])
-            
-            if row['ip'] not in ip_locations:
-                ip_locations[row['ip']] = {
-                    'lat': ip_data['lat'],
-                    'lon': ip_data['lon'],
-                    'hops': set(),
-                    'data': ip_data
-                }
-            ip_locations[row['ip']]['hops'].add(row['hop_number'])
+        public_mapped_ips.add(ip)
+        
+        # Store the location info in our map
+        if ip not in ip_info_map:
+            ip_info_map[ip] = {
+                'status': 'success',
+                'country': location['country'],
+                'city': location['city'],
+                'lat': location['latitude'],
+                'lon': location['longitude'],
+                'timezone': location['timezone'],
+                'accuracy_radius': location['accuracy_radius']
+            }
+        
+        # Store location info for plotting
+        if ip not in ip_locations:
+            ip_locations[ip] = {
+                'lat': location['latitude'],
+                'lon': location['longitude'],
+                'hops': set(),
+                'data': location
+            }
+        ip_locations[ip]['hops'].add(row['hop_number'])
     
-    # Create markers for unique IP locations - add to All Points group
+    # Create markers for unique IP locations
     for ip, location in ip_locations.items():
         avg_hop = sum(location['hops']) / len(location['hops'])
         color = get_color_gradient(avg_hop, global_max_hops)
@@ -176,8 +192,8 @@ def plot_hop_points_on_map():
         popup_text = f"""
         IP: {ip}<br>
         Hops: {', '.join(map(str, hop_list))}<br>
-        Location: {location['data']['city']}, {location['data']['regionName']}<br>
-        ISP: {location['data']['isp']}
+        Location: {location['data']['city']}, {location['data']['country']}<br>
+        Timezone: {location['data']['timezone']}
         """
         
         # Add marker to all_points group
@@ -200,57 +216,12 @@ def plot_hop_points_on_map():
             ).add_to(base_group)
         )
     
-    # Add groups to map in specific order
+    # Add groups to map
     base_group.add_to(m)
     all_points.add_to(m)
     
-    # Add JavaScript to handle All Points visibility
-    js_code = """
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Wait a bit for Leaflet to fully initialize
-        setTimeout(function() {
-            // Get the layer control container
-            var layerControl = document.querySelector('.leaflet-control-layers-list');
-            var labels = layerControl.getElementsByTagName('label');
-            var allPointsCheckbox = null;
-            var baseLayerCheckbox = null;
-            
-            // Find our checkboxes
-            for (var i = 0; i < labels.length; i++) {
-                if (labels[i].textContent.includes('All Points')) {
-                    allPointsCheckbox = labels[i].querySelector('input');
-                } else if (labels[i].textContent.includes('Base Layer')) {
-                    baseLayerCheckbox = labels[i].querySelector('input');
-                    labels[i].style.display = 'none';  // Hide base layer control
-                }
-            }
-            
-            if (allPointsCheckbox) {
-                allPointsCheckbox.addEventListener('change', function() {
-                    // Get all checkboxes except All Points and Base Layer
-                    var otherCheckboxes = Array.from(layerControl.querySelectorAll('input[type="checkbox"]'))
-                        .filter(cb => cb !== allPointsCheckbox && cb !== baseLayerCheckbox);
-                    
-                    otherCheckboxes.forEach(function(checkbox) {
-                        // Only trigger click if state needs to change
-                        if (checkbox.checked !== this.checked) {
-                            checkbox.click();  // Use click() to trigger Leaflet's events
-                        }
-                    }, this);  // Pass 'this' context to access allPointsCheckbox.checked
-                });
-            }
-        }, 100);  // Small delay to ensure the map is fully loaded
-    });
-    </script>
-    """
-    
-    # Add the JavaScript to the map
-    m.get_root().html.add_child(folium.Element(js_code))
-    
     # Second pass: create separate groups for each traceroute path
     for start_time, group in df.groupby('start_time'):
-        # Format timestamp for display
         display_time = pd.to_datetime(start_time).strftime('%Y-%m-%d %H:%M:%S')
         group_name = f"Traceroute {display_time}"
         path_group = folium.FeatureGroup(name=group_name)
@@ -276,8 +247,8 @@ def plot_hop_points_on_map():
                 Hop: {row['hop_number']}<br>
                 IP: {row['ip']}<br>
                 RTT: {row['rtt_ms']:.2f} ms<br>
-                Location: {location['data']['city']}, {location['data']['regionName']}<br>
-                ISP: {location['data']['isp']}
+                Location: {location['data']['city']}, {location['data']['country']}<br>
+                Timezone: {location['data']['timezone']}
                 """,
                 weight=2
             ).add_to(path_group)
@@ -305,13 +276,10 @@ def plot_hop_points_on_map():
                     popup=f'Hop {start_hop} → {end_hop}'
                 ).add_to(path_group)
         
-        # Add the path group to the map
         path_group.add_to(m)
     
-    # Add layer control with expanded view
+    # Add layer control and colorbar
     folium.LayerControl(collapsed=False).add_to(m)
-    
-    # Add colorbar legend
     add_colorbar_to_map(m, global_max_hops)
     
     # Log statistics
@@ -330,17 +298,58 @@ def plot_hop_points_on_map():
         for ip in sorted(public_unmapped_ips):
             logger.info(f"  - {ip}")
     
-    # Add layer control
-    folium.LayerControl().add_to(m)
+    # Save both the map and the IP info
+    timestamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
     
-    # Save map
-    output_path = os.path.join(output_dir, 'traceroute_map.html')
-    m.save(output_path)
-    logger.info(f'\nSaved traceroute map to {output_path}')
+    # Save the map
+    map_output_path = os.path.join(output_dir, f'traceroute_map_{timestamp}.html')
+    m.save(map_output_path)
+    logger.info(f'\nSaved traceroute map to {map_output_path}')
+    
+    # Save the IP info map
+    ip_info_output_path = os.path.join(output_dir, f'traceroute_map_{timestamp}.ip.json')
+    with open(ip_info_output_path, 'w') as f:
+        json.dump(ip_info_map, f, indent=4)
+    logger.info(f'Saved IP info map to {ip_info_output_path}')
+    
+    # Save unmapped IPs for future reference
+    if public_unmapped_ips:
+        unmapped_ips_path = os.path.join(output_dir, f'unmapped_ips_{timestamp}.txt')
+        with open(unmapped_ips_path, 'w') as f:
+            for ip in sorted(public_unmapped_ips):
+                f.write(f"{ip}\n")
+        logger.info(f'Saved list of unmapped IPs to {unmapped_ips_path}')
+    
+    # Print summary statistics
+    logger.info("\nSummary Statistics:")
+    logger.info(f"Total unique IPs: {len(total_ips)}")
+    logger.info(f"Private IPs: {len(private_ips)}")
+    logger.info(f"Public mapped IPs: {len(public_mapped_ips)}")
+    logger.info(f"Public unmapped IPs: {len(public_unmapped_ips)}")
+    
+    return {
+        'map_path': map_output_path,
+        'ip_info_path': ip_info_output_path,
+        'total_ips': len(total_ips),
+        'mapped_ips': len(public_mapped_ips),
+        'unmapped_ips': len(public_unmapped_ips),
+        'private_ips': len(private_ips)
+    }
 
 def main():
-    # print_ips_by_hops()
-    plot_hop_points_on_map()
+    print_ips_by_hops()
+    # mmdb_path = os.path.join(DATASET_DIR, 'others', 'GeoLite2-City_20241129/GeoLite2-City.mmdb')
+    # with MaxMindGeoIPQuery(mmdb_path) as geo_ip:
+    # json_path = os.path.join(base_dir, 'ip_info_map.json')
+    # with JsonGeoIPQuery(json_path) as geo_ip:
+    #     result = plot_hop_points_on_map(geo_ip)
+        
+    #     logger.info("\nOutput Files:")
+    #     logger.info(f"Map: {result['map_path']}")
+    #     logger.info(f"IP Info: {result['ip_info_path']}")
+    #     logger.info(f"\nMapping Coverage: {result['mapped_ips']}/{result['total_ips']} IPs " +
+    #                f"({result['mapped_ips']/result['total_ips']*100:.1f}%)")
+
 
 if __name__ == '__main__':
     main()
