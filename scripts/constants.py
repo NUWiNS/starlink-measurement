@@ -45,6 +45,9 @@ class XcalField:
     WEATHER = 'weather'
     AREA = 'area'
     AREA_GEOJSON = 'area_geojson'
+    SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE = 'Smart Phone System Info Network Type'
+    LTE_EARFCN_DL = 'LTE KPI PCell Serving EARFCN(DL)'
+
 
 class XcalTech:
     LTE = 'LTE'

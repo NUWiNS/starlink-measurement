@@ -20,7 +20,7 @@ logger = create_logger('icmp_latency_with_areas', filename=os.path.join(current_
 
 def read_latency_data(root_dir: str, operator: str, protocol: str = 'icmp'):
     if protocol == 'icmp':
-        input_csv_path = os.path.join(root_dir, 'ping', f'{operator}_ping_with_tech.csv')
+        input_csv_path = os.path.join(root_dir, 'ping/sizhe_new_data', f'{operator}_ping.csv')
     else:
         raise ValueError(f'Unsupported protocol: {protocol}')
 
@@ -169,7 +169,7 @@ def plot_tech_breakdown_cdfs_in_a_row(
             if interval_x:
                 ax.set_xticks(np.arange(0, actual_max_x_value + 1, interval_x))
         
-        ax.legend()
+        ax.legend(loc='lower right')
     
     # Save the figure
     plt.savefig(output_filepath, dpi=600)
@@ -189,6 +189,9 @@ def plot_latency_tech_breakdown_by_area_by_operator(
     )
 
     data_field = 'rtt_ms'
+    output_dir = os.path.join(current_dir, 'outputs', 'sizhe_new_data')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     ak_df = latency_df[latency_df[CommonField.LOCATION] == 'alaska']
     ak_urban_df = ak_df[(ak_df[CommonField.AREA_TYPE] == 'urban') | (ak_df[CommonField.AREA_TYPE] == 'suburban')]
@@ -203,7 +206,7 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         tech_conf=tech_conf,
         max_xlim=200,
         output_filepath=os.path.join(
-            current_dir, 'outputs', f'{protocol}_latency.ak_urban.png'),
+            output_dir, f'{protocol}_latency.ak_urban.pdf'),
     )
 
     ak_rural_df = ak_df[ak_df[CommonField.AREA_TYPE] == 'rural']
@@ -218,39 +221,39 @@ def plot_latency_tech_breakdown_by_area_by_operator(
         tech_conf=tech_conf,
         max_xlim=200,
         output_filepath=os.path.join(
-            current_dir, 'outputs', f'{protocol}_latency.ak_rural.png'),
+            output_dir, f'{protocol}_latency.ak_rural.pdf'),
     )
 
-    hi_df = latency_df[latency_df[CommonField.LOCATION] == 'hawaii']
-    hi_urban_df = hi_df[(hi_df[CommonField.AREA_TYPE] == 'urban') | (hi_df[CommonField.AREA_TYPE] == 'suburban')]
-    plot_tech_breakdown_cdfs_in_a_row(
-        title='HI Urban',
-        df=hi_urban_df,
-        data_field=data_field,
-        data_sample_threshold=data_sample_threshold,
-        operators=['att', 'verizon', 'tmobile'],
-        operator_conf=cellular_operator_conf,
-        location_conf=cellular_location_conf,
-        tech_conf=tech_conf,
-        max_xlim=200,
-        output_filepath=os.path.join(
-            current_dir, 'outputs', f'{protocol}_latency.hi_urban.png'),
-    )
+    # hi_df = latency_df[latency_df[CommonField.LOCATION] == 'hawaii']
+    # hi_urban_df = hi_df[(hi_df[CommonField.AREA_TYPE] == 'urban') | (hi_df[CommonField.AREA_TYPE] == 'suburban')]
+    # plot_tech_breakdown_cdfs_in_a_row(
+    #     title='HI Urban',
+    #     df=hi_urban_df,
+    #     data_field=data_field,
+    #     data_sample_threshold=data_sample_threshold,
+    #     operators=['att', 'verizon', 'tmobile'],
+    #     operator_conf=cellular_operator_conf,
+    #     location_conf=cellular_location_conf,
+    #     tech_conf=tech_conf,
+    #     max_xlim=200,
+    #     output_filepath=os.path.join(
+    #         current_dir, 'outputs', f'{protocol}_latency.hi_urban.pdf'),
+    # )
 
-    hi_rural_df = hi_df[hi_df[CommonField.AREA_TYPE] == 'rural']
-    plot_tech_breakdown_cdfs_in_a_row(
-        title='HI Rural',
-        df=hi_rural_df,
-        data_field=data_field,
-        data_sample_threshold=data_sample_threshold,
-        operators=['att', 'verizon', 'tmobile'],
-        operator_conf=cellular_operator_conf,
-        location_conf=cellular_location_conf,
-        tech_conf=tech_conf,
-        max_xlim=200,
-        output_filepath=os.path.join(
-            current_dir, 'outputs', f'{protocol}_latency.hi_rural.png'),
-    )
+    # hi_rural_df = hi_df[hi_df[CommonField.AREA_TYPE] == 'rural']
+    # plot_tech_breakdown_cdfs_in_a_row(
+    #     title='HI Rural',
+    #     df=hi_rural_df,
+    #     data_field=data_field,
+    #     data_sample_threshold=data_sample_threshold,
+    #     operators=['att', 'verizon', 'tmobile'],
+    #     operator_conf=cellular_operator_conf,
+    #     location_conf=cellular_location_conf,
+    #     tech_conf=tech_conf,
+    #     max_xlim=200,
+    #     output_filepath=os.path.join(
+    #         current_dir, 'outputs', f'{protocol}_latency.hi_rural.pdf'),
+    # )
 
 
 def main():
@@ -258,7 +261,8 @@ def main():
         os.makedirs(os.path.join(current_dir, 'outputs'))
 
     plot_latency_tech_breakdown_by_area_by_operator(
-        locations=['alaska', 'hawaii'],
+        # locations=['alaska', 'hawaii'],
+        locations=['alaska'],
         protocol='icmp',
         data_sample_threshold=480,
     )

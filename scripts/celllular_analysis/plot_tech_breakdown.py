@@ -23,7 +23,7 @@ logger = create_logger('handover_split', filename=os.path.join(current_dir, 'out
 
 # Colors for different technologies - from grey (NO SERVICE) to rainbow gradient (green->yellow->orange->red) for increasing tech
 colors = ['#808080', '#326f21', '#86c84d', '#ffd700', '#ff9900', '#ff4500', '#ba281c']  # Grey, green, light green, yellow, amber, orange, red
-tech_order = ['NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']
+tech_order = ['Unknown', 'NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']
 
 def calculate_tech_coverage_in_miles(grouped_df: pd.DataFrame) -> Tuple[dict, float]:
     # Initialize mile fractions for each tech
@@ -765,10 +765,16 @@ tech_conf = {
         'color': '#ff9900',
         'order': 4
     },
+    'Unknown': {
+        'label': 'Unknown',
+        'color': '#000000',
+        'order': 5
+    }
 }
 
 def read_xcal_tput_data(root_dir: str, operator: str, protocol: str = None, direction: str = None):
-    input_csv_path = os.path.join(root_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+    # input_csv_path = os.path.join(root_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+    input_csv_path = os.path.join(root_dir, 'xcal/alaska_sizhe_new_data', f'{operator}_xcal_smart_tput.csv')
     df = pd.read_csv(input_csv_path)
     if protocol:
         df = df[df[XcalField.APP_TPUT_PROTOCOL] == protocol]
@@ -1120,6 +1126,7 @@ def plot_tput_tech_breakdown_by_area_by_operator(
         max_xlim: float = None,
         percentile_filter: Dict[str, float] = None,
         data_sample_threshold: int = 240, # 1 rounds data (~2min)
+        output_dir: str = '.',
     ):
     tput_df = aggregate_xcal_tput_data_by_location(
         locations=locations,
@@ -1133,7 +1140,7 @@ def plot_tput_tech_breakdown_by_area_by_operator(
         ],
         'rural': tput_df[tput_df[XcalField.AREA] == 'rural'],
     }
-    output_filepath = os.path.join(current_dir, 'outputs', f'tech_breakdown_by_area.{protocol}_{direction}.png')
+    output_filepath = os.path.join(output_dir, f'tech_breakdown_by_area.{protocol}_{direction}.png')
 
     tput_field_map = {
         'downlink': XcalField.TPUT_DL,
@@ -1187,7 +1194,7 @@ def plot_latency_tech_breakdown_by_area_by_operator(
     plot_data = {
         'urban': latency_df[
             (latency_df[CommonField.AREA_TYPE] == 'urban') | (latency_df[CommonField.AREA_TYPE] == 'suburban')
-        ],
+        ],  
         'rural': latency_df[latency_df[CommonField.AREA_TYPE] == 'rural'],
     }
 
@@ -1224,13 +1231,19 @@ def plot_latency_tech_breakdown_by_area_by_operator(
     )
 
 def main():
-    # plot_tput_tech_breakdown_by_area_by_operator(
-    #     locations=['alaska', 'hawaii'],
-    #     protocol='tcp',
-    #     direction='downlink',
-    #     max_xlim=400,
-    #     data_sample_threshold=480, # 2 rounds data (~4min)
-    # )
+    output_dir = './outputs/sizhe_new_data'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    plot_tput_tech_breakdown_by_area_by_operator(
+        # locations=['alaska', 'hawaii'],
+        locations=['alaska'],
+        protocol='tcp',
+        direction='downlink',
+        max_xlim=400,
+        data_sample_threshold=480, # 2 rounds data (~4min)
+        output_dir=output_dir,
+    )
 
     # plot_tput_tech_breakdown_by_area_by_operator(
     #     locations=['alaska', 'hawaii'],
@@ -1326,13 +1339,13 @@ def main():
     #     logger.info(f'-- Finished processing dataset: {location}')
 
     # Latency relevant plots
-    plot_latency_tech_breakdown_by_area_by_operator(
-        locations=['alaska', 'hawaii'],
-        protocol='icmp',
-        max_xlim=250,  # Uncomment and adjust if you want to limit the x-axis
-        x_step=25,
-        data_sample_threshold=480, # 1 round of data (~2min)
-    )
+    # plot_latency_tech_breakdown_by_area_by_operator(
+    #     locations=['alaska', 'hawaii'],
+    #     protocol='icmp',
+    #     max_xlim=250,  # Uncomment and adjust if you want to limit the x-axis
+    #     x_step=25,
+    #     data_sample_threshold=480, # 1 round of data (~2min)
+    # )
 
 if __name__ == "__main__":
     main()

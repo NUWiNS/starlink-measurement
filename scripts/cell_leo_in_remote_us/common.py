@@ -23,7 +23,7 @@ cellular_location_conf = {
             'max_xlim': 300,
         },
         'tcp_uplink': {
-            'interval_x': 50,
+            'interval_x': 25,
             'max_xlim': 100,
         },
     },
@@ -129,15 +129,35 @@ tech_conf = {
         'color': '#ff9900',
         'order': 4
     },
+    '5G-mmWave (28GHz)': {
+        'label': '5G-mmWave (28GHz)',
+        'color': '#ff4500',
+        'order': 5
+    },
+    '5G-mmWave (39GHz)': {
+        'label': '5G-mmWave (39GHz)',
+        'color': '#ba281c',
+        'order': 6
+    },
+    'NO SERVICE': {
+        'label': 'No Service',
+        'color': '#808080',
+        'order': 7
+    },
+    'Unknown': {
+        'label': 'Unknown',
+        'color': '#a9a9a9',  # Light gray, lighter than NO SERVICE
+        'order': 8
+    },
 }
 
 # Colors for different technologies - from grey (NO SERVICE) to rainbow gradient (green->yellow->orange->red) for increasing tech
 colors = ['#808080', '#326f21', '#86c84d', '#ffd700', '#ff9900', '#ff4500', '#ba281c']  # Grey, green, light green, yellow, amber, orange, red
-tech_order = ['NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']
+tech_order = ['Unknown', 'NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']
 
 
 def read_xcal_tput_data(root_dir: str, operator: str, protocol: str = None, direction: str = None):
-    input_csv_path = os.path.join(root_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+    input_csv_path = os.path.join(root_dir, 'xcal/sizhe_new_data', f'{operator}_xcal_smart_tput.csv')
     df = pd.read_csv(input_csv_path)
     if protocol:
         df = df[df[XcalField.APP_TPUT_PROTOCOL] == protocol]

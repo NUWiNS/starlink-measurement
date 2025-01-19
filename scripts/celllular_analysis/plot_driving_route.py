@@ -9,7 +9,7 @@ import sys
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(CURRENT_DIR, '../..'))
-OUTPUT_DIR = os.path.join(CURRENT_DIR, "outputs")
+OUTPUT_DIR = os.path.join(CURRENT_DIR, "outputs/sizhe_new_data")
 
 from scripts.alaska_starlink_trip.configs import ROOT_DIR as ALASKA_ROOT_DIR, TIMEZONE as ALASKA_TIMEZONE
 from scripts.hawaii_starlink_trip.configs import ROOT_DIR as HAWAII_ROOT_DIR, TIMEZONE as HAWAII_TIMEZONE
@@ -447,11 +447,13 @@ def plot_route_with_area_type(
 def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
+        os.makedirs(os.path.join(OUTPUT_DIR, 'alaska'))
+        os.makedirs(os.path.join(OUTPUT_DIR, 'hawaii'))
 
 
     dfs_alaska = {}
     for operator in ["att", "verizon"]:
-        df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal", f"{operator}_xcal_smart_tput.csv"))
+        df_xcal_data_in_alaska = pd.read_csv(os.path.join(ALASKA_ROOT_DIR, "xcal/alaska_sizhe_new_data", f"{operator}_xcal_smart_tput.csv"))
         dfs_alaska[operator] = df_xcal_data_in_alaska
     
     for operator, df_xcal_data_in_alaska in dfs_alaska.items():
@@ -465,7 +467,7 @@ def main():
         # )
 
         # Use our manually classified area types
-        output_file_path = os.path.join(OUTPUT_DIR, 'alaska', f"{operator}_driving_route_with_area_type.html")
+        output_file_path = os.path.join(OUTPUT_DIR, f"{operator}_driving_route_with_area_type.alaska.html")
         plot_route_with_area_type(
             df_xcal_data_in_alaska, 
             area_field=XcalField.AREA,
@@ -499,7 +501,7 @@ def main():
         # )
 
         # Use our manually classified area types
-        output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_type.html")
+        output_file_path = os.path.join(OUTPUT_DIR, f"{operator}_driving_route_with_area_type.hawaii.html")
         plot_route_with_area_type(
             df_xcal_data_in_hawaii, 
             area_field=XcalField.AREA,

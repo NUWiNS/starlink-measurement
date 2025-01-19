@@ -1,3 +1,5 @@
+from os import path
+import os
 from typing import List, Tuple
 import numpy as np
 import pandas as pd
@@ -15,6 +17,7 @@ class Segment:
             app_tput_direction: str,
             time_field: str = XcalField.CUSTOM_UTC_TIME, 
             freq_field: str = XcalField.PCELL_FREQ_5G,
+            network_type_field: str = XcalField.SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE,
             tech_field: str = XcalField.TECH,
             band_field: str = XcalField.BAND,
             event_field: str = XcalField.EVENT_LTE,
@@ -68,9 +71,9 @@ class Segment:
             return None
         return float(freq_5g)
 
-    def get_tech(self) -> str:
+    def get_tech(self, label: str = None) -> str:
         """
-        use the 5G frequency to determine the technology
+        determine the technology for this segment
         """
         all_techs = self.get_all_techs_from_xcal()
 
@@ -86,20 +89,41 @@ class Segment:
                     print(f"Segment ({self.get_range()}) has no service but contains non-zero UL throughput (threshold: {self.low_tput_threshold_mbps}, max: {tput_values.max()})")
             return 'NO SERVICE'
 
+        # 5G identification needs 5G frequency
         freq_5g_mhz = self.get_freq_5g_mhz()
-        if freq_5g_mhz is None:
-            if any('ca' in tech.lower() for tech in all_techs):
-                return 'LTE-A'
+        if freq_5g_mhz is not None:
+            if freq_5g_mhz < 1000:  # Below 1 GHz
+                return '5G-low'
+            elif freq_5g_mhz < 6000:  # 1-6 GHz
+                return '5G-mid'
+            elif 27500 <= freq_5g_mhz <= 28350:  # 28 GHz band
+                return '5G-mmWave (28GHz)'
+            elif 37000 <= freq_5g_mhz <= 40000:  # 39 GHz band
+                return '5G-mmWave (39GHz)'
+
+        # if any('ca' in tech.lower() for tech in all_techs):
+        #     return 'LTE-A'
+        if any('lte' in tech.lower() for tech in all_techs):
             return 'LTE'
         
-        if freq_5g_mhz < 1000:  # Below 1 GHz
-            return '5G-low'
-        elif freq_5g_mhz < 6000:  # 1-6 GHz
-            return '5G-mid'
-        elif 27500 <= freq_5g_mhz <= 28350:  # 28 GHz band
-            return '5G-mmWave (28GHz)'
-        elif 37000 <= freq_5g_mhz <= 40000:  # 39 GHz band
-            return '5G-mmWave (39GHz)'
+        if len(all_techs) == 0:
+            print(f'[Warning] No tech found for segment ({self.get_range()})')
+            # TODO: check
+            if label is None:
+                label = 'unknown'
+            tput_df = self.df[self.df[self.dl_tput_field].notna() | self.df[self.ul_tput_field].notna()].copy()
+            tmp_csv = f'no_tech_segment.{label}.csv'
+            if path.exists(tmp_csv):
+                # remove the file
+                os.remove(tmp_csv)
+            if not path.exists(tmp_csv):
+                with open(tmp_csv, 'w') as f:
+                    tput_df.to_csv(f, index=False)
+            else:
+                with open(tmp_csv, 'a') as f:
+                    tput_df.to_csv(f, index=False, header=False)
+            return 'Unknown'
+        
         return 'Unknown'
     
     def get_all_techs_from_xcal(self) -> List[str]:
@@ -204,6 +228,9 @@ class TechBreakdown:
             ul_tput_field: str = XcalField.SMART_TPUT_UL,
             event_field: str = XcalField.EVENT_LTE,
             freq_5g_field: str = XcalField.PCELL_FREQ_5G,
+            network_type_field: str = XcalField.SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE,
+            earfcn_lte_field: str = XcalField.LTE_EARFCN_DL,
+            label: str = None,
         ):
         self.df = df
         self.time_field = time_field
@@ -215,6 +242,9 @@ class TechBreakdown:
         self.freq_5g_field = freq_5g_field
         self.app_tput_protocol = app_tput_protocol
         self.app_tput_direction = app_tput_direction
+        self.label = label
+        self.earfcn_lte_field = earfcn_lte_field
+        self.network_type_field = network_type_field
 
     def process(self) -> List[Segment]:
         try:
@@ -453,7 +483,7 @@ class TechBreakdown:
         for segment in segments:
             new_segment_df = segment.df
             try:
-                new_segment_df[XcalField.ACTUAL_TECH] = segment.get_tech()
+                new_segment_df[XcalField.ACTUAL_TECH] = segment.get_tech(self.label)
                 new_segment_df[XcalField.SEGMENT_ID] = f'{segment.start_idx}:{segment.end_idx}'
             except Exception as e:
                 print(f"Error in getting tech for segment {segment.get_range()}: {str(e)}")

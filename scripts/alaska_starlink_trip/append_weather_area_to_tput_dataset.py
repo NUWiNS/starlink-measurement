@@ -14,7 +14,7 @@ tput_dir = os.path.join(ROOT_DIR, 'throughput')
 tput_dir_for_cubic = os.path.join(ROOT_DIR, 'throughput_cubic')
 tput_dir_for_bbr = os.path.join(ROOT_DIR, 'throughput_bbr')
 
-xcal_tput_dir = os.path.join(ROOT_DIR, 'xcal')
+xcal_tput_dir = os.path.join(ROOT_DIR, 'xcal/sizhe_new_data')
 
 others_dir = os.path.join(ROOT_DIR, 'others')
 tmp_data_path = os.path.join(ROOT_DIR, 'tmp')

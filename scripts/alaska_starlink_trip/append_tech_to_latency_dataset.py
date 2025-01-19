@@ -16,7 +16,8 @@ from scripts.utilities.xcal_processing_utils import collect_periods_of_ping_meas
 
 
 tmp_dir = os.path.join(ROOT_DIR, 'tmp')
-ping_dir = os.path.join(ROOT_DIR, 'ping')
+# ping_dir = os.path.join(ROOT_DIR, 'ping')
+ping_dir = os.path.join(ROOT_DIR, 'ping', 'sizhe_new_data')
 logger = create_logger(__name__, filename=os.path.join(tmp_dir, f'parse_xcal_tput_to_csv.{now()}.log'))
 
 # XCAL XLSX FIELDS
@@ -45,68 +46,12 @@ def save_extracted_periods_as_csv(periods: list[tuple[datetime, datetime, str]],
     df = pd.DataFrame(periods, columns=['start_time', 'end_time', 'protocol_direction'])
     df.to_csv(output_file_path, index=False)
 
-def get_app_tput_periods(dir_list: list[str]) -> list[tuple[datetime, datetime, str]]:
-    all_tput_periods = []
-    for dir in dir_list:
-        try:
-          periods_of_tcp_dl = collect_periods_of_tput_measurements(base_dir=dir, protocol='tcp', direction='downlink')
-          periods_of_tcp_ul = collect_periods_of_tput_measurements(base_dir=dir, protocol='tcp', direction='uplink')
-          periods_of_udp_dl = collect_periods_of_tput_measurements(base_dir=dir, protocol='udp', direction='downlink')
-          periods_of_udp_ul = collect_periods_of_tput_measurements(base_dir=dir, protocol='udp', direction='uplink')
-          all_tput_periods.extend(periods_of_tcp_dl + periods_of_tcp_ul + periods_of_udp_dl + periods_of_udp_ul)
-        except Exception as e:
-            raise Exception(f"Failed to collect periods of tput measurements: {str(e)}")
-    return all_tput_periods
-
 def get_ping_periods(dir_list: list[str]) -> list[tuple[datetime, datetime, str]]:
     all_ping_periods = []
     for dir in dir_list:
         periods_of_ping = collect_periods_of_ping_measurements(base_dir=dir)
         all_ping_periods.extend(periods_of_ping)
     return all_ping_periods
-
-def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
-    dir_list = read_dataset(operator, label=DatasetLabel.NORMAL.value)
-    all_dates = set()
-    for dir in dir_list:
-        # dir is like /path/to/20240621/153752852
-        date = dir.split('/')[-2]
-        all_dates.add(date)
-    
-    logger.info("--Stage 1: save app tput periods as csv")
-    app_tput_periods_csv = path.join(output_dir, f'{operator}_app_tput_periods.csv')
-    all_tput_periods = get_app_tput_periods(dir_list=dir_list)
-    save_extracted_periods_as_csv(all_tput_periods, output_file_path=app_tput_periods_csv)
-    logger.info(f"collected {len(all_tput_periods)} periods of tput measurements and saved to {app_tput_periods_csv}")
-    
-    logger.info("-- Stage 2: read all xcal logs related to one location")
-    xcal_log_dir = path.join(DATASET_DIR, 'xcal')
-    df_xcal_all_logs = pd.DataFrame()
-    all_dates = sorted(all_dates)
-
-    for date in all_dates:
-        try:
-            df_xcal_daily_data = read_daily_xcal_data(base_dir=xcal_log_dir, date=date, location=location, operator=operator)
-            df_xcal_all_logs = pd.concat([df_xcal_all_logs, df_xcal_daily_data])
-        except Exception as e:
-            logger.info(f"Failed to read or concatenate xcal data for date {date}: {str(e)}")
-    logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) for all dates: {all_dates}")
-    df_xcal_all_logs[XcalField.SRC_IDX] = df_xcal_all_logs.index
-    df_xcal_all_logs.to_csv(path.join(output_dir, f'{operator}_xcal_raw_logs_all_dates.csv'), index=False)
-
-    logger.info("-- Stage 3: filter xcal logs by app tput periods")
-    try:
-        filtered_df = filter_xcal_logs(
-            df_xcal_all_logs, 
-            periods=all_tput_periods, 
-            xcal_timezone='US/Eastern'
-        )
-        filtered_df.to_csv(path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv'), index=False)
-        logger.info(f"filtered xcal logs (size: {len(filtered_df)}) by app tput periods and saved to {path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv')}")
-    except Exception as e:
-        logger.info(f"Failed to filter xcal logs: {str(e)}")
-        raise e
-    return filtered_df
 
 def fuse_rtt_into_xcal_logs(df_xcal_all_logs: pd.DataFrame, df_rtt: pd.DataFrame) -> pd.DataFrame:
     """Fuse RTT data into XCAL logs based on timestamp order.
@@ -155,11 +100,14 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
     
     logger.info("--Stage 1: extract ping periods")
     all_ping_periods = get_ping_periods(dir_list=dir_list)
+    save_extracted_periods_as_csv(all_ping_periods, output_file_path=path.join(output_dir, f'{operator}_ping_periods.csv'))
+
     logger.info(f"collected {len(all_ping_periods)} periods of ping measurements")
     
     logger.info("-- Stage 2: read all xcal logs related to one location")
     all_xcal_raw_data_csv = path.join(output_dir, f'{operator}_xcal_raw_logs_all_dates.csv')
-    xcal_log_dir = path.join(DATASET_DIR, 'xcal')
+    # xcal_log_dir = path.join(DATASET_DIR, 'xcal')
+    xcal_log_dir = path.join(DATASET_DIR, 'xcal', 'alaska_sizhe_new_data')
     df_xcal_all_logs = pd.DataFrame()
     if path.exists(all_xcal_raw_data_csv):
         logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) from {all_xcal_raw_data_csv}")
@@ -194,13 +142,15 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
     df_rtt[CommonField.LOCAL_DT] = pd.to_datetime(df_rtt[CommonField.LOCAL_DT], format='ISO8601')
     df_rtt[XcalField.CUSTOM_UTC_TIME] = df_rtt[CommonField.LOCAL_DT].dt.tz_convert('UTC')
     fused_xcal_all_logs_df = fuse_rtt_into_xcal_logs(df_xcal_all_logs, df_rtt)
+    fused_xcal_all_logs_df.to_csv(path.join(output_dir, f'fused_rtt_xcal_logs.{operator}.csv'), index=False)
 
     logger.info("-- Stage 4: filter xcal logs by ping periods")
     try:
         filtered_df = filter_xcal_logs(
             fused_xcal_all_logs_df, 
             periods=all_ping_periods, 
-            xcal_timezone='US/Eastern'
+            xcal_timezone='US/Eastern',
+            label=f"ping.{operator}_{location}",
         )
         output_csv_path = path.join(output_dir, f'{operator}_xcal_raw_logs_with_rtt.csv')
         filtered_df.to_csv(output_csv_path, index=False)
@@ -213,7 +163,7 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
     filtered_df = filtered_df[filtered_df[CommonField.RTT_MS].notna()]
     if len(filtered_df) == 0:
         logger.warn(f"No rows with RTT data found, skip saving")
-    output_csv_path = path.join(ping_dir, f'{operator}_ping_with_tech.csv')
+    output_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
 
     # only save the original cols from df_rtt and tech
     filtered_df = filtered_df[original_rtt_cols + [XcalField.ACTUAL_TECH]]
@@ -287,6 +237,7 @@ def append_tech_to_rtt_data_and_save_to_csv(
         DataFrame with appended technology information
     """
     rtt_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
+    output_rtt_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
     df_rtt = pd.read_csv(rtt_csv_path)
     xcal_df = xcal_df.copy().sort_values(by=XcalField.CUSTOM_UTC_TIME).reset_index(drop=True)
     
@@ -320,22 +271,23 @@ def append_tech_to_rtt_data_and_save_to_csv(
     df_rtt[XcalField.ACTUAL_TECH] = rtt_timestamp_series.apply(find_nearest_tech)
     
     # Save the updated DataFrame to the original path
-    df_rtt.to_csv(rtt_csv_path, index=False)
-    logger.info(f"Appended technology information to RTT data and saved to {rtt_csv_path}")
+    df_rtt.to_csv(output_rtt_csv_path, index=False)
+    logger.info(f"Appended technology information to RTT data and saved to {output_rtt_csv_path}")
     
     return df_rtt
 
 
 
 def main():
-    output_dir = path.join(ROOT_DIR, f'xcal')
+    # output_dir = path.join(ROOT_DIR, 'xcal')
+    output_dir = path.join(ROOT_DIR, 'xcal', 'sizhe_new_data')
     location = 'alaska'
 
     for dirs in [output_dir, tmp_dir]:
         if not path.exists(dirs):
             os.makedirs(dirs)
 
-    for operator in ['verizon', 'tmobile', 'att']:
+    for operator in ['verizon', 'att']:
         logger.info(f"--- Processing {operator}...")
         append_tech_to_rtt_data(operator, location, output_dir)
         logger.info(f"--- Finished processing {operator}")

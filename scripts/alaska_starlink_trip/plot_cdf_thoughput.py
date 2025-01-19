@@ -14,13 +14,14 @@ from scripts.cdf_tput_plotting_utils import get_data_frame_from_all_csv, plot_cd
     plot_cdf_of_throughput, plot_cdf_of_starlink_throughput_by_weather, \
     plot_cdf_tput_tcp_vs_udp_for_starlink_and_cellular, plot_cdf_xcal_vs_app_tput_combined
 
-from scripts.constants import OUTPUT_DIR
+from scripts.constants import OUTPUT_DIR, XcalField
 
 base_dir = os.path.join(ROOT_DIR, 'throughput')
 tput_cubic_dir = os.path.join(ROOT_DIR, 'throughput_cubic')
 tput_bbr_dir = os.path.join(ROOT_DIR, 'throughput_bbr')
 tmp_dir = os.path.join(ROOT_DIR, 'tmp')
 output_dir = os.path.join(OUTPUT_DIR, 'alaska_starlink_trip/plots')
+xcal_dir = os.path.join(ROOT_DIR, 'xcal')
 
 logger = create_logger('plot_cdf_throughput', filename=os.path.join(tmp_dir, 'plot_cdf_throughput.log'))
 
@@ -325,11 +326,11 @@ def read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr(protocol: str, direction: str, 
         output_dir=output_dir
     )
 
-def read_and_plot_xcal_tput_data(output_dir: str):
-    operators = ['att', 'verizon', 'tmobile']
+def read_and_plot_xcal_tput_data(base_dir: str, output_dir: str):
+    operators = ['att']
 
     for operator in operators:
-        df = pd.read_csv(os.path.join(ROOT_DIR, f'xcal/{operator}_xcal_smart_tput.csv'))
+        df = pd.read_csv(os.path.join(base_dir, f'{operator}_xcal_smart_tput.csv'))
         
         # Collect all data first
         app_tput_dfs = {}
@@ -341,9 +342,9 @@ def read_and_plot_xcal_tput_data(output_dir: str):
                 
                 # Get XCAL throughput
                 if direction == 'downlink':
-                    xcal_tput = sub_df['dl']
+                    xcal_tput = sub_df[XcalField.TPUT_DL]
                 else:
-                    xcal_tput = sub_df['ul']
+                    xcal_tput = sub_df[XcalField.TPUT_UL]
                 
                 # Get application throughput
                 app_tput = get_data_frame_from_all_csv(operator, protocol, direction)['throughput_mbps']
@@ -408,7 +409,7 @@ def main():
     # read_and_plot_cdf_tcp_tput_with_cubic_vs_bbr('tcp', 'uplink', output_dir)
 
     # XCAL
-    read_and_plot_xcal_tput_data(output_dir)
+    read_and_plot_xcal_tput_data(base_dir=xcal_dir, output_dir=output_dir)
 
 
 if __name__ == '__main__':

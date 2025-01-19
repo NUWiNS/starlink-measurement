@@ -1,3 +1,4 @@
+import math
 import os
 import json
 import numpy as np
@@ -9,7 +10,7 @@ import pandas as pd
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
-from scripts.cell_leo_in_remote_us.common import calculate_tech_coverage_in_miles, cellular_operator_conf, cellular_location_conf
+from scripts.cell_leo_in_remote_us.common import calculate_tech_coverage_in_miles, cellular_operator_conf, cellular_location_conf, tech_order, tech_conf
 from scripts.constants import XcalField
 from scripts.logging_utils import create_logger
 
@@ -22,6 +23,7 @@ def plot_tech_dist_stack(
         output_dir: str, 
         location_conf: Dict[str, Dict],
         operator_conf: Dict[str, Dict],
+        tech_conf: Dict[str, Dict],
         title: str = 'Technology Distribution by Operator',
         fig_name: str = 'fig',
         df_mask: Callable | None = None, 
@@ -37,18 +39,14 @@ def plot_tech_dist_stack(
     operators = sorted(list(dfs.keys()), key=lambda x: operator_conf[x]['order'])
     
     # Dynamically adjust figure width based on number of operators while maintaining bar width consistency
-    bar_width = 0.35  # Desired bar width
-    spacing_factor = 2.8  # Space between bars relative to bar width
+    bar_width = 0.3  # Reduced from 0.35
+    spacing_factor = 2.8  # Reduced from 2.8
     max_operator_length = 3
     total_width_needed = max_operator_length * bar_width * spacing_factor
-    fig_width = total_width_needed + 2
+    fig_width = total_width_needed + 1.9
     fig_height = fig_width * 0.6  # Make height 60% of width for rectangular shape
     
     fig, ax = plt.subplots(figsize=(fig_width, fig_height))
-    
-    # Colors for different technologies - from grey (NO SERVICE) to rainbow gradient
-    colors = ['#808080', '#326f21', '#86c84d', '#f5ff61', '#f4b550']
-    tech_order = ['NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid']
     
     tech_fractions = []
     stats = {}
@@ -97,28 +95,42 @@ def plot_tech_dist_stack(
     # Only plot technologies that are present
     for i, tech in enumerate(present_techs):
         values = [f[tech] if tech in f else 0 for f in tech_fractions]
-        ax.bar(x, values, bottom=bottom, label=tech, color=colors[tech_order.index(tech)], 
+        ax.bar(x, values, bottom=bottom, label=tech, color=tech_conf[tech]['color'], 
                width=bar_width)
         bottom += values
     
     # ax.set_title(title)
     # ax.set_xlabel('Operator')
     ax.set_ylabel('Fraction of Miles')
+    ax.set_yticks(np.arange(0, 1.1, 0.2))
     ax.set_xticks(x)
     ax.set_xticklabels(map(lambda x: operator_conf[x]['label'], operators))
     
     # Set x-axis limits to maintain consistent spacing
     ax.set_xlim(x[0] - bar_width * 1.5, x[-1] + bar_width * 1.5)
     
-    # Adjust legend position and size
-    ax.legend(title='Technology', bbox_to_anchor=(1.02, 1), loc='upper left', fontsize='small')
+    # Move legend above the plot
+    handles, labels = ax.get_legend_handles_labels()
+    # Calculate number of columns based on available width
+    # Use max 3 columns to ensure readability
+    ncol = min(3, len(present_techs))
+    nrow = math.ceil(len(present_techs) / ncol)
+    legend_height = 0.15 * nrow  # Adjust height based on number of rows
+
+    ax.legend(handles[::-1], labels[::-1],
+             bbox_to_anchor=(0, 1.02, 1, legend_height), 
+             loc='lower left',
+             mode='expand',
+             borderaxespad=0,
+             ncol=ncol,
+             fontsize=9)
     
     ax.grid(True, axis='y', alpha=0.3)  # Reduced grid line opacity
     
     # Adjust layout to be more compact
     plt.tight_layout()
-    figure_path = os.path.join(output_dir, f'{fig_name}.png')
-    plt.savefig(figure_path, bbox_inches='tight', dpi=300)
+    figure_path = os.path.join(output_dir, f'{fig_name}.pdf')
+    plt.savefig(figure_path, bbox_inches='tight')
     plt.close()
     
     # Save stats to json
@@ -131,10 +143,11 @@ def plot_tech_dist_stack(
 
 
 def main():
-    for location in ['alaska', 'hawaii']:
+    for location in ['alaska']:
+    # for location in ['alaska', 'hawaii']:
         logger.info(f'-- Processing dataset: {location}')
         base_dir = cellular_location_conf[location]['root_dir']
-        output_dir = os.path.join(current_dir, 'outputs', location)
+        output_dir = os.path.join(current_dir, 'outputs/sizhe_new_data', location)
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -144,11 +157,35 @@ def main():
 
         for operator in sorted(cellular_location_conf[location]['operators'], key=lambda x: cellular_operator_conf[x]['order']):
             logger.info(f'---- Processing operator: {operator}')
-            input_csv_path = os.path.join(base_dir, 'xcal', f'{operator}_xcal_smart_tput.csv')
+            input_csv_path = os.path.join(base_dir, 'xcal/sizhe_new_data', f'{operator}_xcal_smart_tput.csv')
             df = pd.read_csv(input_csv_path)
             operator_dfs[operator] = df
 
         loc_label = cellular_location_conf[location]['label']
+
+        # All Areas
+        plot_tech_dist_stack(
+            dfs=operator_dfs,
+            output_dir=output_dir, 
+            location_conf=cellular_location_conf,
+            operator_conf=cellular_operator_conf,
+            tech_conf=tech_conf,
+            title=f'Technology Distribution ({loc_label}-All Areas)',
+            fig_name=f'tech_dist_stack_all_areas.{location}',
+        )
+
+        # Rural
+        plot_tech_dist_stack(
+            dfs=operator_dfs, 
+            df_mask=lambda df: df[XcalField.AREA] == 'rural', 
+            output_dir=output_dir, 
+            location_conf=cellular_location_conf,
+            operator_conf=cellular_operator_conf,
+            tech_conf=tech_conf,
+            title=f'Technology Distribution ({loc_label}-Rural)',
+            fig_name=f'tech_dist_stack_rural.{location}',
+        )
+
 
         # Urban (Urban + suburban)
         plot_tech_dist_stack(
@@ -157,6 +194,7 @@ def main():
             output_dir=output_dir, 
             location_conf=cellular_location_conf,
             operator_conf=cellular_operator_conf,
+            tech_conf=tech_conf,
             title=f'Technology Distribution ({loc_label}-Urban)',
             fig_name=f'tech_dist_stack_urban.{location}',
         )
@@ -168,6 +206,7 @@ def main():
             output_dir=output_dir, 
             location_conf=cellular_location_conf,
             operator_conf=cellular_operator_conf,
+            tech_conf=tech_conf,
             title=f'Technology Distribution ({loc_label}-Rural)',
             fig_name=f'tech_dist_stack_rural.{location}',
         )

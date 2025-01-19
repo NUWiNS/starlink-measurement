@@ -100,7 +100,8 @@ def read_daily_xcal_data(base_dir: str, date: str, operator: str, location: str)
 def filter_xcal_logs(
         df_xcal_logs: pd.DataFrame, 
         periods: list[tuple[datetime, datetime, str]],
-        xcal_timezone: str = 'US/Eastern'
+        xcal_timezone: str = 'US/Eastern',
+        label: str = None,
     ) -> pd.DataFrame:
     """
     Filter the xcal logs to only include the specified periods.
@@ -112,13 +113,19 @@ def filter_xcal_logs(
     """
     # Create a temporary datetime column (from Eastern time) for filtering, and convert to UTC
 
-    # df_xcal_logs[XcalField.CUSTOM_UTC_TIME] = pd.to_datetime(
-    #     df_xcal_logs[XcalField.TIMESTAMP],
-    #     errors='coerce').dt.tz_localize(
-    #         xcal_timezone, 
-    #         ambiguous='raise', 
-    #         nonexistent='raise'
-    #     ).dt.tz_convert('UTC')
+    if XcalField.CUSTOM_UTC_TIME in df_xcal_logs.columns:
+        df_xcal_logs[XcalField.CUSTOM_UTC_TIME] = pd.to_datetime(
+            df_xcal_logs[XcalField.CUSTOM_UTC_TIME],
+            errors='coerce',
+            utc=True)
+    else:
+        df_xcal_logs[XcalField.CUSTOM_UTC_TIME] = pd.to_datetime(
+            df_xcal_logs[XcalField.TIMESTAMP],
+            errors='coerce').dt.tz_localize(
+                xcal_timezone, 
+                ambiguous='raise', 
+                nonexistent='raise'
+            ).dt.tz_convert('UTC')
 
     # drop rows with empty utc_dt
     df_xcal_logs = df_xcal_logs.dropna(subset=[XcalField.CUSTOM_UTC_TIME])
@@ -128,6 +135,11 @@ def filter_xcal_logs(
 
     for period in periods:
         utc_start_dt, utc_end_dt, protocol_direction = period
+
+        # Skip periods less than 1 second
+        if (utc_end_dt - utc_start_dt).total_seconds() < 1:
+            continue
+
         # Ensure start and end datetimes are timezone-aware
         utc_start_dt = pd.to_datetime(utc_start_dt, utc=True)
         utc_end_dt = pd.to_datetime(utc_end_dt, utc=True)
@@ -148,7 +160,8 @@ def filter_xcal_logs(
             period_rows_df, 
             app_tput_protocol=protocol,
             app_tput_direction=direction, 
-            event_field=event_field
+            event_field=event_field,
+            label=label
         )
         try:
             segments = tech_breakdown.process()

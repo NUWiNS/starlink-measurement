@@ -11,7 +11,7 @@ from scripts.logging_utils import create_logger
 from scripts.alaska_starlink_trip.labels import DatasetLabel
 from scripts.alaska_starlink_trip.separate_dataset import read_dataset
 from scripts.alaska_starlink_trip.configs import ROOT_DIR, TIMEZONE
-from scripts.constants import DATASET_DIR, XcalField
+from scripts.constants import DATASET_DIR, CommonField, XcalField
 from scripts.utilities.xcal_processing_utils import collect_periods_of_tput_measurements, filter_xcal_logs, read_daily_xcal_data
 
 
@@ -77,7 +77,8 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
     logger.info(f"collected {len(all_tput_periods)} periods of tput measurements and saved to {app_tput_periods_csv}")
     
     logger.info("-- Stage 2: read all xcal logs related to one location")
-    xcal_log_dir = path.join(DATASET_DIR, 'xcal')
+    xcal_log_dir = path.join(DATASET_DIR, 'xcal/alaska_sizhe_new_data')
+    # xcal_log_dir = path.join(DATASET_DIR, 'xcal')
     df_xcal_all_logs = pd.DataFrame()
     all_dates = sorted(all_dates)
 
@@ -96,7 +97,8 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
         filtered_df = filter_xcal_logs(
             df_xcal_all_logs, 
             periods=all_tput_periods, 
-            xcal_timezone='US/Eastern'
+            xcal_timezone='US/Eastern',
+            label=f'{operator}_{location}'
         )
         filtered_df.to_csv(path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv'), index=False)
         logger.info(f"filtered xcal logs (size: {len(filtered_df)}) by app tput periods and saved to {path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv')}")
@@ -126,6 +128,8 @@ def process_filtered_xcal_data_for_tput_and_save_to_csv(
         XcalField.APP_TPUT_DIRECTION: filtered_df[FIELD_APP_TPUT_DIRECTION],
         XcalField.LON: filtered_df[XcalField.LON],
         XcalField.LAT: filtered_df[XcalField.LAT],
+        XcalField.LTE_EARFCN_DL: filtered_df[XcalField.LTE_EARFCN_DL],
+        XcalField.SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE: filtered_df[XcalField.SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE],
     }
     if XcalField.EVENT_5G_LTE in filtered_df.columns:
         df_tput_cols[XcalField.EVENT_5G_LTE] = filtered_df[XcalField.EVENT_5G_LTE]
@@ -158,9 +162,9 @@ def process_filtered_xcal_data_for_tput_and_save_to_csv(
     logger.info(f"Saved xcal cleaned tput logs (size: {len(df_tput)}) to {xcal_smart_tput_csv}")
 
 def append_tech_to_rtt_data_and_save_to_csv(
+        base_dir: str,
         xcal_df: pd.DataFrame, 
         operator: str, 
-        output_dir: str
     ) -> pd.DataFrame:
     """Append technology information to RTT data based on closest timestamp match.
     
@@ -172,15 +176,25 @@ def append_tech_to_rtt_data_and_save_to_csv(
     Returns:
         DataFrame with appended technology information
     """
-    rtt_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
+    rtt_csv_path = path.join(base_dir, f'{operator}_ping.csv')
+    output_rtt_csv_path = path.join(base_dir, 'sizhe_new_data', f'{operator}_ping.csv')
+
+    if not path.exists(os.path.dirname(output_rtt_csv_path)):
+        os.makedirs(os.path.dirname(output_rtt_csv_path))
+
+    
     df_rtt = pd.read_csv(rtt_csv_path)
     xcal_df = xcal_df.copy().sort_values(by=XcalField.CUSTOM_UTC_TIME).reset_index(drop=True)
     
-    # Convert timestamp columns to datetime
-    rtt_timestamp_series = pd.to_datetime(df_rtt['time'])
-    xcal_timestamp_series = pd.to_datetime(xcal_df[XcalField.CUSTOM_UTC_TIME])
+    # Convert timestamps to tz-naive by removing timezone info
+    rtt_timestamp_series = pd.to_datetime(df_rtt[CommonField.UTC_TS]).dt.tz_localize(None)
+    xcal_timestamp_series = pd.to_datetime(xcal_df[XcalField.CUSTOM_UTC_TIME]).dt.tz_localize(None)
     
     def find_nearest_tech(timestamp: datetime) -> str:
+        # Ensure input timestamp is tz-naive
+        if timestamp.tzinfo is not None:
+            timestamp = timestamp.replace(tzinfo=None)
+            
         # Binary search to find the closest timestamp
         idx = xcal_timestamp_series.searchsorted(timestamp)
         
@@ -206,26 +220,25 @@ def append_tech_to_rtt_data_and_save_to_csv(
     df_rtt[XcalField.ACTUAL_TECH] = rtt_timestamp_series.apply(find_nearest_tech)
     
     # Save the updated DataFrame to the original path
-    df_rtt.to_csv(rtt_csv_path, index=False)
-    logger.info(f"Appended technology information to RTT data and saved to {rtt_csv_path}")
+    df_rtt.to_csv(output_rtt_csv_path, index=False)
+    logger.info(f"Appended technology information to RTT data and saved to {output_rtt_csv_path}")
     
     return df_rtt
 
 
 def main():
-    output_dir = path.join(ROOT_DIR, f'xcal')
+    # output_dir = path.join(ROOT_DIR, f'xcal')
+    output_dir = path.join(ROOT_DIR, f'xcal/sizhe_new_data')
     location = 'alaska'
 
     for dirs in [output_dir, tmp_dir]:
         if not path.exists(dirs):
             os.makedirs(dirs)
 
-    for operator in ['verizon', 'tmobile', 'att']:
+    for operator in ['att', 'verizon']:
         logger.info(f"--- Processing {operator}...")
         filtered_df = process_operator_xcal_tput(operator, location, output_dir)
         process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_df, operator, output_dir)
-
-        # append_tech_to_rtt_data_and_save_to_csv(filtered_df, operator, output_dir)
         logger.info(f"--- Finished processing {operator}")
 
 

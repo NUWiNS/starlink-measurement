@@ -15,7 +15,7 @@ from typing import Tuple, List
 
 import pandas as pd
 
-output_dir = os.path.join(ROOT_DIR, 'ping')
+output_dir = os.path.join(ROOT_DIR, 'ping', 'sizhe_new_data')
 validation_dir = os.path.join(ROOT_DIR, 'validation')
 validation_logger = create_logger('validation', filename=os.path.join(validation_dir, f'ping_data_validation.log'), filemode='w')
 
@@ -77,7 +77,7 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    operators = ['att', 'verizon', 'starlink', 'tmobile']
+    operators = ['att', 'verizon', 'starlink']
     for operator in operators:
         parse_ping_for_operator(operator, timezone=TIMEZONE)
         print('-------')
