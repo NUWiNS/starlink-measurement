@@ -136,8 +136,8 @@ def filter_xcal_logs(
     for period in periods:
         utc_start_dt, utc_end_dt, protocol_direction = period
 
-        # Skip periods less than 1 second
-        if (utc_end_dt - utc_start_dt).total_seconds() < 1:
+        # Skip periods less than 1 seconds
+        if (utc_end_dt - utc_start_dt).total_seconds() < 3:
             continue
 
         # Ensure start and end datetimes are timezone-aware

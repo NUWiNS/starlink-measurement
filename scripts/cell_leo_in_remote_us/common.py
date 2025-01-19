@@ -33,8 +33,8 @@ cellular_location_conf = {
         'operators': ['verizon', 'att', 'tmobile'],
         'order': 2,
         'tcp_downlink': {
-            'interval_x': 300,
-            'max_xlim': 900,
+            'interval_x': 100,
+            'max_xlim': 300,
         },
         'tcp_uplink': {
             'interval_x': 50,
@@ -201,6 +201,30 @@ def aggregate_xcal_tput_data_by_location(
         df['location'] = location
         data = pd.concat([data, df])
     return data
+
+
+def read_latency_data(root_dir: str, operator: str):
+    latency_data_path = os.path.join(root_dir, 'ping', f'{operator}_ping.csv')
+    if not os.path.exists(latency_data_path):
+        raise FileNotFoundError(f'Latency data file not found: {latency_data_path}')
+    return pd.read_csv(latency_data_path)
+
+def aggregate_operator_latency_data(root_dir: str, operators: List[str]):
+    df = pd.DataFrame()
+    for operator in operators:
+        latency_data = read_latency_data(root_dir, operator)
+        latency_data['operator'] = operator_conf[operator]['label']
+        df = pd.concat([df, latency_data], ignore_index=True)
+    return df
+
+def aggregate_latency_data_by_location(locations: List[str], location_conf: Dict[str, Dict]):
+    combined_data = pd.DataFrame()
+    for location in locations:
+        conf = location_conf[location]
+        latency_data = aggregate_operator_latency_data(conf['root_dir'], conf['operators'])
+        latency_data['location'] = location
+        combined_data = pd.concat([combined_data, latency_data], ignore_index=True)
+    return combined_data
 
 
 def calculate_tech_coverage_in_miles(grouped_df: pd.DataFrame) -> Tuple[dict, float]:

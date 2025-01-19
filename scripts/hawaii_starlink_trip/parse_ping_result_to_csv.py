@@ -16,7 +16,8 @@ from typing import Tuple, List
 
 import pandas as pd
 
-output_dir = os.path.join(ROOT_DIR, 'ping')
+# output_dir = os.path.join(ROOT_DIR, 'ping')
+output_dir = os.path.join(ROOT_DIR, 'ping', 'sizhe_new_data')
 validation_dir = os.path.join(ROOT_DIR, 'validation')
 validation_logger = create_logger('validation', filename=os.path.join(validation_dir, f'ping_data_validation.log'), filemode='w')
 

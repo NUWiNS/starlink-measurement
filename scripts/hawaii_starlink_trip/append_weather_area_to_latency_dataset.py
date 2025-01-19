@@ -12,7 +12,8 @@ from scripts.hawaii_starlink_trip.configs import ROOT_DIR
 
 others_dir = os.path.join(ROOT_DIR, 'others')
 tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
-ping_dir = os.path.join(ROOT_DIR, 'ping')
+ping_dir = os.path.join(ROOT_DIR, 'ping', 'sizhe_new_data')
+# ping_dir = os.path.join(ROOT_DIR, 'ping')
 
 logger = create_logger('append_weather_area_to_latency_dataset',
                        filename=os.path.join(tmp_data_path, 'append_weather_area_to_latency_dataset.log'))

@@ -53,6 +53,7 @@ def plot_tech_dist_stack(
 
     # Calculate fractions for each operator
     for operator in operators:
+        print(f'Calculate fractions for {operator}')
         df = dfs[operator]
         sub_stats = {}
 
@@ -143,8 +144,8 @@ def plot_tech_dist_stack(
 
 
 def main():
-    for location in ['alaska']:
-    # for location in ['alaska', 'hawaii']:
+    # for location in ['alaska']:
+    for location in ['alaska', 'hawaii']:
         logger.info(f'-- Processing dataset: {location}')
         base_dir = cellular_location_conf[location]['root_dir']
         output_dir = os.path.join(current_dir, 'outputs/sizhe_new_data', location)
@@ -173,19 +174,6 @@ def main():
             title=f'Technology Distribution ({loc_label}-All Areas)',
             fig_name=f'tech_dist_stack_all_areas.{location}',
         )
-
-        # Rural
-        plot_tech_dist_stack(
-            dfs=operator_dfs, 
-            df_mask=lambda df: df[XcalField.AREA] == 'rural', 
-            output_dir=output_dir, 
-            location_conf=cellular_location_conf,
-            operator_conf=cellular_operator_conf,
-            tech_conf=tech_conf,
-            title=f'Technology Distribution ({loc_label}-Rural)',
-            fig_name=f'tech_dist_stack_rural.{location}',
-        )
-
 
         # Urban (Urban + suburban)
         plot_tech_dist_stack(

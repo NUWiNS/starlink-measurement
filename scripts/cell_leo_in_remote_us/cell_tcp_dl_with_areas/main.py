@@ -258,37 +258,37 @@ def plot_tput_tech_breakdown_by_area_by_operator(
             output_dir, f'cell_{protocol}_{direction}.ak_rural.pdf'),
     )
     
-    # hi_df = tput_df[tput_df[CommonField.LOCATION] == 'hawaii']
-    # hi_urban_df = hi_df[(hi_df[CommonField.AREA_TYPE] == 'urban') | (hi_df[CommonField.AREA_TYPE] == 'suburban')]
-    # hi_tput_conf = location_conf['hawaii'].get(f'{protocol}_{direction}', {})
-    # plot_tech_breakdown_cdfs_in_a_row(
-    #     title='HI Urban',
-    #     df=hi_urban_df,
-    #     data_field=tput_field,
-    #     data_sample_threshold=data_sample_threshold,
-    #     operators=['att', 'verizon', 'tmobile'],
-    #     operator_conf=operator_conf,
-    #     tech_conf=tech_conf,
-    #     interval_x=hi_tput_conf.get('interval_x', None),
-    #     max_xlim=hi_tput_conf.get('max_xlim', None),
-    #     output_filepath=os.path.join(
-    #         output_dir, f'{protocol}_{direction}.hi_urban.png'),
-    # )
+    hi_df = tput_df[tput_df[CommonField.LOCATION] == 'hawaii']
+    hi_urban_df = hi_df[(hi_df[CommonField.AREA_TYPE] == 'urban') | (hi_df[CommonField.AREA_TYPE] == 'suburban')]
+    hi_tput_conf = location_conf['hawaii'].get(f'{protocol}_{direction}', {})
+    plot_tech_breakdown_cdfs_in_a_row(
+        title='HI Urban',
+        df=hi_urban_df,
+        data_field=tput_field,
+        data_sample_threshold=data_sample_threshold,
+        operators=['att', 'verizon', 'tmobile'],
+        operator_conf=operator_conf,
+        tech_conf=tech_conf,
+        interval_x=hi_tput_conf.get('interval_x', None),
+        max_xlim=hi_tput_conf.get('max_xlim', None),
+        output_filepath=os.path.join(
+            output_dir, f'cell_{protocol}_{direction}.hi_urban.pdf'),
+    )
 
-    # hi_rural_df = hi_df[hi_df[CommonField.AREA_TYPE] == 'rural']
-    # plot_tech_breakdown_cdfs_in_a_row(
-    #     title='HI Rural',
-    #     df=hi_rural_df,
-    #     data_field=tput_field,
-    #     data_sample_threshold=data_sample_threshold,
-    #     operators=['att', 'verizon', 'tmobile'],
-    #     operator_conf=operator_conf,
-    #     tech_conf=tech_conf,
-    #     interval_x=hi_tput_conf.get('interval_x', None),
-    #     max_xlim=hi_tput_conf.get('max_xlim', None),
-    #     output_filepath=os.path.join(
-    #         output_dir, f'{protocol}_{direction}.hi_rural.png'),
-    # )
+    hi_rural_df = hi_df[hi_df[CommonField.AREA_TYPE] == 'rural']
+    plot_tech_breakdown_cdfs_in_a_row(
+        title='HI Rural',
+        df=hi_rural_df,
+        data_field=tput_field,
+        data_sample_threshold=data_sample_threshold,
+        operators=['att', 'verizon', 'tmobile'],
+        operator_conf=operator_conf,
+        tech_conf=tech_conf,
+        interval_x=hi_tput_conf.get('interval_x', None),
+        max_xlim=hi_tput_conf.get('max_xlim', None),
+        output_filepath=os.path.join(
+            output_dir, f'cell_{protocol}_{direction}.hi_rural.pdf'),
+    )
 
     # save_stats_to_json(
     #     data=plot_data,
@@ -303,8 +303,7 @@ def main():
         os.makedirs(output_dir)
 
     plot_tput_tech_breakdown_by_area_by_operator(
-        # locations=['alaska', 'hawaii'],
-        locations=['alaska'],
+        locations=['alaska', 'hawaii'],
         protocol='tcp',
         direction='downlink',
         location_conf=cellular_location_conf,

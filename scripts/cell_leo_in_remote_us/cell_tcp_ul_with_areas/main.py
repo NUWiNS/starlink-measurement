@@ -24,8 +24,8 @@ def main():
         os.makedirs(output_dir)
 
     plot_tput_tech_breakdown_by_area_by_operator(
-        # locations=['alaska', 'hawaii'],
-        locations=['alaska'],
+        locations=['alaska', 'hawaii'],
+        # locations=['alaska'],
         protocol='tcp',
         direction='uplink',
         data_sample_threshold=480,

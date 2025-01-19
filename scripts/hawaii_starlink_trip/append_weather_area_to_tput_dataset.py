@@ -12,11 +12,13 @@ from scripts.weather_area_type_query_utils import TypeIntervalQueryUtil
 from scripts.logging_utils import create_logger
 
 tput_dir = os.path.join(ROOT_DIR, 'throughput')
-xcal_tput_dir = os.path.join(ROOT_DIR, 'xcal')
+xcal_tput_dir = os.path.join(ROOT_DIR, 'xcal', 'sizhe_new_data')
+# xcal_tput_dir = os.path.join(ROOT_DIR, 'xcal')
 
 others_dir = os.path.join(ROOT_DIR, 'others')
 tmp_data_path = os.path.join(ROOT_DIR, 'tmp')
-ping_dir = os.path.join(ROOT_DIR, 'ping')
+ping_dir = os.path.join(ROOT_DIR, 'ping', 'sizhe_new_data')
+# ping_dir = os.path.join(ROOT_DIR, 'ping')
 logger = create_logger('append_weather_area_to_tput_dataset',
                        filename=os.path.join(tmp_data_path, 'append_weather_area_to_tput_dataset.log'))
 
