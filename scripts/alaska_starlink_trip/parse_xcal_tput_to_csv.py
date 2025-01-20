@@ -102,6 +102,7 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
             xcal_timezone='US/Eastern',
             label=f'{operator}_{location}'
         )
+
         filtered_df.to_csv(path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv'))
         logger.info(f"filtered xcal logs (size: {len(filtered_df)}) by app tput periods and saved to {path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv')}")
     except Exception as e:
@@ -109,6 +110,17 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
         raise e
     
     return filtered_df
+
+def patch_actual_tech(df: pd.DataFrame, operator: str):
+    """Patch the actual tech column by special logic"""
+    if operator == 'verizon':
+        logger.info("-- Patching actual tech column for Alaska Verizon:")
+        # Alaska Verizon only has LTE according to Verizon Coverage Map: https://www.verizon.com/coverage-map/
+        # Convert all unknown tech to LTE
+        unknown_rows = df[df[XcalField.ACTUAL_TECH].str.lower() == 'unknown']
+        df.loc[unknown_rows.index, XcalField.ACTUAL_TECH] = 'LTE'
+        logger.info(f"Patched {len(unknown_rows)} rows with unknown tech to LTE")
+    return df
 
 def process_filtered_xcal_data_for_tput_and_save_to_csv(
         filtered_df: pd.DataFrame,
@@ -140,9 +152,8 @@ def process_filtered_xcal_data_for_tput_and_save_to_csv(
     xcal_tput_logs_csv = path.join(output_dir, f'{operator}_xcal_renamed_tput_logs.csv')
     df_tput.to_csv(xcal_tput_logs_csv, index=False)
     logger.info(f"Renamed and saved xcal tput logs to {xcal_tput_logs_csv}")
-
     
-    logger.info("-- Stage 5: process rows for dl and ul")
+    logger.info("-- Stage 5: filter extrem tput for rows of dl and ul")
     df_tput = df_tput.dropna(subset=[XcalField.TPUT_DL, XcalField.TPUT_UL])
     # filter extreme values
     DL_THRESHOLD = 10 * 1000  # 10 Gbps
@@ -159,74 +170,10 @@ def process_filtered_xcal_data_for_tput_and_save_to_csv(
     if before_filter_count - after_filter_count > 0:
         logger.info(f"WARNING: Filtered out {before_filter_count - after_filter_count} rows for UPLINK due to extreme values")
 
-    xcal_smart_tput_csv = path.join(output_dir, f'{operator}_xcal_smart_tput.csv')
-    df_tput.to_csv(xcal_smart_tput_csv, index=False)
-    logger.info(f"Saved xcal cleaned tput logs (size: {len(df_tput)}) to {xcal_smart_tput_csv}")
+    logger.info("-- Stage 6: patch tech column")
+    df_tput = patch_actual_tech(df_tput, operator)
 
-def append_tech_to_rtt_data_and_save_to_csv(
-        base_dir: str,
-        xcal_df: pd.DataFrame, 
-        operator: str, 
-    ) -> pd.DataFrame:
-    """Append technology information to RTT data based on closest timestamp match.
-    
-    Args:
-        xcal_df: DataFrame containing XCAL data with technology information
-        operator: Operator name (verizon, tmobile, att)
-        output_dir: Directory to save the output CSV
-    
-    Returns:
-        DataFrame with appended technology information
-    """
-    rtt_csv_path = path.join(base_dir, f'{operator}_ping.csv')
-    output_rtt_csv_path = path.join(base_dir, 'sizhe_new_data', f'{operator}_ping.csv')
-
-    if not path.exists(os.path.dirname(output_rtt_csv_path)):
-        os.makedirs(os.path.dirname(output_rtt_csv_path))
-
-    
-    df_rtt = pd.read_csv(rtt_csv_path)
-    xcal_df = xcal_df.copy().sort_values(by=XcalField.CUSTOM_UTC_TIME).reset_index(drop=True)
-    
-    # Convert timestamps to tz-naive by removing timezone info
-    rtt_timestamp_series = pd.to_datetime(df_rtt[CommonField.UTC_TS]).dt.tz_localize(None)
-    xcal_timestamp_series = pd.to_datetime(xcal_df[XcalField.CUSTOM_UTC_TIME]).dt.tz_localize(None)
-    
-    def find_nearest_tech(timestamp: datetime) -> str:
-        # Ensure input timestamp is tz-naive
-        if timestamp.tzinfo is not None:
-            timestamp = timestamp.replace(tzinfo=None)
-            
-        # Binary search to find the closest timestamp
-        idx = xcal_timestamp_series.searchsorted(timestamp)
-        
-        if idx == 0:
-            return xcal_df.iloc[0][XcalField.ACTUAL_TECH]
-        elif idx == len(xcal_timestamp_series):
-            return xcal_df.iloc[-1][XcalField.ACTUAL_TECH]
-            
-        # Get timestamps before and after
-        before = xcal_timestamp_series.iloc[idx-1]
-        after = xcal_timestamp_series.iloc[idx]
-        
-        # Convert time differences to seconds for comparison
-        diff_before = abs((timestamp - before).total_seconds())
-        diff_after = abs((timestamp - after).total_seconds())
-        
-        # Choose the closest timestamp
-        if diff_before < diff_after:
-            return xcal_df.iloc[idx-1][XcalField.ACTUAL_TECH]
-        return xcal_df.iloc[idx][XcalField.ACTUAL_TECH]
-    
-    # Apply the lookup function to each RTT timestamp
-    df_rtt[XcalField.ACTUAL_TECH] = rtt_timestamp_series.apply(find_nearest_tech)
-    
-    # Save the updated DataFrame to the original path
-    df_rtt.to_csv(output_rtt_csv_path, index=False)
-    logger.info(f"Appended technology information to RTT data and saved to {output_rtt_csv_path}")
-    
-    return df_rtt
-
+    return df_tput
 
 def main():
     # output_dir = path.join(ROOT_DIR, f'xcal')
@@ -239,8 +186,13 @@ def main():
 
     for operator in ['att', 'verizon']:
         logger.info(f"--- Processing {operator}...")
-        filtered_df = process_operator_xcal_tput(operator, location, output_dir)
-        process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_df, operator, output_dir)
+        filtered_raw_xcal_df = process_operator_xcal_tput(operator, location, output_dir)
+        smart_tput_df = process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_raw_xcal_df, operator, output_dir)
+
+        xcal_smart_tput_csv = path.join(output_dir, f'{operator}_xcal_smart_tput.csv')
+        smart_tput_df.to_csv(xcal_smart_tput_csv, index=False)
+        logger.info(f"Saved xcal cleaned tput logs (size: {len(smart_tput_df)}) to {xcal_smart_tput_csv}")
+
         logger.info(f"--- Finished processing {operator}")
 
 

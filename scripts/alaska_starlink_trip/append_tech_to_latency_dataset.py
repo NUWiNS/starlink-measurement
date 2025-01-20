@@ -122,6 +122,7 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
             except Exception as e:
                 logger.info(f"Failed to read or concatenate xcal data for date {date}: {str(e)}")
         logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) for all dates: {all_dates}")
+        df_xcal_all_logs = df_xcal_all_logs.reset_index(drop=True)
         df_xcal_all_logs[XcalField.SRC_IDX] = df_xcal_all_logs.index
         df_xcal_all_logs.to_csv(all_xcal_raw_data_csv, index=False)
     
@@ -165,12 +166,23 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
         logger.warn(f"No rows with RTT data found, skip saving")
     output_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
 
+    logger.info('-- Stage 6: patch actual tech column')
+    filtered_df = patch_actual_tech(filtered_df, operator)
+
     # only save the original cols from df_rtt and tech
     filtered_df = filtered_df[original_rtt_cols + [XcalField.ACTUAL_TECH]]
     filtered_df.to_csv(output_csv_path, index=False)
     logger.info(f"filtered xcal logs (size: {len(filtered_df)}) that have RTT data and saved to {output_csv_path}")
 
-
+def patch_actual_tech(df: pd.DataFrame, operator: str):
+    """Patch the actual tech column by special logic"""
+    if operator == 'verizon':
+        logger.info("-- Patching actual tech column for Alaska Verizon:")
+        # Alaska Verizon only has LTE according to Verizon Coverage Map: https://www.verizon.com/coverage-map/
+        unknown_rows = df[df[XcalField.ACTUAL_TECH].str.lower() == 'unknown']
+        df.loc[unknown_rows.index, XcalField.ACTUAL_TECH] = 'LTE'
+        logger.info(f"---- Patched {len(unknown_rows)} rows with unknown tech to LTE")
+    return df
 
 def process_filtered_xcal_data_for_tput_and_save_to_csv(
         filtered_df: pd.DataFrame, 
