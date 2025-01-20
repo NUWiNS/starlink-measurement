@@ -85,6 +85,7 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
         except Exception as e:
             logger.info(f"Failed to read or concatenate xcal data for date {date}: {str(e)}")
     logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) for all dates: {all_dates}")
+    df_xcal_all_logs = df_xcal_all_logs.reset_index(drop=True)
     df_xcal_all_logs[XcalField.SRC_IDX] = df_xcal_all_logs.index
     df_xcal_all_logs.to_csv(path.join(output_dir, f'{operator}_xcal_raw_logs_all_dates.csv'))
 

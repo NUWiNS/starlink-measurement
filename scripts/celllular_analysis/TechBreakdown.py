@@ -550,7 +550,7 @@ class TechBreakdown:
 
         for idx, row in df.iterrows():
             tput = row[tput_field]
-            if pd.isna(tput) or float(tput) == 0:
+            if not pd.isna(tput) and float(tput) == 0:
                 if start_idx is None:
                     start_idx = idx
                 last_idx_of_zero_tput = idx

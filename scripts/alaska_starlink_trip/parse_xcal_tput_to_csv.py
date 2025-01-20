@@ -85,12 +85,14 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
     for date in all_dates:
         try:
             df_xcal_daily_data = read_daily_xcal_data(base_dir=xcal_log_dir, date=date, location=location, operator=operator)
-            df_xcal_all_logs = pd.concat([df_xcal_all_logs, df_xcal_daily_data])
+            df_xcal_all_logs = pd.concat([df_xcal_all_logs, df_xcal_daily_data], ignore_index=True)
         except Exception as e:
             logger.info(f"Failed to read or concatenate xcal data for date {date}: {str(e)}")
     logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) for all dates: {all_dates}")
+    df_xcal_all_logs = df_xcal_all_logs.reset_index(drop=True)
+
     df_xcal_all_logs[XcalField.SRC_IDX] = df_xcal_all_logs.index
-    df_xcal_all_logs.to_csv(path.join(output_dir, f'{operator}_xcal_raw_logs_all_dates.csv'), index=False)
+    df_xcal_all_logs.to_csv(path.join(output_dir, f'{operator}_xcal_raw_logs_all_dates.csv'))
 
     logger.info("-- Stage 3: filter xcal logs by app tput periods")
     try:
@@ -100,7 +102,7 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
             xcal_timezone='US/Eastern',
             label=f'{operator}_{location}'
         )
-        filtered_df.to_csv(path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv'), index=False)
+        filtered_df.to_csv(path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv'))
         logger.info(f"filtered xcal logs (size: {len(filtered_df)}) by app tput periods and saved to {path.join(output_dir, f'{operator}_xcal_raw_tput_logs.csv')}")
     except Exception as e:
         logger.info(f"Failed to filter xcal logs: {str(e)}")
