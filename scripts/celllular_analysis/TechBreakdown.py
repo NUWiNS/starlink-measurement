@@ -49,7 +49,7 @@ class Segment:
         # self.has_freq_5g = self.get_freq_5g_mhz() is not None
         self.duration_ms = self.get_duration_ms()
         self.has_handover = self.check_if_has_handover()
-        self.has_no_service = self.check_if_no_service()
+        self.has_no_service = self.check_if_no_service_event_tech()
 
     def fill_tech(self):
         self.df[self.actual_tech_field] = self.get_tech()
@@ -77,7 +77,7 @@ class Segment:
         """
         all_techs = self.get_all_techs_from_xcal()
 
-        if self.check_if_no_service():
+        if self.check_if_no_service_event_tech():
             # Check if there is any non-zero DL throughput during no service period
             if self.app_tput_direction == 'downlink':
                 tput_values = self.df[self.dl_tput_field].dropna()
@@ -180,7 +180,7 @@ class Segment:
     def get_ul_tput_df(self) -> pd.DataFrame:
         return self.df[self.df[self.ul_tput_field].notna()].copy()
     
-    def check_if_no_service(self) -> bool:
+    def check_if_no_service_event_tech(self) -> bool:
         return self.df[self.df[self.tech_field].str.lower() == 'no service'].shape[0] > 0
 
     def check_if_has_handover(self) -> bool:
@@ -333,48 +333,102 @@ class TechBreakdown:
             ))
         return segments
 
-    def partition_data_by_no_service(self, segments: List[Segment]) -> List[Segment]:
-        res = []
-        for segment in segments:
-            if not segment.check_if_no_service():
-                res.append(segment)
-                continue
+    def handle_segment_with_no_service_event_tech(self, segment: Segment, res: List[Segment]) -> List[Segment]:
+        no_service_periods = self.find_no_service_periods(segment.df)
+        first_idx = segment.start_idx
+        
+        # Process each period, including both no-service and has-service segments
+        for start_idx, end_idx in no_service_periods:
+            # Add has-service segment before the no-service period if it exists
+            if first_idx < start_idx:
+                try:
+                    service_df = segment.df.loc[first_idx:start_idx-1].copy()
+                except Exception as e:
+                    print(f"Error in getting service df: {str(e)}")
+                    raise e
+                service_segment = self.create_segment(
+                    df=service_df,
+                    start_idx=first_idx,
+                    end_idx=start_idx-1
+                )
+                res.append(service_segment)
             
-            no_service_periods = self.find_no_service_periods(segment.df)
+            # Add the no-service segment
+            try:
+                no_service_df = segment.df.loc[start_idx:end_idx].copy()
+            except Exception as e:
+                print(f"Error in getting no-service df: {str(e)}")
+                raise e
+            no_service_segment = self.create_segment(
+                df=no_service_df,
+                start_idx=start_idx,
+                end_idx=end_idx
+            )
+            res.append(no_service_segment)
+            
+            first_idx = end_idx + 1
+        
+        # Add remaining has-service segment if it exists
+        if first_idx <= segment.end_idx:
+            try:
+                remaining_df = segment.df.loc[first_idx:segment.end_idx].copy()
+            except Exception as e:
+                print(f"Error in getting remaining df: {str(e)}")
+                raise e
+            remaining_segment = self.create_segment(
+                df=remaining_df,
+                start_idx=first_idx,
+                end_idx=segment.end_idx
+            )
+            res.append(remaining_segment)
+
+    def handle_segment_without_no_service_event_tech(self, segment: Segment, res: List[Segment]):
+        """
+        Handle the segment without no-service event tech
+        It could be a segment with specific tech, or no event tech at all
+        We breakdown segment with no event tech into no-service segments (if the tput is zero) and unknown segments (if the tput is non-zero)
+        """
+        if segment.get_tech() != 'Unknown':
+            # if the tech is KNOWN, keep it
+            res.append(segment)
+        else:
+            zero_tput_periods = self.find_consecutive_zero_tput_rows(segment.df)
             first_idx = segment.start_idx
             
-            # Process each period, including both no-service and has-service segments
-            for start_idx, end_idx in no_service_periods:
-                # Add has-service segment before the no-service period if it exists
+            # Process each period, including both zero-tput and non-zero-tput segments
+            for start_idx, end_idx in zero_tput_periods:
+                # Add non-zero-tput segment before the zero-tput period if it exists
                 if first_idx < start_idx:
                     try:
-                        service_df = segment.df.loc[first_idx:start_idx-1].copy()
+                        non_zero_tput_df = segment.df.loc[first_idx:start_idx-1].copy()
                     except Exception as e:
-                        print(f"Error in getting service df: {str(e)}")
+                        print(f"Error in getting non-zero-tput df: {str(e)}")
                         raise e
-                    service_segment = self.create_segment(
-                        df=service_df,
+                    non_zero_tput_segment = self.create_segment(
+                        df=non_zero_tput_df,
                         start_idx=first_idx,
                         end_idx=start_idx-1
                     )
-                    res.append(service_segment)
+                    res.append(non_zero_tput_segment)
                 
-                # Add the no-service segment
+                # Add the zero-tput segment
                 try:
-                    no_service_df = segment.df.loc[start_idx:end_idx].copy()
+                    zero_tput_df = segment.df.loc[start_idx:end_idx].copy()
+                    # Update event tech to NO_SERVICE
+                    zero_tput_df[XcalField.TECH] = 'NO SERVICE'
                 except Exception as e:
-                    print(f"Error in getting no-service df: {str(e)}")
+                    print(f"Error in getting zero-tput df: {str(e)}")
                     raise e
-                no_service_segment = self.create_segment(
-                    df=no_service_df,
+                zero_tput_segment = self.create_segment(
+                    df=zero_tput_df,
                     start_idx=start_idx,
                     end_idx=end_idx
                 )
-                res.append(no_service_segment)
+                res.append(zero_tput_segment)
                 
                 first_idx = end_idx + 1
             
-            # Add remaining has-service segment if it exists
+            # Add remaining non-zero-tput segment if it exists
             if first_idx <= segment.end_idx:
                 try:
                     remaining_df = segment.df.loc[first_idx:segment.end_idx].copy()
@@ -387,7 +441,14 @@ class TechBreakdown:
                     end_idx=segment.end_idx
                 )
                 res.append(remaining_segment)
-                
+
+    def partition_data_by_no_service(self, segments: List[Segment]) -> List[Segment]:
+        res = []
+        for segment in segments:
+            if not segment.check_if_no_service_event_tech():
+                self.handle_segment_without_no_service_event_tech(segment, res)
+            else:
+                self.handle_segment_with_no_service_event_tech(segment, res)
         return res
     
     def find_first_non_zero_tput_idx(self, df: pd.DataFrame, start_idx: int, step: int) -> int:
@@ -449,28 +510,61 @@ class TechBreakdown:
         return res
     
     def find_consecutive_no_service_rows(self, df: pd.DataFrame) -> List[Tuple[int, int]]:
-      consecutive_periods = []
-      start_idx = None
-      last_idx_of_no_service = None
-      for idx, row in df.iterrows():
-          tech = row[XcalField.TECH]
-          if pd.isna(tech):
-              continue
-          if tech.lower() == 'no service':
-              if start_idx is None:
-                  start_idx = idx
-              last_idx_of_no_service = idx
-          elif start_idx is not None:
-              # Found the end of a period where condition was True
-              consecutive_periods.append((start_idx, last_idx_of_no_service))
-              start_idx = None
-              last_idx_of_no_service = None
-      
-      # Handle case where condition extends to the end
-      if start_idx is not None:
-          consecutive_periods.append((start_idx, last_idx_of_no_service))
-      
-      return consecutive_periods
+        consecutive_periods = []
+        start_idx = None
+        last_idx_of_no_service = None
+        for idx, row in df.iterrows():
+            tech = row[XcalField.TECH]
+            if pd.isna(tech):
+                continue
+            if tech.lower() == 'no service':
+                if start_idx is None:
+                    start_idx = idx
+                last_idx_of_no_service = idx
+            elif start_idx is not None:
+                # Found the end of a period where condition was True
+                consecutive_periods.append((start_idx, last_idx_of_no_service))
+                start_idx = None
+                last_idx_of_no_service = None
+        
+        # Handle case where condition extends to the end
+        if start_idx is not None:
+            consecutive_periods.append((start_idx, last_idx_of_no_service))
+        
+        return consecutive_periods
+
+    def find_consecutive_zero_tput_rows(self, df: pd.DataFrame) -> List[Tuple[int, int]]:
+        """
+        Find consecutive rows where throughput is zero or missing.
+        
+        Args:
+            df (pd.DataFrame): Input dataframe with throughput data
+            
+        Returns:
+            List[Tuple[int, int]]: List of (start_idx, end_idx) tuples for consecutive zero throughput periods
+        """
+        consecutive_periods = []
+        start_idx = None
+        last_idx_of_zero_tput = None
+        tput_field = self.dl_tput_field if self.app_tput_direction == 'downlink' else self.ul_tput_field
+
+        for idx, row in df.iterrows():
+            tput = row[tput_field]
+            if pd.isna(tput) or float(tput) == 0:
+                if start_idx is None:
+                    start_idx = idx
+                last_idx_of_zero_tput = idx
+            elif start_idx is not None:
+                # Found the end of a zero throughput period
+                consecutive_periods.append((start_idx, last_idx_of_zero_tput))
+                start_idx = None
+                last_idx_of_zero_tput = None
+        
+        # Handle case where zero throughput extends to the end
+        if start_idx is not None:
+            consecutive_periods.append((start_idx, last_idx_of_zero_tput))
+        
+        return consecutive_periods
 
     def check_if_consecutive_segments(self, segments: List[Segment]):
         for i in range(len(segments) - 1):
