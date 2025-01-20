@@ -6,6 +6,7 @@ import pandas as pd
 
 sys.path.append(path.join(path.dirname(__file__), '../..'))
 
+from scripts.hawaii_starlink_trip.common import patch_actual_tech
 from scripts.time_utils import now
 from scripts.logging_utils import create_logger
 from scripts.hawaii_starlink_trip.labels import DatasetLabel
@@ -84,6 +85,10 @@ def fuse_rtt_into_xcal_logs(df_xcal_all_logs: pd.DataFrame, df_rtt: pd.DataFrame
     # Concatenate and sort
     fused_df = pd.concat([fused_df, rtt_rows], ignore_index=True)
     fused_df = fused_df.sort_values(by=CommonField.LOCAL_DT).reset_index(drop=True)
+
+    # fill the missing values for lon and lat with nearby values
+    fused_df[XcalField.LON] = fused_df[XcalField.LON].ffill().bfill()
+    fused_df[XcalField.LAT] = fused_df[XcalField.LAT].ffill().bfill()
     
     return fused_df
 
@@ -119,8 +124,9 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
             except Exception as e:
                 logger.info(f"Failed to read or concatenate xcal data for date {date}: {str(e)}")
         logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) for all dates: {all_dates}")
+        df_xcal_all_logs = df_xcal_all_logs.reset_index(drop=True)
         df_xcal_all_logs[XcalField.SRC_IDX] = df_xcal_all_logs.index
-        df_xcal_all_logs.to_csv(all_xcal_raw_data_csv, index=False)
+        df_xcal_all_logs.to_csv(all_xcal_raw_data_csv)
     
     # Append auxiliary columns
     df_xcal_all_logs[CommonField.LOCAL_DT] = pd.to_datetime(df_xcal_all_logs[XcalField.TIMESTAMP], errors='coerce').dt.tz_localize(
@@ -160,11 +166,16 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
         logger.warn(f"No rows with RTT data found, skip saving")
     output_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
 
+    logger.info('-- Stage 6: patch actual tech column for operator {operator}')
+    filtered_df = patch_actual_tech(filtered_df, operator, logger)
+
+    logger.info('-- Stage 7: remove unknown tech rows')
+    filtered_df = filtered_df[filtered_df[XcalField.ACTUAL_TECH] != 'Unknown']
+
     # only save the original cols from df_rtt and tech
-    filtered_df = filtered_df[original_rtt_cols + [XcalField.ACTUAL_TECH]]
+    filtered_df = filtered_df[original_rtt_cols + [XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT]]
     filtered_df.to_csv(output_csv_path, index=False)
     logger.info(f"filtered xcal logs (size: {len(filtered_df)}) that have RTT data and saved to {output_csv_path}")
-
 
 def append_tech_to_rtt_data_and_save_to_csv(
         xcal_df: pd.DataFrame, 

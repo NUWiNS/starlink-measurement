@@ -167,8 +167,8 @@ def plot_driving_route_with_tech(
         grouped_by_tech = segment_data.groupby(XcalField.ACTUAL_TECH)
         for tech, tech_segment in grouped_by_tech:
             # FIXME: only show Unknown tech for now
-            if tech != "Unknown":
-                continue
+            # if tech != "Unknown":
+            #     continue
 
             # Get coordinates for this tech segment
             route_coordinates = tech_segment[
@@ -232,7 +232,8 @@ def plot_driving_route_with_tech(
                 coords,
                 color='red',
                 weight=2,
-                opacity=0.8
+                opacity=0.8,
+                popup=f"Tech: {hidden_area_coord['tech']}",
             ).add_to(m)
 
     # Add markers for overall start and end points
@@ -563,30 +564,30 @@ def main():
         os.makedirs(os.path.join(OUTPUT_DIR, "alaska"))
         os.makedirs(os.path.join(OUTPUT_DIR, "hawaii"))
 
-    # dfs_alaska = {}
-    # for operator in ["att", "verizon"]:
-    #     df_xcal_data_in_alaska = pd.read_csv(
-    #         os.path.join(
-    #             ALASKA_ROOT_DIR,
-    #             "xcal/sizhe_new_data",
-    #             f"{operator}_xcal_smart_tput.csv",
-    #         )
-    #     )
-    #     dfs_alaska[operator] = df_xcal_data_in_alaska
+    dfs_alaska = {}
+    for operator in ["att", "verizon"]:
+        df_xcal_data_in_alaska = pd.read_csv(
+            os.path.join(
+                ALASKA_ROOT_DIR,
+                "xcal/sizhe_new_data",
+                f"{operator}_xcal_smart_tput.csv",
+            )
+        )
+        dfs_alaska[operator] = df_xcal_data_in_alaska
 
-    # for operator, df_xcal_data_in_alaska in dfs_alaska.items():
-    #     output_file_path = os.path.join(
-    #         OUTPUT_DIR, "alaska", f"{operator}_driving_route_with_tech.html"
-    #     )
-    #     hidden_area_coords = unknown_spot_that_might_be_5g["alaska"].get(operator, None)
-    #     plot_driving_route_with_tech(
-    #         df_xcal_data_in_alaska,
-    #         center_coordinates=COORD_ANCHORAGE,
-    #         timezone=ALASKA_TIMEZONE,
-    #         operator=operator,
-    #         hidden_area_coords=hidden_area_coords,
-    #         output_file_path=output_file_path,
-    #     )
+    for operator, df_xcal_data_in_alaska in dfs_alaska.items():
+        output_file_path = os.path.join(
+            OUTPUT_DIR, "alaska", f"{operator}_driving_route_with_tech.html"
+        )
+        hidden_area_coords = unknown_spot_that_might_be_5g["alaska"].get(operator, None)
+        plot_driving_route_with_tech(
+            df_xcal_data_in_alaska,
+            center_coordinates=COORD_ANCHORAGE,
+            timezone=ALASKA_TIMEZONE,
+            operator=operator,
+            hidden_area_coords=hidden_area_coords,
+            output_file_path=output_file_path,
+        )
 
         # Use our manually classified area types
         # output_file_path = os.path.join(OUTPUT_DIR, f"{operator}_driving_route_with_area_type.alaska.html")
@@ -632,15 +633,15 @@ def main():
             output_file_path=output_file_path,
         )
 
-    #     # Use our manually classified area types
-    #     output_file_path = os.path.join(OUTPUT_DIR, f"{operator}_driving_route_with_area_type.hawaii.html")
-    #     plot_route_with_area_type(
-    #         df_xcal_data_in_hawaii,
-    #         area_field=XcalField.AREA,
-    #         operator=operator,
-    #         output_file_path=output_file_path,
-    #         landmarks=MAUI_LANDMARKS  # Add landmarks
-    #     )
+        # Use our manually classified area types
+        # output_file_path = os.path.join(OUTPUT_DIR, f"{operator}_driving_route_with_area_type.hawaii.html")
+        # plot_route_with_area_type(
+        #     df_xcal_data_in_hawaii,
+        #     area_field=XcalField.AREA,
+        #     operator=operator,
+        #     output_file_path=output_file_path,
+        #     landmarks=MAUI_LANDMARKS  # Add landmarks
+        # )
 
     # Use the area_geojson field
     # output_file_path = os.path.join(OUTPUT_DIR, 'hawaii', f"{operator}_driving_route_with_area_geojson.html")

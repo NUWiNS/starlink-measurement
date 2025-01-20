@@ -88,7 +88,7 @@ def main():
         inset_x_step=5,
         inset_bbox_to_anchor=(0.5, 0, 0.45, 0.65),
         legend_loc=(0.2, 0.2),
-        output_filepath=os.path.join(output_dir, 'all_operators.uplink.ak_hi.png'),
+        output_filepath=os.path.join(output_dir, 'all_operators.uplink.ak_hi.pdf'),
     )
 
     # save_stats_network_kpi(tput_data, latency_data, location_conf, operator_conf, output_dir)

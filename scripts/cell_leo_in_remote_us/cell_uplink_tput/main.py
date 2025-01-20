@@ -31,6 +31,7 @@ def main():
         for direction in ['uplink']:
             tput_data[protocol][direction] = aggregate_xcal_tput_data_by_location(
                 locations=['alaska', 'hawaii'],
+                location_conf=cellular_location_conf,
                 protocol=protocol,
                 direction=direction
             )
@@ -54,7 +55,7 @@ def main():
         inset_x_max=15,
         inset_x_step=5,
         legend_loc=(0, 1),
-        output_filepath=os.path.join(output_dir, 'cellular.uplink.ak_hi.png'),
+        output_filepath=os.path.join(output_dir, 'cellular.uplink.ak_hi.pdf'),
     )
 
     # save_stats_network_kpi(tput_data, latency_data, location_conf, operator_conf, output_dir)

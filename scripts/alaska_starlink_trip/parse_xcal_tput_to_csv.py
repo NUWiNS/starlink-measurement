@@ -6,6 +6,7 @@ import pandas as pd
 
 sys.path.append(path.join(path.dirname(__file__), '../..'))
 
+from scripts.alaska_starlink_trip.common import patch_actual_tech
 from scripts.time_utils import now
 from scripts.logging_utils import create_logger
 from scripts.alaska_starlink_trip.labels import DatasetLabel
@@ -110,55 +111,6 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
     
     return filtered_df
 
-def patch_actual_tech(df: pd.DataFrame, operator: str):
-    """Patch the actual tech column by special logic"""
-    if operator == 'verizon':
-        logger.info("-- Patching actual tech column for Alaska Verizon:")
-        # Alaska Verizon only has LTE according to Verizon Coverage Map: https://www.verizon.com/coverage-map/
-        # Convert all unknown tech to LTE
-        unknown_rows = df[df[XcalField.ACTUAL_TECH].str.lower() == 'unknown']
-        df.loc[unknown_rows.index, XcalField.ACTUAL_TECH] = 'LTE'
-        logger.info(f"Patched {len(unknown_rows)} rows with unknown tech to LTE")
-
-    # try to patch tech from map calibration
-    coords = unknown_area_coords.get(operator, None)
-    if coords is not None:
-        logger.info(f"-- Patching tech from map calibration for {operator}...")
-        # Map all unknown data points to LTE if they are not matching below
-        unknown_rows = df[df[XcalField.ACTUAL_TECH].str.lower() == 'unknown']
-        for coord in coords:
-            lat_range = coord['lat_range']
-            lon_range = coord['lon_range']
-                # tech = coord['tech']
-                
-            # Find rows within the coordinate box
-            matching_rows = unknown_rows[
-                (unknown_rows[XcalField.LAT] >= lat_range[0]) & 
-                (unknown_rows[XcalField.LAT] <= lat_range[1]) &
-                (unknown_rows[XcalField.LON] >= lon_range[0]) & 
-                (unknown_rows[XcalField.LON] <= lon_range[1])
-            ]
-            
-            # Update tech for matching rows
-            if len(matching_rows) > 0:
-                # df.loc[matching_rows.index, XcalField.ACTUAL_TECH] = tech
-                # logger.info(f"Patched {len(matching_rows)} rows in {coord['label']} to {tech}")
-            
-                # Remove matched rows from unknown_rows to avoid double processing
-                unknown_rows = unknown_rows.drop(matching_rows.index)
-            
-        # Set remaining unknown rows to LTE
-        if len(unknown_rows) > 0:
-            segment_id_unique = unknown_rows[XcalField.SEGMENT_ID].unique()
-            # If we update the tech column, we need to update the whole related segment
-            all_rows_in_segment_with_unknown_tech = df[df[XcalField.SEGMENT_ID].isin(segment_id_unique)]
-            df.loc[all_rows_in_segment_with_unknown_tech.index, XcalField.ACTUAL_TECH] = 'LTE'
-            # df.loc[unknown_rows.index, XcalField.ACTUAL_TECH] = 'LTE'
-
-            logger.info(f"---- Patched reall_rows_in_segment_with_unknown_techm {len(all_rows_in_segment_with_unknown_tech)} unknown rows to LTE")
-
-    return df
-
 def process_filtered_xcal_data_for_tput_and_save_to_csv(
         filtered_df: pd.DataFrame,
         operator: str, 
@@ -208,7 +160,10 @@ def process_filtered_xcal_data_for_tput_and_save_to_csv(
         logger.info(f"WARNING: Filtered out {before_filter_count - after_filter_count} rows for UPLINK due to extreme values")
 
     logger.info("-- Stage 6: patch tech column")
-    df_tput = patch_actual_tech(df_tput, operator)
+    df_tput = patch_actual_tech(df_tput, operator, logger)
+
+    logger.info('-- Stage 7: remove unknown tech rows')
+    df_tput = df_tput[df_tput[XcalField.ACTUAL_TECH] != 'Unknown']
 
     return df_tput
 
@@ -221,8 +176,7 @@ def main():
         if not path.exists(dirs):
             os.makedirs(dirs)
 
-    # for operator in ['att', 'verizon']:
-    for operator in ['att']:
+    for operator in ['att', 'verizon']:
         logger.info(f"--- Processing {operator}...")
         filtered_raw_xcal_df = process_operator_xcal_tput(operator, location, output_dir)
         smart_tput_df = process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_raw_xcal_df, operator, output_dir)

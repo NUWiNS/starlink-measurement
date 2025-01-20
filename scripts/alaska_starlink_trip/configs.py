@@ -15,6 +15,18 @@ unknown_area_coords = {
         {
             "label": "North_Box",
             "corners": [
+                (64.86, -147.82),  # NW
+                (64.86, -147.65),  # NE
+                (64.82, -147.65),  # SE
+                (64.82, -147.82),  # SW
+            ],
+            "lat_range": (64.82, 64.86),
+            "lon_range": (-147.82, -147.65),
+            'tech': '5G-low'
+        },
+        {
+            "label": "North_Box",
+            "corners": [
                 (65.0, -149.3),  # NW
                 (65.0, -144.6),  # NE
                 (63.5, -144.6),  # SE
@@ -22,7 +34,7 @@ unknown_area_coords = {
             ],
             "lat_range": (63.5, 65.0),
             "lon_range": (-149.3, -144.6),
-            'tech': '5G-low'
+            'tech': 'Unknown'
         },
         {
             "label": "West_Middle_box",
@@ -34,7 +46,7 @@ unknown_area_coords = {
             ],
             "lat_range": (63.2, 63.3),
             "lon_range": (-149.3, -149.0),
-            'tech': '5G-low'
+            'tech': 'Unknown'
         },
         {
             "label": "Middle_box",
@@ -46,7 +58,7 @@ unknown_area_coords = {
             ],
             "lat_range": (62.54, 62.72),
             "lon_range": (-144.73, -144.13),
-            'tech': '5G-low'
+            'tech': 'Unknown'
         },
         {
             "label": "Middle_Box",
@@ -58,7 +70,7 @@ unknown_area_coords = {
             ],
             "lat_range": (62.32, 62.43),
             "lon_range": (-145.3, -144.8),
-            'tech': '5G-low'
+            'tech': 'Unknown'
         },
         {
             "label": "West_Box",
@@ -82,7 +94,7 @@ unknown_area_coords = {
             ],
             "lat_range": (60.8, 61.1),
             "lon_range": (-149.65, -148.8),
-            'tech': '5G-low'
+            'tech': 'Unknown'
         },
     ]
 }

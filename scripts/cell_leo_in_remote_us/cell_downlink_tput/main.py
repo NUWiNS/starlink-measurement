@@ -228,8 +228,9 @@ def main():
         for direction in ['downlink']:
             tput_data[protocol][direction] = aggregate_xcal_tput_data_by_location(
                 locations=['alaska', 'hawaii'],
+                location_conf=cellular_location_conf,
                 protocol=protocol,
-                direction=direction
+                direction=direction,
             )
 
     # Plot Downlink Performance
@@ -250,7 +251,7 @@ def main():
         inset_x_min=0,
         inset_x_max=30,
         inset_x_step=10,
-        output_filepath=os.path.join(output_dir, 'cellular.downlink.ak_hi.png'),
+        output_filepath=os.path.join(output_dir, 'cellular.downlink.ak_hi.pdf'),
     )
 
     # save_stats_network_kpi(tput_data, latency_data, location_conf, operator_conf, output_dir)

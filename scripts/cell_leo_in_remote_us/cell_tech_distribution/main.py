@@ -144,10 +144,10 @@ def plot_tech_dist_stack(
 
 
 def main():
-    # for location in ['alaska']:
     for location in ['alaska', 'hawaii']:
         logger.info(f'-- Processing dataset: {location}')
         base_dir = cellular_location_conf[location]['root_dir']
+        xcal_dir = os.path.join(base_dir, 'xcal/sizhe_new_data')
         output_dir = os.path.join(current_dir, 'outputs/sizhe_new_data', location)
 
         if not os.path.exists(output_dir):
@@ -158,19 +158,23 @@ def main():
 
         for operator in sorted(cellular_location_conf[location]['operators'], key=lambda x: cellular_operator_conf[x]['order']):
             logger.info(f'---- Processing operator: {operator}')
-            smart_tput_csv_path = os.path.join(base_dir, 'xcal/sizhe_new_data', f'{operator}_xcal_smart_tput.csv')
+            smart_tput_csv_path = os.path.join(xcal_dir, f'{operator}_xcal_smart_tput.csv')
             rtt_csv_path = os.path.join(base_dir, 'ping/sizhe_new_data', f'{operator}_ping.csv')
 
             smart_tput_df = pd.read_csv(smart_tput_csv_path)
+            smart_tput_df['type'] = smart_tput_df[XcalField.APP_TPUT_PROTOCOL] + '_' + smart_tput_df[XcalField.APP_TPUT_DIRECTION]
             rtt_df = pd.read_csv(rtt_csv_path)
-            
+            rtt_df['type'] = 'rtt'
+
             # Merge the dataframes to create a common structure
-            df = pd.merge(
-                smart_tput_df[[CommonField.LOCAL_DT, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT]],
-                rtt_df[[CommonField.LOCAL_DT, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT]],
-                on=XcalField.SEGMENT_ID,
-                how='inner'
+            tput_sub_df = smart_tput_df[[CommonField.LOCAL_DT, CommonField.AREA_TYPE, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT, 'type']]
+            rtt_sub_df = rtt_df[[CommonField.LOCAL_DT, CommonField.AREA_TYPE, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT, 'type']]
+            df = pd.concat(
+                [tput_sub_df, rtt_sub_df],
+                ignore_index=True
             )
+            df.sort_values(by=[CommonField.LOCAL_DT], inplace=True)
+            df.to_csv(os.path.join(xcal_dir, f'{operator}_coverage_with_tput_and_rtt.csv'), index=False)
 
             operator_dfs[operator] = df
 

@@ -6,6 +6,7 @@ import pandas as pd
 
 sys.path.append(path.join(path.dirname(__file__), '../..'))
 
+from scripts.hawaii_starlink_trip.common import patch_actual_tech
 from scripts.time_utils import now
 from scripts.logging_utils import create_logger
 from scripts.hawaii_starlink_trip.labels import DatasetLabel
@@ -152,13 +153,14 @@ def process_filtered_xcal_data_for_tput(
         logger.info(f"WARNING: Filtered out {before_filter_count - after_filter_count} rows for UPLINK due to extreme values")
 
     logger.info(f'-- Stage 6: patch actual tech column for opeator {operator}')
-    df_tput = patch_actual_tech(df_tput, operator)
+    df_tput = patch_actual_tech(df_tput, operator, logger)
 
-    return df_tput
+    logger.info('-- Stage 7: remove unknown tech rows')
+    df_tput = df_tput[df_tput[XcalField.ACTUAL_TECH] != 'Unknown']
 
-def patch_actual_tech(df: pd.DataFrame, operator: str):
-    """Patch the actual tech column by special logic"""
-    return df
+    return df_tput  
+
+
 
 def main():
     output_dir = path.join(ROOT_DIR, f'xcal/sizhe_new_data')

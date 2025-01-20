@@ -204,7 +204,7 @@ def aggregate_xcal_tput_data_by_location(
 
 
 def read_latency_data(root_dir: str, operator: str):
-    latency_data_path = os.path.join(root_dir, 'ping', f'{operator}_ping.csv')
+    latency_data_path = os.path.join(root_dir, 'ping/sizhe_new_data', f'{operator}_ping.csv')
     if not os.path.exists(latency_data_path):
         raise FileNotFoundError(f'Latency data file not found: {latency_data_path}')
     return pd.read_csv(latency_data_path)

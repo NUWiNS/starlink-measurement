@@ -39,10 +39,10 @@ def get_tput_data_for_alaska_and_hawaii(protocol: str, direction: str):
     return combined_data
 
 def get_latency_data_for_alaska_and_hawaii():
-    al_dataset_helper = DatasetHelper(os.path.join(location_conf['alaska']['root_dir'], 'ping'))
+    al_dataset_helper = DatasetHelper(os.path.join(location_conf['alaska']['root_dir'], 'ping', 'sizhe_new_data'))
     alaska_ping_data = al_dataset_helper.get_ping_data(operator='starlink')
 
-    hawaii_dataset_helper = DatasetHelper(os.path.join(location_conf['hawaii']['root_dir'], 'ping'))
+    hawaii_dataset_helper = DatasetHelper(os.path.join(location_conf['hawaii']['root_dir'], 'ping', 'sizhe_new_data'))
     hawaii_ping_data = hawaii_dataset_helper.get_ping_data(operator='starlink')
 
     alaska_ping_data['location'] = 'alaska'
@@ -184,7 +184,7 @@ def main():
         plot_data=plot_data,
         location_conf=location_conf,
         area_conf=area_conf,
-        output_filepath=os.path.join(output_dir, 'starlink_performance_with_areas.png')
+        output_filepath=os.path.join(output_dir, 'starlink.downlink.ak_hi.pdf')
     )
 
 if __name__ == '__main__':

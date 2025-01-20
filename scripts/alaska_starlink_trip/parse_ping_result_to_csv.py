@@ -40,6 +40,8 @@ def save_data_frame_to_csv(data_frame, output_dir='.'):
 
 def parse_ping_for_operator(operator: str, timezone: str):
     dir_list = read_dataset(operator, DatasetLabel.NORMAL.value)
+    bbr_dir_list = read_dataset(operator, DatasetLabel.BBR_TESTING_DATA.value)
+    dir_list.extend(bbr_dir_list)
 
     ping_files = find_ping_files_by_dir_list(dir_list)
     excluded_files = []
