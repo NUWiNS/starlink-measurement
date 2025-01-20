@@ -14,3 +14,20 @@ CRS_HAWAII_MAUI = 'EPSG:32604'
 class DatasetLabel(enum.Enum):
     NORMAL = 'NORMAL'
     TEST_DATA = 'TEST_DATA'
+
+unknown_area_coords = {
+    "att": [
+        {
+            "label": "West_Box",
+            "corners": [
+                (20.82, -156.13),  # NW
+                (20.82, -155.97),  # NE
+                (20.65, -155.97),  # SE
+                (20.65, -156.13),  # SW
+            ],
+            "lat_range": (20.65, 20.82),
+            "lon_range": (-156.13, -155.97),
+            'tech': 'LTE'
+        },
+    ]
+}

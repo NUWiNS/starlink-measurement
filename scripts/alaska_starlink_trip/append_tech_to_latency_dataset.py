@@ -124,7 +124,7 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
         logger.info(f"load xcal data (size: {len(df_xcal_all_logs)}) for all dates: {all_dates}")
         df_xcal_all_logs = df_xcal_all_logs.reset_index(drop=True)
         df_xcal_all_logs[XcalField.SRC_IDX] = df_xcal_all_logs.index
-        df_xcal_all_logs.to_csv(all_xcal_raw_data_csv, index=False)
+        df_xcal_all_logs.to_csv(all_xcal_raw_data_csv)
     
     # Append auxiliary columns
     df_xcal_all_logs[CommonField.LOCAL_DT] = pd.to_datetime(df_xcal_all_logs[XcalField.TIMESTAMP], errors='coerce').dt.tz_localize(
@@ -143,7 +143,7 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
     df_rtt[CommonField.LOCAL_DT] = pd.to_datetime(df_rtt[CommonField.LOCAL_DT], format='ISO8601')
     df_rtt[XcalField.CUSTOM_UTC_TIME] = df_rtt[CommonField.LOCAL_DT].dt.tz_convert('UTC')
     fused_xcal_all_logs_df = fuse_rtt_into_xcal_logs(df_xcal_all_logs, df_rtt)
-    fused_xcal_all_logs_df.to_csv(path.join(output_dir, f'fused_rtt_xcal_logs.{operator}.csv'), index=False)
+    fused_xcal_all_logs_df.to_csv(path.join(output_dir, f'fused_rtt_xcal_logs.{operator}.csv'))
 
     logger.info("-- Stage 4: filter xcal logs by ping periods")
     try:
@@ -299,7 +299,8 @@ def main():
         if not path.exists(dirs):
             os.makedirs(dirs)
 
-    for operator in ['verizon', 'att']:
+    # for operator in ['verizon', 'att']:
+    for operator in ['att']:
         logger.info(f"--- Processing {operator}...")
         append_tech_to_rtt_data(operator, location, output_dir)
         logger.info(f"--- Finished processing {operator}")

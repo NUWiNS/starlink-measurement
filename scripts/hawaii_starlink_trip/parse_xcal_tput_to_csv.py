@@ -104,7 +104,7 @@ def process_operator_xcal_tput(operator: str, location: str, output_dir: str):
         raise e
     return filtered_df
 
-def process_filtered_xcal_data_for_tput_and_save_to_csv(
+def process_filtered_xcal_data_for_tput(
         filtered_df: pd.DataFrame, 
         operator: str,
         output_dir: str
@@ -151,63 +151,14 @@ def process_filtered_xcal_data_for_tput_and_save_to_csv(
     if before_filter_count - after_filter_count > 0:
         logger.info(f"WARNING: Filtered out {before_filter_count - after_filter_count} rows for UPLINK due to extreme values")
 
-    xcal_smart_tput_csv = path.join(output_dir, f'{operator}_xcal_smart_tput.csv')
-    df_tput.to_csv(xcal_smart_tput_csv, index=False)
-    logger.info(f"Saved xcal cleaned tput logs (size: {len(df_tput)}) to {xcal_smart_tput_csv}")
+    logger.info(f'-- Stage 6: patch actual tech column for opeator {operator}')
+    df_tput = patch_actual_tech(df_tput, operator)
 
-def append_tech_to_rtt_data_and_save_to_csv(
-        xcal_df: pd.DataFrame, 
-        operator: str, 
-    ) -> pd.DataFrame:
-    """Append technology information to RTT data based on closest timestamp match.
-    
-    Args:
-        xcal_df: DataFrame containing XCAL data with technology information
-        operator: Operator name (verizon, tmobile, att)
-    
-    Returns:
-        DataFrame with appended technology information
-    """
-    rtt_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
-    df_rtt = pd.read_csv(rtt_csv_path)
-    xcal_df = xcal_df.copy().sort_values(by=XcalField.CUSTOM_UTC_TIME).reset_index(drop=True)
-    
-    # Convert timestamp columns to datetime
-    rtt_timestamp_series = pd.to_datetime(df_rtt['time'])
-    xcal_timestamp_series = pd.to_datetime(xcal_df[XcalField.CUSTOM_UTC_TIME])
-    
-    def find_nearest_tech(timestamp: datetime) -> str:
-        # Binary search to find the closest timestamp
-        idx = xcal_timestamp_series.searchsorted(timestamp)
-        
-        if idx == 0:
-            return xcal_df.iloc[0][XcalField.ACTUAL_TECH]
-        elif idx == len(xcal_timestamp_series):
-            return xcal_df.iloc[-1][XcalField.ACTUAL_TECH]
-            
-        # Get timestamps before and after
-        before = xcal_timestamp_series.iloc[idx-1]
-        after = xcal_timestamp_series.iloc[idx]
-        
-        # Convert time differences to seconds for comparison
-        diff_before = abs((timestamp - before).total_seconds())
-        diff_after = abs((timestamp - after).total_seconds())
-        
-        # Choose the closest timestamp
-        if diff_before < diff_after:
-            return xcal_df.iloc[idx-1][XcalField.ACTUAL_TECH]
-        return xcal_df.iloc[idx][XcalField.ACTUAL_TECH]
-    
-    # Apply the lookup function to each RTT timestamp
-    df_rtt[XcalField.ACTUAL_TECH] = rtt_timestamp_series.apply(find_nearest_tech)
-    
-    # Save the updated DataFrame to the original path
-    df_rtt.to_csv(rtt_csv_path, index=False)
-    logger.info(f"Appended technology information to RTT data and saved to {rtt_csv_path}")
-    
-    return df_rtt
+    return df_tput
 
-
+def patch_actual_tech(df: pd.DataFrame, operator: str):
+    """Patch the actual tech column by special logic"""
+    return df
 
 def main():
     output_dir = path.join(ROOT_DIR, f'xcal/sizhe_new_data')
@@ -221,7 +172,12 @@ def main():
     for operator in ['verizon', 'tmobile', 'att']:
         logger.info(f"--- Processing {operator}...")
         filtered_df = process_operator_xcal_tput(operator, location, output_dir)
-        process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_df, operator, output_dir)
+        smart_tput_df = process_filtered_xcal_data_for_tput(filtered_df, operator, output_dir)
+        
+        xcal_smart_tput_csv = path.join(output_dir, f'{operator}_xcal_smart_tput.csv')
+        smart_tput_df.to_csv(xcal_smart_tput_csv, index=False)
+        logger.info(f"Saved xcal cleaned tput logs (size: {len(smart_tput_df)}) to {xcal_smart_tput_csv}")
+        
         logger.info(f"--- Finished processing {operator}")
 
 

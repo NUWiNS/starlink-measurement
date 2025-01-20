@@ -1,8 +1,12 @@
 tech_order = ['NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']
 tech_config_map = {
+    'Unknown': {
+        'color': '#000000',  # Black
+        'label': 'Unknown'
+    },
     'NO SERVICE': {
         'color': '#808080',  # Grey
-        'label': 'NO SERVICE'
+        'label': 'No Service'
     },
     'LTE': {
         'color': '#326f21',  # Green

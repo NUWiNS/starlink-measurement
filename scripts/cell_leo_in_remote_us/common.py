@@ -146,7 +146,7 @@ tech_conf = {
     },
     'Unknown': {
         'label': 'Unknown',
-        'color': '#a9a9a9',  # Light gray, lighter than NO SERVICE
+        'color': '#000000',
         'order': 8
     },
 }

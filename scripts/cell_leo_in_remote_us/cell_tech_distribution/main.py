@@ -11,7 +11,7 @@ import pandas as pd
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
 from scripts.cell_leo_in_remote_us.common import calculate_tech_coverage_in_miles, cellular_operator_conf, cellular_location_conf, tech_order, tech_conf
-from scripts.constants import XcalField
+from scripts.constants import XcalField, CommonField
 from scripts.logging_utils import create_logger
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -158,8 +158,20 @@ def main():
 
         for operator in sorted(cellular_location_conf[location]['operators'], key=lambda x: cellular_operator_conf[x]['order']):
             logger.info(f'---- Processing operator: {operator}')
-            input_csv_path = os.path.join(base_dir, 'xcal/sizhe_new_data', f'{operator}_xcal_smart_tput.csv')
-            df = pd.read_csv(input_csv_path)
+            smart_tput_csv_path = os.path.join(base_dir, 'xcal/sizhe_new_data', f'{operator}_xcal_smart_tput.csv')
+            rtt_csv_path = os.path.join(base_dir, 'ping/sizhe_new_data', f'{operator}_ping.csv')
+
+            smart_tput_df = pd.read_csv(smart_tput_csv_path)
+            rtt_df = pd.read_csv(rtt_csv_path)
+            
+            # Merge the dataframes to create a common structure
+            df = pd.merge(
+                smart_tput_df[[CommonField.LOCAL_DT, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT]],
+                rtt_df[[CommonField.LOCAL_DT, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT]],
+                on=XcalField.SEGMENT_ID,
+                how='inner'
+            )
+
             operator_dfs[operator] = df
 
         loc_label = cellular_location_conf[location]['label']

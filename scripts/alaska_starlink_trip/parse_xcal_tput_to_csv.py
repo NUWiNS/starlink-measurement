@@ -10,10 +10,9 @@ from scripts.time_utils import now
 from scripts.logging_utils import create_logger
 from scripts.alaska_starlink_trip.labels import DatasetLabel
 from scripts.alaska_starlink_trip.separate_dataset import read_dataset
-from scripts.alaska_starlink_trip.configs import ROOT_DIR, TIMEZONE
+from scripts.alaska_starlink_trip.configs import ROOT_DIR, TIMEZONE, unknown_area_coords
 from scripts.constants import DATASET_DIR, CommonField, XcalField
 from scripts.utilities.xcal_processing_utils import collect_periods_of_tput_measurements, filter_xcal_logs, read_daily_xcal_data
-
 
 tmp_dir = os.path.join(ROOT_DIR, 'tmp')
 ping_dir = os.path.join(ROOT_DIR, 'ping')
@@ -120,6 +119,44 @@ def patch_actual_tech(df: pd.DataFrame, operator: str):
         unknown_rows = df[df[XcalField.ACTUAL_TECH].str.lower() == 'unknown']
         df.loc[unknown_rows.index, XcalField.ACTUAL_TECH] = 'LTE'
         logger.info(f"Patched {len(unknown_rows)} rows with unknown tech to LTE")
+
+    # try to patch tech from map calibration
+    coords = unknown_area_coords.get(operator, None)
+    if coords is not None:
+        logger.info(f"-- Patching tech from map calibration for {operator}...")
+        # Map all unknown data points to LTE if they are not matching below
+        unknown_rows = df[df[XcalField.ACTUAL_TECH].str.lower() == 'unknown']
+        for coord in coords:
+            lat_range = coord['lat_range']
+            lon_range = coord['lon_range']
+                # tech = coord['tech']
+                
+            # Find rows within the coordinate box
+            matching_rows = unknown_rows[
+                (unknown_rows[XcalField.LAT] >= lat_range[0]) & 
+                (unknown_rows[XcalField.LAT] <= lat_range[1]) &
+                (unknown_rows[XcalField.LON] >= lon_range[0]) & 
+                (unknown_rows[XcalField.LON] <= lon_range[1])
+            ]
+            
+            # Update tech for matching rows
+            if len(matching_rows) > 0:
+                # df.loc[matching_rows.index, XcalField.ACTUAL_TECH] = tech
+                # logger.info(f"Patched {len(matching_rows)} rows in {coord['label']} to {tech}")
+            
+                # Remove matched rows from unknown_rows to avoid double processing
+                unknown_rows = unknown_rows.drop(matching_rows.index)
+            
+        # Set remaining unknown rows to LTE
+        if len(unknown_rows) > 0:
+            segment_id_unique = unknown_rows[XcalField.SEGMENT_ID].unique()
+            # If we update the tech column, we need to update the whole related segment
+            all_rows_in_segment_with_unknown_tech = df[df[XcalField.SEGMENT_ID].isin(segment_id_unique)]
+            df.loc[all_rows_in_segment_with_unknown_tech.index, XcalField.ACTUAL_TECH] = 'LTE'
+            # df.loc[unknown_rows.index, XcalField.ACTUAL_TECH] = 'LTE'
+
+            logger.info(f"---- Patched reall_rows_in_segment_with_unknown_techm {len(all_rows_in_segment_with_unknown_tech)} unknown rows to LTE")
+
     return df
 
 def process_filtered_xcal_data_for_tput_and_save_to_csv(
@@ -184,7 +221,8 @@ def main():
         if not path.exists(dirs):
             os.makedirs(dirs)
 
-    for operator in ['att', 'verizon']:
+    # for operator in ['att', 'verizon']:
+    for operator in ['att']:
         logger.info(f"--- Processing {operator}...")
         filtered_raw_xcal_df = process_operator_xcal_tput(operator, location, output_dir)
         smart_tput_df = process_filtered_xcal_data_for_tput_and_save_to_csv(filtered_raw_xcal_df, operator, output_dir)
