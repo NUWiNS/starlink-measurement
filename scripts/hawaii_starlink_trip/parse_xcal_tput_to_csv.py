@@ -125,6 +125,21 @@ def process_filtered_xcal_data_for_tput(
         XcalField.APP_TPUT_DIRECTION: filtered_df[FIELD_APP_TPUT_DIRECTION],
         XcalField.LON: filtered_df[XcalField.LON],
         XcalField.LAT: filtered_df[XcalField.LAT],
+        XcalField.SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE: filtered_df[XcalField.SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE],
+        XcalField.LTE_EARFCN_DL: filtered_df[XcalField.LTE_EARFCN_DL],
+        XcalField.LTE_RSRP: filtered_df[XcalField.LTE_RSRP],
+        XcalField.LTE_RSRQ: filtered_df[XcalField.LTE_RSRQ],
+        XcalField.LTE_PRB_NUM_PDSCH: filtered_df[XcalField.LTE_PRB_NUM_PDSCH],
+        XcalField.LTE_PRB_NUM_PUSCH: filtered_df[XcalField.LTE_PRB_NUM_PUSCH],
+        XcalField.LTE_CA_TYPE_DL: filtered_df[XcalField.LTE_CA_TYPE_DL],
+        XcalField.LTE_CA_TYPE_UL: filtered_df[XcalField.LTE_CA_TYPE_UL],
+        XcalField._5G_FREQ: filtered_df[XcalField._5G_FREQ],
+        XcalField._5G_RSRP: filtered_df[XcalField._5G_RSRP],
+        XcalField._5G_RSRQ: filtered_df[XcalField._5G_RSRQ],
+        XcalField._5G_CA_TYPE_DL: filtered_df[XcalField._5G_CA_TYPE_DL],
+        XcalField._5G_CA_TYPE_UL: filtered_df[XcalField._5G_CA_TYPE_UL],
+        XcalField._5G_RB_DL: filtered_df[XcalField._5G_RB_DL],
+        XcalField._5G_RB_UL: filtered_df[XcalField._5G_RB_UL],
     }
     if XcalField.EVENT_5G_LTE in filtered_df.columns:
         df_tput_cols[XcalField.EVENT_5G_LTE] = filtered_df[XcalField.EVENT_5G_LTE]

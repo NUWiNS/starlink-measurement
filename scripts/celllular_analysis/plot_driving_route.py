@@ -19,7 +19,7 @@ from scripts.hawaii_starlink_trip.configs import (
     ROOT_DIR as HAWAII_ROOT_DIR,
     TIMEZONE as HAWAII_TIMEZONE,
 )
-from scripts.constants import DATASET_DIR, XcalField
+from scripts.constants import DATASET_DIR, CommonField, XcalField
 from scripts.celllular_analysis.configs import tech_config_map
 from scripts.alaska_starlink_trip.configs import unknown_area_coords as unknown_area_coords_alaska
 from scripts.hawaii_starlink_trip.configs import unknown_area_coords as unknown_area_coords_hawaii
@@ -159,7 +159,7 @@ def plot_driving_route_with_tech(
     # attr='Map tiles by <a href="http://stamen.com">Stamen Design</a>'
 
     # sort by time
-    df = df.sort_values(by=XcalField.CUSTOM_UTC_TIME)
+    df = df.sort_values(by=CommonField.LOCAL_DT)
     # Group the dataframe by segment_id
     grouped_df = df.groupby(XcalField.SEGMENT_ID)
     for segment_id, segment_data in grouped_df:
@@ -201,13 +201,13 @@ def plot_driving_route_with_tech(
             if len(route_coordinates) >= 2:
                 # Get color from tech_config_map, default to NO SERVICE color if tech not found
                 color = tech_config_map.get(tech, tech_config_map["Unknown"])["color"]
-                run_id = segment_data[XcalField.RUN_ID].iloc[0]
-                local_time = (
-                    pd.to_datetime(run_id)
-                    .tz_localize("UTC")
-                    .tz_convert(timezone)
-                    .strftime("%Y-%m-%d %H:%M:%S %Z")
-                )
+                # run_id = segment_data[XcalField.RUN_ID].iloc[0]
+                # local_time = (
+                #     pd.to_datetime(run_id)
+                #     .tz_localize("UTC")
+                #     .tz_convert(timezone)
+                #     .strftime("%Y-%m-%d %H:%M:%S %Z")
+                # )
                 start_coord = route_coordinates[0]
                 end_coord = route_coordinates[-1]
                 # Create a PolyLine for this tech segment
@@ -217,7 +217,8 @@ def plot_driving_route_with_tech(
                     weight=5,
                     opacity=1,
                     # popup=f"[{local_time}] Technology: {tech}",
-                    popup=f"[{local_time}] start: {start_coord}, end: {end_coord}",
+                    # popup=f"[{local_time}] start: {start_coord}, end: {end_coord}",
+                    popup=f"[{segment_id}] start: {start_coord}, end: {end_coord}",
                 ).add_to(m)
 
     # Plot hidden areas as boxes
@@ -573,7 +574,24 @@ def main():
                 f"{operator}_xcal_smart_tput.csv",
             )
         )
-        dfs_alaska[operator] = df_xcal_data_in_alaska
+        df_xcal_data_in_alaska['type'] = df_xcal_data_in_alaska[XcalField.APP_TPUT_PROTOCOL] + '_' + df_xcal_data_in_alaska[XcalField.APP_TPUT_DIRECTION]
+        df_rtt = pd.read_csv(
+            os.path.join(
+                ALASKA_ROOT_DIR,
+                "ping/sizhe_new_data",
+                f"{operator}_ping.csv",
+            )
+        )
+        df_rtt['type'] = 'rtt'
+
+        tput_sub_df = df_xcal_data_in_alaska[[CommonField.LOCAL_DT, CommonField.AREA_TYPE, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT, 'type']]
+        rtt_sub_df = df_rtt[[CommonField.LOCAL_DT, CommonField.AREA_TYPE, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT, 'type']]
+        df = pd.concat(
+                [tput_sub_df, rtt_sub_df],
+                ignore_index=True
+            )
+ 
+        dfs_alaska[operator] = df
 
     for operator, df_xcal_data_in_alaska in dfs_alaska.items():
         output_file_path = os.path.join(
@@ -617,7 +635,24 @@ def main():
                 f"{operator}_xcal_smart_tput.csv",
             )
         )
-        dfs_hawaii[operator] = df_xcal_data_in_hawaii
+        df_xcal_data_in_hawaii['type'] = df_xcal_data_in_hawaii[XcalField.APP_TPUT_PROTOCOL] + '_' + df_xcal_data_in_hawaii[XcalField.APP_TPUT_DIRECTION]
+        df_rtt = pd.read_csv(
+            os.path.join(
+                HAWAII_ROOT_DIR,
+                "ping/sizhe_new_data",
+                f"{operator}_ping.csv",
+            )
+        )
+        df_rtt['type'] = 'rtt'
+
+        tput_sub_df = df_xcal_data_in_hawaii[[CommonField.LOCAL_DT, CommonField.AREA_TYPE, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT, 'type']]
+        rtt_sub_df = df_rtt[[CommonField.LOCAL_DT, CommonField.AREA_TYPE, XcalField.SEGMENT_ID, XcalField.ACTUAL_TECH, XcalField.LON, XcalField.LAT, 'type']]
+        df = pd.concat(
+                [tput_sub_df, rtt_sub_df],
+                ignore_index=True
+            )
+ 
+        dfs_alaska[operator] = df
 
     for operator, df_xcal_data_in_hawaii in dfs_hawaii.items():
         output_file_path = os.path.join(

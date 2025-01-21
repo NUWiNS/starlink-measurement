@@ -309,7 +309,7 @@ def main():
             direction = proto_dir[1]
             _proto_dir_conf = proto_dir_conf[location][f'{protocol}_{direction}']
 
-            ping_dfs = read_throughput_data_for_all_operators(
+            tput_dfs = read_throughput_data_for_all_operators(
                 base_dir=os.path.join(loc_conf['root_dir'], 'throughput'),
                 protocol=protocol,
                 direction=direction,
@@ -327,7 +327,7 @@ def main():
                 print(f'Saved mptcp trace for {key} to dir: {output_mptcp_csv_path}')
 
             plot_mptcp_boxplots_for_tput(
-                dfs=ping_dfs,
+                dfs=tput_dfs,
                 mptcp_dfs=mptcp_dfs,    
                 mptcp_operator_conf=mptcp_operator_conf,
                 max_ylim=_proto_dir_conf['max_ylim'],
@@ -341,7 +341,7 @@ def main():
         protocol = 'ping'
         _proto_dir_conf = proto_dir_conf[location][f'{protocol}']
 
-        ping_dfs = read_ping_data_for_all_operators(
+        tput_dfs = read_ping_data_for_all_operators(
             base_dir=os.path.join(loc_conf['root_dir'], 'ping', 'sizhe_new_data'),
             operators=operators,
         )
@@ -355,7 +355,7 @@ def main():
             print(f'Saved mptcp trace for {key} to dir: {output_mptcp_csv_path}')
 
         plot_mptcp_boxplots_for_rtt(
-            dfs=ping_dfs,
+            dfs=tput_dfs,
             mptcp_dfs=mptcp_dfs,    
             mptcp_operator_conf=mptcp_operator_conf,
             max_ylim=_proto_dir_conf['max_ylim'],

@@ -6,7 +6,7 @@ import pandas as pd
 
 sys.path.append(path.join(path.dirname(__file__), '../..'))
 
-from scripts.alaska_starlink_trip.common import patch_actual_tech
+from scripts.alaska_starlink_trip.common import append_5g_fields, append_lte_fields, patch_actual_tech
 from scripts.time_utils import now
 from scripts.logging_utils import create_logger
 from scripts.alaska_starlink_trip.labels import DatasetLabel
@@ -131,11 +131,10 @@ def process_filtered_xcal_data_for_tput_and_save_to_csv(
         XcalField.APP_TPUT_DIRECTION: filtered_df[FIELD_APP_TPUT_DIRECTION],
         XcalField.LON: filtered_df[XcalField.LON],
         XcalField.LAT: filtered_df[XcalField.LAT],
-        XcalField.LTE_EARFCN_DL: filtered_df[XcalField.LTE_EARFCN_DL],
         XcalField.SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE: filtered_df[XcalField.SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE],
     }
-    if XcalField.EVENT_5G_LTE in filtered_df.columns:
-        df_tput_cols[XcalField.EVENT_5G_LTE] = filtered_df[XcalField.EVENT_5G_LTE]
+    df_tput_cols = append_lte_fields(filtered_df, df_tput_cols)
+    df_tput_cols = append_5g_fields(filtered_df, df_tput_cols)
 
     df_tput = pd.DataFrame(df_tput_cols)
     xcal_tput_logs_csv = path.join(output_dir, f'{operator}_xcal_renamed_tput_logs.csv')

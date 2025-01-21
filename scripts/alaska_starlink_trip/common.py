@@ -56,3 +56,40 @@ def patch_actual_tech(df: pd.DataFrame, operator: str, logger: logging.Logger):
             logger.info(f"---- Patched reall_rows_in_segment_with_unknown_techm {len(all_rows_in_segment_with_unknown_tech)} unknown rows to LTE")
 
     return df
+
+
+def append_lte_fields(src_df, dst_df):
+    lte_cols = [
+        XcalField.LTE_EARFCN_DL,
+        XcalField.LTE_RSRP,
+        XcalField.LTE_RSRQ,
+        XcalField.LTE_PRB_NUM_PDSCH,
+        XcalField.LTE_PRB_NUM_PUSCH,
+        XcalField.LTE_CA_TYPE_DL,
+        XcalField.LTE_CA_TYPE_UL,
+    ]
+    for col in lte_cols:
+        if col not in src_df.columns:
+            print(f'{col} is missing in src_df')
+            continue
+        dst_df[col] = src_df[col]
+    return dst_df
+
+def append_5g_fields(src_df, dst_df):
+    _5g_cols = [
+        XcalField._5G_FREQ,
+        XcalField.EVENT_5G,
+        XcalField.EVENT_5G_LTE,
+        XcalField._5G_RSRP,
+        XcalField._5G_RSRQ,
+        XcalField._5G_CA_TYPE_DL,
+        XcalField._5G_CA_TYPE_UL,
+        XcalField._5G_RB_DL, 
+        XcalField._5G_RB_UL, 
+    ]
+    for col in _5g_cols:
+        if col not in src_df.columns:
+            print(f'{col} is missing in src_df')
+            continue
+        dst_df[col] = src_df[col]
+    return dst_df

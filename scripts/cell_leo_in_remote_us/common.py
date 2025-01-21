@@ -48,7 +48,7 @@ location_conf = {
     'alaska': {
         'label': 'AK',
         'root_dir': AL_DATASET_DIR,
-        'operators': ['starlink', 'verizon', 'att'],
+        'operators': ['starlink', 'verizon', 'att`'],
         'tcp_downlink': {
             'interval_x': 100,
             'max_xlim': 300,

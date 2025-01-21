@@ -6,6 +6,7 @@ import pandas as pd
 
 sys.path.append(path.join(path.dirname(__file__), '../..'))
 
+from scripts.alaska_starlink_trip.common import patch_actual_tech
 from scripts.time_utils import now
 from scripts.logging_utils import create_logger
 from scripts.alaska_starlink_trip.labels import DatasetLabel
@@ -86,6 +87,11 @@ def fuse_rtt_into_xcal_logs(df_xcal_all_logs: pd.DataFrame, df_rtt: pd.DataFrame
     fused_df = pd.concat([fused_df, rtt_rows], ignore_index=True)
     fused_df = fused_df.sort_values(by=CommonField.LOCAL_DT).reset_index(drop=True)
     
+    # fill the missing values for lon and lat with nearby values
+    
+    fused_df[XcalField.LON] = fused_df[XcalField.LON].ffill().bfill()
+    fused_df[XcalField.LAT] = fused_df[XcalField.LAT].ffill().bfill()
+
     return fused_df
 
 def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
@@ -167,128 +173,22 @@ def append_tech_to_rtt_data(operator: str, location: str, output_dir: str):
     output_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
 
     logger.info('-- Stage 6: patch actual tech column')
-    filtered_df = patch_actual_tech(filtered_df, operator)
+    filtered_df = patch_actual_tech(filtered_df, operator, logger)
+
+    logger.info('-- Stage 7: remove unknown tech rows')
+    filtered_df = filtered_df[filtered_df[XcalField.ACTUAL_TECH] != 'Unknown']
 
     # only save the original cols from df_rtt and tech
-    filtered_df = filtered_df[original_rtt_cols + [XcalField.ACTUAL_TECH]]
+    # filtered_df = filtered_df[original_rtt_cols + [
+    #     XcalField.SEGMENT_ID, 
+    #     XcalField.ACTUAL_TECH, 
+    #     XcalField.LON, 
+    #     XcalField.LAT
+    #     ]
+    # ]
+
     filtered_df.to_csv(output_csv_path, index=False)
     logger.info(f"filtered xcal logs (size: {len(filtered_df)}) that have RTT data and saved to {output_csv_path}")
-
-def patch_actual_tech(df: pd.DataFrame, operator: str):
-    """Patch the actual tech column by special logic"""
-    if operator == 'verizon':
-        logger.info("-- Patching actual tech column for Alaska Verizon:")
-        # Alaska Verizon only has LTE according to Verizon Coverage Map: https://www.verizon.com/coverage-map/
-        unknown_rows = df[df[XcalField.ACTUAL_TECH].str.lower() == 'unknown']
-        df.loc[unknown_rows.index, XcalField.ACTUAL_TECH] = 'LTE'
-        logger.info(f"---- Patched {len(unknown_rows)} rows with unknown tech to LTE")
-    return df
-
-def process_filtered_xcal_data_for_tput_and_save_to_csv(
-        filtered_df: pd.DataFrame, 
-        operator: str,
-        output_dir: str
-    ):
-    logger.info("-- Stage 4: rename and add useful columns")
-    df_tput_cols = {
-        XcalField.SRC_IDX: filtered_df[XcalField.SRC_IDX],
-        XcalField.RUN_ID: filtered_df[XcalField.RUN_ID],
-        XcalField.SEGMENT_ID: filtered_df[XcalField.SEGMENT_ID],
-        XcalField.CUSTOM_UTC_TIME: filtered_df[XcalField.CUSTOM_UTC_TIME],
-        XcalField.LOCAL_TIME: filtered_df[XcalField.CUSTOM_UTC_TIME].dt.tz_convert(TIMEZONE),
-        XcalField.TPUT_DL: filtered_df[XCAL_SMART_TPUT_DL],
-        XcalField.TPUT_UL: filtered_df[XCAL_SMART_TPUT_UL],
-        XcalField.ACTUAL_TECH: filtered_df[XcalField.ACTUAL_TECH],
-        XcalField.BAND: filtered_df[XCAL_EVENT_TECHNOLOGY_BAND],
-        XcalField.APP_TPUT_PROTOCOL: filtered_df[FIELD_APP_TPUT_PROTOCOL],
-        XcalField.APP_TPUT_DIRECTION: filtered_df[FIELD_APP_TPUT_DIRECTION],
-        XcalField.LON: filtered_df[XcalField.LON],
-        XcalField.LAT: filtered_df[XcalField.LAT],
-    }
-    if XcalField.EVENT_5G_LTE in filtered_df.columns:
-        df_tput_cols[XcalField.EVENT_5G_LTE] = filtered_df[XcalField.EVENT_5G_LTE]
-
-    df_tput = pd.DataFrame(df_tput_cols)
-    xcal_tput_logs_csv = path.join(output_dir, f'{operator}_xcal_renamed_tput_logs.csv')
-    df_tput.to_csv(xcal_tput_logs_csv, index=False)
-    logger.info(f"Renamed and saved xcal tput logs to {xcal_tput_logs_csv}")
-
-    
-    logger.info("-- Stage 5: process rows for dl and ul")
-    df_tput = df_tput.dropna(subset=[XcalField.TPUT_DL, XcalField.TPUT_UL])
-    # filter extreme values
-    DL_THRESHOLD = 10 * 1000  # 10 Gbps
-    UL_THRESHOLD = 10 * 1000  # 10 Gbps
-    before_filter_count = len(df_tput)
-    df_tput = df_tput[df_tput[XcalField.TPUT_DL] < DL_THRESHOLD]
-    after_filter_count = len(df_tput)
-    if before_filter_count - after_filter_count > 0:
-        logger.info(f"WARNING: Filtered out {before_filter_count - after_filter_count} rows for DOWNLINK due to extreme values")
-
-    before_filter_count = len(df_tput)
-    df_tput = df_tput[df_tput[XcalField.TPUT_UL] < UL_THRESHOLD]
-    after_filter_count = len(df_tput)
-    if before_filter_count - after_filter_count > 0:
-        logger.info(f"WARNING: Filtered out {before_filter_count - after_filter_count} rows for UPLINK due to extreme values")
-
-    xcal_smart_tput_csv = path.join(output_dir, f'{operator}_xcal_smart_tput.csv')
-    df_tput.to_csv(xcal_smart_tput_csv, index=False)
-    logger.info(f"Saved xcal cleaned tput logs (size: {len(df_tput)}) to {xcal_smart_tput_csv}")
-
-def append_tech_to_rtt_data_and_save_to_csv(
-        xcal_df: pd.DataFrame, 
-        operator: str, 
-    ) -> pd.DataFrame:
-    """Append technology information to RTT data based on closest timestamp match.
-    
-    Args:
-        xcal_df: DataFrame containing XCAL data with technology information
-        operator: Operator name (verizon, tmobile, att)
-    
-    Returns:
-        DataFrame with appended technology information
-    """
-    rtt_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
-    output_rtt_csv_path = path.join(ping_dir, f'{operator}_ping.csv')
-    df_rtt = pd.read_csv(rtt_csv_path)
-    xcal_df = xcal_df.copy().sort_values(by=XcalField.CUSTOM_UTC_TIME).reset_index(drop=True)
-    
-    # Convert timestamp columns to datetime
-    rtt_timestamp_series = pd.to_datetime(df_rtt['time'])
-    xcal_timestamp_series = pd.to_datetime(xcal_df[XcalField.CUSTOM_UTC_TIME])
-    
-    def find_nearest_tech(timestamp: datetime) -> str:
-        # Binary search to find the closest timestamp
-        idx = xcal_timestamp_series.searchsorted(timestamp)
-        
-        if idx == 0:
-            return xcal_df.iloc[0][XcalField.ACTUAL_TECH]
-        elif idx == len(xcal_timestamp_series):
-            return xcal_df.iloc[-1][XcalField.ACTUAL_TECH]
-            
-        # Get timestamps before and after
-        before = xcal_timestamp_series.iloc[idx-1]
-        after = xcal_timestamp_series.iloc[idx]
-        
-        # Convert time differences to seconds for comparison
-        diff_before = abs((timestamp - before).total_seconds())
-        diff_after = abs((timestamp - after).total_seconds())
-        
-        # Choose the closest timestamp
-        if diff_before < diff_after:
-            return xcal_df.iloc[idx-1][XcalField.ACTUAL_TECH]
-        return xcal_df.iloc[idx][XcalField.ACTUAL_TECH]
-    
-    # Apply the lookup function to each RTT timestamp
-    df_rtt[XcalField.ACTUAL_TECH] = rtt_timestamp_series.apply(find_nearest_tech)
-    
-    # Save the updated DataFrame to the original path
-    df_rtt.to_csv(output_rtt_csv_path, index=False)
-    logger.info(f"Appended technology information to RTT data and saved to {output_rtt_csv_path}")
-    
-    return df_rtt
-
-
 
 def main():
     # output_dir = path.join(ROOT_DIR, 'xcal')
@@ -299,8 +199,7 @@ def main():
         if not path.exists(dirs):
             os.makedirs(dirs)
 
-    # for operator in ['verizon', 'att']:
-    for operator in ['att']:
+    for operator in ['verizon', 'att']:
         logger.info(f"--- Processing {operator}...")
         append_tech_to_rtt_data(operator, location, output_dir)
         logger.info(f"--- Finished processing {operator}")

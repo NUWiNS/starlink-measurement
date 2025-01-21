@@ -6,6 +6,7 @@ DATASET_DIR = os.path.abspath(os.path.join(PROJ_ROOT_DIR, 'datasets'))
 OUTPUT_DIR = os.path.abspath(os.path.join(PROJ_ROOT_DIR, 'outputs'))
 
 class CommonField:
+    TIME = 'time'
     UTC_TS = 'utc_ts'
     LOCAL_DT = 'local_dt'
     SRC_IDX = 'src_idx'
@@ -47,6 +48,19 @@ class XcalField:
     AREA_GEOJSON = 'area_geojson'
     SMART_PHONE_SYSTEM_INFO_NETWORK_TYPE = 'Smart Phone System Info Network Type'
     LTE_EARFCN_DL = 'LTE KPI PCell Serving EARFCN(DL)'
+    LTE_RSRP = 'LTE KPI PCell Serving RSRP [dBm]'
+    LTE_RSRQ = 'LTE KPI PCell Serving RSRQ [dB]'
+    LTE_PRB_NUM_PDSCH = 'LTE KPI Pcell PDSCH PRB Number(Avg)'
+    LTE_PRB_NUM_PUSCH = 'LTE KPI PCell PUSCH PRB Number(Avg)'
+    LTE_CA_TYPE_DL = 'LTE KPI CA Type'
+    LTE_CA_TYPE_UL = 'LTE KPI UL CA Type'
+    _5G_FREQ = '5G KPI PCell RF Frequency [MHz]'
+    _5G_RSRP = '5G KPI PCell RF Serving SS-RSRP [dBm]'
+    _5G_RSRQ = '5G KPI PCell RF Serving SS-RSRQ [dB]'
+    _5G_CA_TYPE_DL = '5G KPI Total Info DL CA Type'
+    _5G_CA_TYPE_UL = '5G KPI Total Info UL CA Type'
+    _5G_RB_DL = '5G KPI Total Info Layer1 DL RB Num(Avg)'
+    _5G_RB_UL = '5G KPI Total Info Layer1 UL RB Num(Avg)'
 
 
 class XcalTech:
