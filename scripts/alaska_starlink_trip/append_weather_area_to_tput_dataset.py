@@ -69,12 +69,12 @@ def append_weather_area_to_app_tput_traces(tput_dir: str):
         tput_df['time'] = pd.to_datetime(tput_df['time'], format="ISO8601")
 
         weather_df = pd.read_csv(weather_csv_path)
-        weather_df['time'] = pd.to_datetime(weather_df['time'], format="ISO8601")
-        weatherIntervalQueryUtil = TypeIntervalQueryUtil(weather_df[['time', 'value']].values.tolist())
+        weather_df[CommonField.LOCAL_DT] = pd.to_datetime(weather_df[CommonField.LOCAL_DT], format="ISO8601")
+        weatherIntervalQueryUtil = TypeIntervalQueryUtil(weather_df[[CommonField.LOCAL_DT, 'value']].values.tolist())
 
         area_df = pd.read_csv(area_csv_path)
-        area_df['time'] = pd.to_datetime(area_df['time'], format="ISO8601")
-        areaIntervalQueryUtil = TypeIntervalQueryUtil(area_df[['time', 'value']].values.tolist())
+        area_df[CommonField.LOCAL_DT] = pd.to_datetime(area_df[CommonField.LOCAL_DT], format="ISO8601")
+        areaIntervalQueryUtil = TypeIntervalQueryUtil(area_df[[CommonField.LOCAL_DT, 'value']].values.tolist())
 
         for idx, row in tput_df.iterrows():
             tput_df.at[idx, 'weather'] = weatherIntervalQueryUtil.query(row['time'])
@@ -105,21 +105,13 @@ def main():
     area_query_util = TypeIntervalQueryUtil(area_df[[CommonField.LOCAL_DT, 'value']].values.tolist())
 
 
-    # append_weather_area_to_app_tput_traces(tput_dir=tput_dir)
-    # append_weather_area_to_app_tput_traces(tput_dir=tput_dir_for_cubic)
-    # append_weather_area_to_app_tput_traces(tput_dir=tput_dir_for_bbr)
-    append_weather_area_to_xcal_tput_traces(
-        xcal_tput_dir=xcal_tput_dir,
-        weather_query_util=weather_query_util,
-        area_query_util=area_query_util
-    )
-
-    # for rtt_csv_file in glob.glob(os.path.join(ping_dir, '*_ping.csv')):
-    #     logger.info(f'Appending weather and area data to {rtt_csv_file}')
-    #     rtt_df = pd.read_csv(rtt_csv_file)
-    #     rtt_df = append_weather_area_to_rtt_traces(rtt_df, weatherIntervalQueryUtil, areaIntervalQueryUtil)
-    #     rtt_df.to_csv(rtt_csv_file, index=False)
-    #     logger.info(f'Finished processing {rtt_csv_file}, weather and area data appended')
-
+    append_weather_area_to_app_tput_traces(tput_dir=tput_dir)
+    append_weather_area_to_app_tput_traces(tput_dir=tput_dir_for_cubic)
+    append_weather_area_to_app_tput_traces(tput_dir=tput_dir_for_bbr)
+    # append_weather_area_to_xcal_tput_traces(
+    #     xcal_tput_dir=xcal_tput_dir,
+    #     weather_query_util=weather_query_util,
+    #     area_query_util=area_query_util
+    # )
 if __name__ == '__main__':
     main()

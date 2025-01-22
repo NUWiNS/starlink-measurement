@@ -125,8 +125,7 @@ def match_traces_between_operators(base_dir: str, operator_a: str, operator_b: s
 
     timestamp_matcher = TimestampMatcher(threshold_seconds=60 * 5)
 
-    for trace_type in ['tcp_downlink', 'tcp_uplink']:
-    # for trace_type in ['tcp_downlink', 'tcp_uplink', 'ping']:
+    for trace_type in ['tcp_downlink', 'tcp_uplink', 'ping']:
         operator_a_trace_list = operator_a_dataset[trace_type]
         print(f'processing {trace_type} with operator {operator_a} and {operator_b}')
         valid_operator_a_trace_list = filter_trace_list(operator_a_trace_list)
@@ -176,7 +175,7 @@ def append_time_diff_to_df(df: pd.DataFrame, id_pairs: List[Tuple[int, int]], ti
         }])], ignore_index=True)
     return df
 
-def generate_matched_tput_trace(csv_path_a: str, csv_path_b: str):
+def generate_matched_tput_trace(csv_path_a: str, csv_path_b: str, run_time_a: str, run_time_b: str):
     """
     Fuse two throughput traces by matching rows with closest timestamps within the overlapping time period.
     
@@ -191,7 +190,9 @@ def generate_matched_tput_trace(csv_path_a: str, csv_path_b: str):
     df_a = pd.read_csv(csv_path_a)
     df_b = pd.read_csv(csv_path_b)
     df_a['time'] = pd.to_datetime(df_a['time'])
+    df_a['run_time'] = run_time_a
     df_b['time'] = pd.to_datetime(df_b['time'])
+    df_b['run_time'] = run_time_b
 
     # Find overlapping time period
     start_time = max(df_a['time'].iloc[0], df_b['time'].iloc[0])
@@ -226,8 +227,7 @@ def generate_matched_tput_trace(csv_path_a: str, csv_path_b: str):
 
 
 def sync_trace_between_operators(base_dir: str, operator_a: str, operator_b: str, output_dir: str, logger: logging.Logger):
-    for trace_type in ['tcp_downlink', 'tcp_uplink']:
-    # for trace_type in ['tcp_downlink', 'tcp_uplink', 'ping']:
+    for trace_type in ['tcp_downlink', 'tcp_uplink', 'ping']:
         data_field = CommonField.RTT_MS if trace_type == 'ping' else CommonField.TPUT_MBPS
 
         print(f'syncing traces between {operator_a} and {operator_b} for {trace_type}')
@@ -240,9 +240,11 @@ def sync_trace_between_operators(base_dir: str, operator_a: str, operator_b: str
         all_matched_data = []
         
         for pair in matched_pairs:
-            op_a_path = op_a_time_to_path_map[pair[0]]
-            op_b_path = op_b_time_to_path_map[pair[1]]
-            matched, leftover_a, leftover_b = generate_matched_tput_trace(op_a_path, op_b_path)
+            op_a_run_time = pair[0]
+            op_a_path = op_a_time_to_path_map[op_a_run_time]
+            op_b_run_time = pair[1]
+            op_b_path = op_b_time_to_path_map[op_b_run_time]
+            matched, leftover_a, leftover_b = generate_matched_tput_trace(op_a_path, op_b_path, op_a_run_time, op_b_run_time)
             print(f'synced result: matched: {len(matched)}, leftover_a: {len(leftover_a)}, leftover_b: {len(leftover_b)}')
 
             if not matched:
@@ -256,6 +258,8 @@ def sync_trace_between_operators(base_dir: str, operator_a: str, operator_b: str
                     f'A_{data_field}': row_a.get(data_field),
                     'B_time': row_b['time'],
                     f'B_{data_field}': row_b.get(data_field),
+                    'A_run_time': op_a_run_time,
+                    'B_run_time': op_b_run_time,
                 }
                 all_matched_data.append(matched_data)
 
@@ -275,8 +279,6 @@ def save_inter_operator_zero_tput_diff(operator_a: str, operator_b: str, base_di
     for trace_type in ['tcp_downlink', 'tcp_uplink']:
 
         df = pd.DataFrame(columns=['A', 'A_time', 'A_idx', 'B', 'B_time', 'B_idx', 'time_diff_sec', 'based'])
-
-        # for trace_type in ['tcp_downlink', 'tcp_uplink', 'ping']:
         print(f'syncing traces between {operator_a} and {operator_b} for {trace_type}') 
         matched_result = read_json(get_matched_operator_trace_list_path(base_dir, trace_type, operator_a, operator_b))
         matched_file_pairs = matched_result['matched_pairs']
@@ -506,9 +508,9 @@ class MatchFutureNearestZeroTput:
                 nearest_point = future_zero_points.iloc[0]
                 matched_idx_pairs.append((ref_id, nearest_point[self.field_id]))
                 matched_time_pairs.append((ref_time, nearest_point[self.field_time]))
-            else:
+            # else:
                 # If no future point found, use None as target_id
-                matched_idx_pairs.append((ref_id, None))
-                matched_time_pairs.append((ref_time, max_time))
+                # matched_idx_pairs.append((ref_id, None))
+                # matched_time_pairs.append((ref_time, max_time))
 
         return matched_idx_pairs, matched_time_pairs

@@ -27,8 +27,7 @@ def generate_operator_trace_list(base_dir: str):
         bbr_dataset_list = read_dataset(operator, DatasetLabel.BBR_TESTING_DATA.value)
         dataset_list.extend(bbr_dataset_list)
 
-        for trace_type in ['tcp_downlink', 'tcp_uplink']:
-        # for trace_type in ['tcp_downlink', 'tcp_uplink', 'ping']:
+        for trace_type in ['tcp_downlink', 'tcp_uplink', 'ping']:
             operator_dataset[trace_type] = []
             csv_list = scan_files_in_dataset(dataset_list, f'{trace_type}*.csv')
             csv_list.sort()
@@ -67,13 +66,13 @@ def main():
                 logger=logger
             )
 
-            save_inter_operator_zero_tput_diff(
-                operator_a=operator_a, 
-                operator_b=operator_b,
-                base_dir=tmp_dir,
-                output_dir=mptcp_dir,
-                logger=logger
-            )
+            # save_inter_operator_zero_tput_diff(
+            #     operator_a=operator_a, 
+            #     operator_b=operator_b,
+            #     base_dir=tmp_dir,
+            #     output_dir=mptcp_dir,
+            #     logger=logger
+            # )
         
 
 if __name__ == "__main__":

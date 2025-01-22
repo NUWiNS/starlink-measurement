@@ -172,7 +172,7 @@ def plot_latency_comparison_by_weather(df: pd.DataFrame, output_file_path: str =
 
     if output_file_path:
         plt.savefig(output_file_path, bbox_inches='tight')
-        # save_tput_by_weather_comparison_stats(df, full_path.replace('.png', '_stats.json'))
+        # save_tput_by_weather_comparison_stats(df, full_path.replace('.pdf', '_stats.json'))
         logger.info(f"Saved plot to {output_file_path}")
     else:
         plt.show()
@@ -235,14 +235,14 @@ def plot_overall_latency_comparison(df: pd.DataFrame, output_file_path: str = No
     logger.info("Creating latency plot")
     # create_cdf_plot(df, 
     #                 title='CDF ofStarlink Round-Trip Time', 
-    #                 output_filename=os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi.png'))
+    #                 output_filename=os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi.pdf'))
     
 
     create_cdf_plot(df, 
                     title='Latency', 
-                    xlim=(0, 200),
+                    xlim=(0, 175),
                     x_step=25,
-                    output_filename=os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi_zoomed.png'),
+                    output_filename=os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi_zoomed.pdf'),
                     )
 
     logger.info("Saving comparison statistics")
@@ -255,9 +255,9 @@ def main():
         os.makedirs(OUTPUT_DIR)
 
     df = get_latency_data_for_alaska_and_hawaii()
-    plot_overall_latency_comparison(df, os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi.png'))
+    plot_overall_latency_comparison(df, os.path.join(OUTPUT_DIR, 'starlink_latency_cdf_al_vs_hi.pdf'))
     
-    # starlink_latency_by_weather_comparison_fig = os.path.join(OUTPUT_DIR, 'starlink_latency_by_weather_comparison_al_vs_hi.png')
+    # starlink_latency_by_weather_comparison_fig = os.path.join(OUTPUT_DIR, 'starlink_latency_by_weather_comparison_al_vs_hi.pdf')
     # plot_latency_comparison_by_weather(df, output_file_path=starlink_latency_by_weather_comparison_fig)
 
 if __name__ == '__main__':

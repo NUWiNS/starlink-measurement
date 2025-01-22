@@ -27,7 +27,7 @@ def parsing():
     # parse_ping_result_to_csv_main()
     # parse_traceroute_data_to_csv_main()
     # parse_nslookup_data_to_csv_main()
-    parse_xcal_tput_to_csv_main()
+    # parse_xcal_tput_to_csv_main()
     # append_tech_to_latency_dataset_main()
 
     # parse_weather_area_data_to_csv_main()

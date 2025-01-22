@@ -110,6 +110,8 @@ def plot_metric_grid(
                                  bbox_to_anchor=inset_bbox_to_anchor,  # (x, y, width, height) - adjusted size and position
                                  bbox_transform=ax.transAxes,
                                  borderpad=0)
+            else:
+                axins = None
             
             for op_key, op_conf in sorted(operator_conf.items(), key=lambda x: x[1]['order']):
                 if op_key in plot_df['operator'].unique():
@@ -173,7 +175,7 @@ def plot_metric_grid(
             # round to the nearest x_step
             ax.set_xticks(np.arange(
                 0, 
-                round(x_max / x_step) * x_step + 1, 
+                max_xlim + 1, 
                 x_step
             ))
         
@@ -246,11 +248,12 @@ def main():
         loc_conf=cellular_location_conf,
         operator_conf=cellular_operator_conf,
         metrics=downlink_metrics,
-        max_xlim=1000,
-        enable_inset=True,
-        inset_x_min=0,
-        inset_x_max=30,
-        inset_x_step=10,
+        max_xlim=350,
+        x_step=50,
+        # enable_inset=True,
+        # inset_x_min=0,
+        # inset_x_max=30,
+        # inset_x_step=10,
         output_filepath=os.path.join(output_dir, 'cellular.downlink.ak_hi.pdf'),
     )
 

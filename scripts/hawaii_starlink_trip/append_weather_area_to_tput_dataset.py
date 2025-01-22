@@ -102,17 +102,17 @@ def main():
     area_df[CommonField.LOCAL_DT] = pd.to_datetime(area_df[CommonField.LOCAL_DT], format="ISO8601")
     area_query_util = TypeIntervalQueryUtil(area_df[[CommonField.LOCAL_DT, 'value']].values.tolist())
 
-    # append_weather_area_to_app_tput_traces(
-    #     tput_dir=tput_dir, 
-    #     weather_query_util=weather_query_util, 
-    #     area_query_util=area_query_util
-    # )
-
-    append_weather_area_to_xcal_tput_traces(
-        xcal_tput_dir=xcal_tput_dir, 
+    append_weather_area_to_app_tput_traces(
+        tput_dir=tput_dir, 
         weather_query_util=weather_query_util, 
         area_query_util=area_query_util
     )
+
+    # append_weather_area_to_xcal_tput_traces(
+    #     xcal_tput_dir=xcal_tput_dir, 
+    #     weather_query_util=weather_query_util, 
+    #     area_query_util=area_query_util
+    # )
 
     # for rtt_csv_file in glob.glob(os.path.join(ping_dir, '*_ping.csv')):
     #     logger.info(f'Appending weather and area data to {rtt_csv_file}')

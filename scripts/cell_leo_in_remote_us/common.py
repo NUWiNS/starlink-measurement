@@ -20,11 +20,11 @@ cellular_location_conf = {
         'order': 1,
         'tcp_downlink': {
             'interval_x': 100,
-            'max_xlim': 300,
+            'max_xlim': 350,
         },
         'tcp_uplink': {
             'interval_x': 25,
-            'max_xlim': 100,
+            'max_xlim': 75,
         },
     },
     'hawaii': {
@@ -34,11 +34,11 @@ cellular_location_conf = {
         'order': 2,
         'tcp_downlink': {
             'interval_x': 100,
-            'max_xlim': 300,
+            'max_xlim': 350,
         },
         'tcp_uplink': {
-            'interval_x': 50,
-            'max_xlim': 150,
+            'interval_x': 25,
+            'max_xlim': 75,
         },
     }
 }
@@ -48,7 +48,7 @@ location_conf = {
     'alaska': {
         'label': 'AK',
         'root_dir': AL_DATASET_DIR,
-        'operators': ['starlink', 'verizon', 'att`'],
+        'operators': ['starlink', 'verizon', 'att'],
         'tcp_downlink': {
             'interval_x': 100,
             'max_xlim': 300,
@@ -151,6 +151,75 @@ tech_conf = {
     },
 }
 
+style_confs = {
+    'starlink_att': {
+        'color': 'royalblue',
+        'linestyle': '-',
+        'label': 'Starlink - AT&T',
+    },
+    'starlink_tmobile': {
+        'color': 'magenta',
+        'linestyle': '-',
+        'label': 'Starlink - T-Mobile',
+    },
+    'starlink_verizon': {
+        'color': 'red',
+        'linestyle': '-',
+        'label': 'Starlink - Verizon',
+    },
+    'verizon_att': {
+        'color': 'royalblue',
+        'linestyle': ':',
+        'label': 'Verizon - AT&T',
+    },
+    'verizon_tmobile': {
+        'color': 'red',
+        'linestyle': ':',
+        'label': 'T-Mobile - Verizon',
+    },
+    'att_tmobile': {
+        'color': 'magenta',
+        'linestyle': ':',
+        'label': 'AT&T - T-Mobile',
+    },
+}
+
+threshold_confs = {
+    'tcp_downlink': {
+        0: {
+            'color': 'blue',
+            'label': '0 Mbps',
+            'linestyle': '-',   
+        },
+        10: {
+            'color': 'green',
+            'label': '10 Mbps',
+            'linestyle': 'dashed',
+        },
+        50: {
+            'color': 'red',
+            'label': '50 Mbps',
+            'linestyle': 'dotted',
+        }
+    },
+    'tcp_uplink': {
+        0: {
+            'color': 'blue',
+            'label': '0 Mbps',
+            'linestyle': '-',
+        },
+        5: {
+            'color': 'green',
+            'label': '5 Mbps',
+            'linestyle': 'dashed',
+        },
+        10: {
+            'color': 'red',
+            'label': '10 Mbps',
+            'linestyle': 'dotted',
+        }
+    }
+}
 # Colors for different technologies - from grey (NO SERVICE) to rainbow gradient (green->yellow->orange->red) for increasing tech
 colors = ['#808080', '#326f21', '#86c84d', '#ffd700', '#ff9900', '#ff4500', '#ba281c']  # Grey, green, light green, yellow, amber, orange, red
 tech_order = ['Unknown', 'NO SERVICE', 'LTE', 'LTE-A', '5G-low', '5G-mid', '5G-mmWave (28GHz)', '5G-mmWave (39GHz)']

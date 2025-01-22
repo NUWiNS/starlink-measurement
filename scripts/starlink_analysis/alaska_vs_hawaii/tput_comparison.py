@@ -26,7 +26,7 @@ logger = create_logger(__name__, console_output=True)
 
 def save_plot_statistics(data, title, output_filename):
     logger.info(f"Saving statistics for {title}")
-    protocols = ['tcp', 'udp']
+    protocols = ['tcp']
     locations = ['alaska', 'hawaii', 'maine']
     stats = {}
 
@@ -60,7 +60,7 @@ def save_plot_statistics(data, title, output_filename):
 
 def create_cdf_plot(data, title, output_filename, x_step: float = None):
     logger.info(f"Creating CDF plot for {title}")
-    protocols = ['tcp', 'udp']
+    protocols = ['tcp']
     locations = ['alaska', 'hawaii', 'maine']
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
     linestyles = ['-', '--', '-.']
@@ -76,8 +76,14 @@ def create_cdf_plot(data, title, output_filename, x_step: float = None):
             # Sort the data and calculate CDF
             sorted_data, yvals = get_cdf(subset['throughput_mbps'])
             
-            ax.plot(sorted_data, yvals, color=colors[j], linestyle=linestyles[i],
-                    label=f"{location.capitalize()} {protocol.upper()}")
+            ax.plot(
+                sorted_data, 
+                yvals, 
+                color=colors[j], 
+                linestyle=linestyles[i],
+                label=f"{location.capitalize()}"
+                # label=f"{location.capitalize()} {protocol.upper()}"
+            )
 
     ax.set_title(title)
     ax.set_xlabel('Throughput (Mbps)')
@@ -112,7 +118,7 @@ def create_cdf_plot(data, title, output_filename, x_step: float = None):
 
 def save_comparison_stats(data, output_filename):
     logger.info("Saving comparison statistics")
-    protocols = ['tcp', 'udp']
+    protocols = ['tcp']
     locations = ['alaska', 'hawaii', 'maine']
     directions = ['downlink', 'uplink']
     stats = {}
@@ -151,14 +157,14 @@ def plot_overall_tput_comparison(df: pd.DataFrame, base_dir: str):
 
     logger.info("Creating downlink throughput plot")
     create_cdf_plot(df[df['direction'] == 'downlink'], 
-                    title='Downlink Throughput', 
-                    output_filename=os.path.join(base_dir, 'starlink_dl_tput_cdf_al_vs_hi.png'))
+                    title='TCP DL', 
+                    output_filename=os.path.join(base_dir, 'starlink_dl_tput_cdf_al_vs_hi.pdf'))
 
     logger.info("Creating uplink throughput plot")
     create_cdf_plot(df[df['direction'] == 'uplink'], 
-                    title='Uplink Throughput', 
+                    title='TCP UL', 
                     x_step=10,
-                    output_filename=os.path.join(base_dir, 'starlink_ul_tput_cdf_al_vs_hi.png'))
+                    output_filename=os.path.join(base_dir, 'starlink_ul_tput_cdf_al_vs_hi.pdf'))
 
     logger.info("Saving comparison statistics")
     save_comparison_stats(df, os.path.join(base_dir, 'comparison_stats.txt'))
@@ -195,7 +201,7 @@ def get_tput_data_for_alaska_and_hawaii():
 def plot_tput_comparison_by_weather(df: pd.DataFrame, output_file_path: str = None):
     logger.info("Starting Starlink throughput comparison by weather")
 
-    protocols = ['tcp', 'udp']
+    protocols = ['tcp']
     directions = ['downlink', 'uplink']
 
     for protocol in protocols:
@@ -244,10 +250,10 @@ def plot_tput_comparison_by_weather(df: pd.DataFrame, output_file_path: str = No
             plt.tight_layout()
 
             if output_file_path:
-                file_name = f'starlink_tput_by_weather_comparison_al_vs_hi_{protocol}_{direction}.png'
+                file_name = f'starlink_tput_by_weather_comparison_al_vs_hi_{protocol}_{direction}.pdf'
                 full_path = os.path.join(os.path.dirname(output_file_path), file_name)
                 plt.savefig(full_path, bbox_inches='tight')
-                save_tput_by_weather_comparison_stats(filtered_df, full_path.replace('.png', '_stats.json'))
+                save_tput_by_weather_comparison_stats(filtered_df, full_path.replace('.pdf', '_stats.json'))
                 logger.info(f"Saved plot to {full_path}")
             else:
                 plt.show()
@@ -291,7 +297,7 @@ def main():
 
     plot_overall_tput_comparison(df, base_dir=OUTPUT_DIR)
 
-    # tput_by_weather_comparison_fig = os.path.join(OUTPUT_DIR, 'starlink_tput_by_weather_comparison_al_vs_hi.png')
+    # tput_by_weather_comparison_fig = os.path.join(OUTPUT_DIR, 'starlink_tput_by_weather_comparison_al_vs_hi.pdf')
     # plot_tput_comparison_by_weather(df, output_file_path=tput_by_weather_comparison_fig)
 
 if __name__ == '__main__':
