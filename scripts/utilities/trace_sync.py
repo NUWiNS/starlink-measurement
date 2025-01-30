@@ -2,6 +2,7 @@ from datetime import datetime
 import logging
 from typing import List, Tuple, Set
 
+import numpy as np
 import pandas as pd
 import glob
 import json
@@ -11,7 +12,7 @@ from typing import Dict, List, Tuple
 import pandas as pd
 
 from scripts.common import TputBaseProcessor
-from scripts.constants import CommonField
+from scripts.constants import CommonField, XcalField
 
 def scan_files_in_dataset(dataset_list: List[str], file_pattern: str) -> List[str]:
     files = []
@@ -123,6 +124,7 @@ def match_traces_between_operators(base_dir: str, operator_a: str, operator_b: s
     operator_a_dataset = read_operator_trace_list(operator_a, base_dir)
     operator_b_dataset = read_operator_trace_list(operator_b, base_dir)
 
+    # Threshold is 5 minutes
     timestamp_matcher = TimestampMatcher(threshold_seconds=60 * 5)
 
     for trace_type in ['tcp_downlink', 'tcp_uplink', 'ping']:
@@ -254,12 +256,16 @@ def sync_trace_between_operators(base_dir: str, operator_a: str, operator_b: str
             # Extract matched data into a format suitable for DataFrame
             for row_a, row_b in matched:
                 matched_data = {
+                    'A': operator_a,
+                    'A_run': op_a_run_time,
                     'A_time': row_a['time'],
                     f'A_{data_field}': row_a.get(data_field),
+                    f'A_{XcalField.ACTUAL_TECH}': None,
+                    'B': operator_b,
+                    'B_run': op_b_run_time,
                     'B_time': row_b['time'],
                     f'B_{data_field}': row_b.get(data_field),
-                    'A_run_time': op_a_run_time,
-                    'B_run_time': op_b_run_time,
+                    f'B_{XcalField.ACTUAL_TECH}': None,
                 }
                 all_matched_data.append(matched_data)
 
@@ -338,6 +344,65 @@ def save_inter_operator_zero_tput_diff(operator_a: str, operator_b: str, base_di
         df.to_csv(output_csv_path, index=False)
         logger.info(f'saved zero tput diff (total len: {len(df)}) to {output_csv_path}')
 
+
+def op_key(operator_a_or_b: str, key: str):
+    return f'{operator_a_or_b.upper()}_{key}'
+
+def append_actual_tech_to_df(
+        df: pd.DataFrame, 
+        ref_df: pd.DataFrame, 
+        operator_a_or_b: str, 
+        logger: logging.Logger,
+        df_time_field: str = CommonField.TIME, 
+        ref_time_field: str = CommonField.LOCAL_DT,
+        diff_sec_threshold: int = 1,
+    ):
+    # Create the actual tech column
+    logger.info(f'mapping {op_key(operator_a_or_b, XcalField.ACTUAL_TECH)}...')
+    total_rows = len(df)
+    missed_rows = 0
+
+    # Convert ISO8601 datetime strings to timestamps for comparison
+    ref_df[ref_time_field] = pd.to_datetime(ref_df[ref_time_field], format='ISO8601').apply(lambda x: x.timestamp())
+    ref_df = ref_df.sort_values(by=ref_time_field)
+    ref_timestamps = ref_df[ref_time_field].values
+    
+    # For each row in df, find closest timestamp in ref_df
+    for idx, row in df.iterrows():
+        # Convert target time to timestamp
+        local_dt = row[op_key(operator_a_or_b, df_time_field)]
+        target_time = pd.to_datetime(local_dt, format='ISO8601').timestamp()
+        
+        # Binary search for closest timestamp
+        insert_idx = np.searchsorted(ref_timestamps, target_time)
+        
+        # Handle edge cases
+        if insert_idx == 0:
+            closest_idx = 0
+        elif insert_idx == len(ref_timestamps):
+            closest_idx = len(ref_timestamps) - 1
+        else:
+            # Compare distances to find closest
+            prev_diff = abs(ref_timestamps[insert_idx - 1] - target_time)
+            curr_diff = abs(ref_timestamps[insert_idx] - target_time)
+            # All diffs should be less than 1 second
+            closest_idx = insert_idx - 1 if prev_diff < curr_diff else insert_idx
+
+        closest_row = ref_df.iloc[closest_idx]
+        # Check if the diff is less than 1 second
+        matched_time = closest_row[ref_time_field]
+        if abs(matched_time - target_time) > diff_sec_threshold:
+            # logger.info(f'[{idx}, {local_dt}]: row has diff that is greater than 3 seconds')
+            missed_rows += 1
+            continue
+
+        # Assign the actual tech from the closest matching row
+        actual_tech = ref_df.iloc[closest_idx][XcalField.ACTUAL_TECH]
+        df.at[idx, op_key(operator_a_or_b, XcalField.ACTUAL_TECH)] = actual_tech
+        # logger.info(f'[{idx}, {local_dt}]: row is matched with tech ({actual_tech})')
+    
+    logger.info(f'mapping {op_key(operator_a_or_b, XcalField.ACTUAL_TECH)} is done, missed rows: {missed_rows} / {total_rows} (percentage: {np.round((missed_rows / total_rows) * 100, 2)}%)')
+    return df
 
 class TimestampMatcher:
     def __init__(self, threshold_seconds: int = 600):
